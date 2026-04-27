@@ -18,8 +18,17 @@ export type Section = {
   order: number;
 };
 
+export type DayHistory = {
+  date: string; // YYYY-MM-DD
+  completedRoutineIds: string[];
+  // Snapshot of routine titles/emoji at the time, so old days survive deletes
+  snapshot: Record<string, { title: string; emoji?: string; sectionTitle?: string }>;
+  total: number;
+};
+
 export type RoutineState = {
   sections: Section[];
   routines: Routine[];
   lastResetDate: string; // YYYY-MM-DD
+  history: Record<string, DayHistory>; // keyed by date
 };
