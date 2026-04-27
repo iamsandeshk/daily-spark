@@ -1,22 +1,30 @@
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FolderPlus, Plus } from "lucide-react";
+import { CalendarDays, FolderPlus, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
-import { AddRoutineDialog } from "@/components/routine/AddRoutineDialog";
 import { AddSectionDialog } from "@/components/routine/AddSectionDialog";
 
 const Index = () => {
   const r = useRoutines();
-  const [routineDialog, setRoutineDialog] = useState<{ open: boolean; sectionId?: string }>({ open: false });
+  const navigate = useNavigate();
   const [sectionDialog, setSectionDialog] = useState(false);
 
   const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
 
+  const newRoutine = (sectionId?: string) => {
+    navigate(sectionId ? `/routine/new?section=${sectionId}` : "/routine/new");
+  };
+
   return (
     <div className="min-h-full bg-background pb-32">
-      <ProgressHeader completed={r.completed} total={r.total} />
+      <ProgressHeader
+        completed={r.completed}
+        total={r.total}
+        onOpenHistory={() => navigate("/history")}
+      />
 
       <main className="px-4 space-y-6">
         <AnimatePresence initial={false}>
@@ -33,11 +41,10 @@ const Index = () => {
                 section={s}
                 routines={r.state.routines.filter((x) => x.sectionId === s.id)}
                 onToggleCollapsed={r.toggleSectionCollapsed}
-                onAdd={(sectionId) => setRoutineDialog({ open: true, sectionId })}
+                onAdd={newRoutine}
                 onDeleteSection={r.deleteSection}
                 onToggleRoutine={r.toggleRoutine}
                 onDeleteRoutine={r.deleteRoutine}
-                onMoveRoutine={r.reorderRoutine}
               />
             </motion.div>
           ))}
@@ -52,30 +59,35 @@ const Index = () => {
 
         {r.total > 0 && (
           <p className="text-center text-xs text-muted-foreground pt-4">
-            All routines reset at midnight, every day.
+            Tap a routine to edit · Long-press to delete · Resets at midnight
           </p>
         )}
       </main>
 
-      {/* Floating Action Button */}
-      <motion.button
-        whileTap={{ scale: 0.92 }}
-        onClick={() => setRoutineDialog({ open: true })}
-        className="fixed right-5 bottom-6 z-40 flex items-center gap-2 rounded-full bg-foreground text-background pl-4 pr-5 py-3.5 shadow-elevated transition-smooth hover:opacity-90"
+      {/* Floating Action: History + New */}
+      <div
+        className="fixed right-5 bottom-6 z-40 flex items-center gap-3"
         style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-        aria-label="Add routine"
       >
-        <Plus size={18} strokeWidth={2.5} />
-        <span className="text-sm font-semibold">New routine</span>
-      </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => navigate("/history")}
+          className="flex items-center justify-center rounded-full bg-card border border-border text-foreground h-12 w-12 shadow-elevated"
+          aria-label="History"
+        >
+          <CalendarDays size={18} />
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => newRoutine()}
+          className="flex items-center gap-2 rounded-full bg-foreground text-background pl-4 pr-5 py-3.5 shadow-elevated transition-smooth hover:opacity-90"
+          aria-label="Add routine"
+        >
+          <Plus size={18} strokeWidth={2.5} />
+          <span className="text-sm font-semibold">New routine</span>
+        </motion.button>
+      </div>
 
-      <AddRoutineDialog
-        open={routineDialog.open}
-        onOpenChange={(v) => setRoutineDialog({ open: v, sectionId: v ? routineDialog.sectionId : undefined })}
-        sections={sortedSections}
-        defaultSectionId={routineDialog.sectionId}
-        onCreate={r.addRoutine}
-      />
       <AddSectionDialog open={sectionDialog} onOpenChange={setSectionDialog} onCreate={r.addSection} />
     </div>
   );
