@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
+import { CalendarDays, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Props = {
   completed: number;
   total: number;
+  onOpenHistory?: () => void;
 };
 
 const greeting = () => {
@@ -38,7 +39,7 @@ const useTheme = () => {
   return { isDark, toggle };
 };
 
-export const ProgressHeader = ({ completed, total }: Props) => {
+export const ProgressHeader = ({ completed, total, onOpenHistory }: Props) => {
   const { isDark, toggle } = useTheme();
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
@@ -49,13 +50,24 @@ export const ProgressHeader = ({ completed, total }: Props) => {
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-medium">{dateLabel()}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{greeting()}</h1>
         </div>
-        <button
-          onClick={toggle}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
-          aria-label="Toggle theme"
-        >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenHistory && (
+            <button
+              onClick={onOpenHistory}
+              className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+              aria-label="History"
+            >
+              <CalendarDays size={16} />
+            </button>
+          )}
+          <button
+            onClick={toggle}
+            className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-block">

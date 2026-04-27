@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Flame, Trash2 } from "lucide-react";
+import { Flame } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 import type { Routine } from "@/lib/routine-types";
 import { RoutineCheckbox } from "./RoutineCheckbox";
 import { successHaptic, tapHaptic } from "@/lib/haptics";
@@ -9,16 +11,34 @@ type Props = {
   routine: Routine;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onMove: (id: string, dir: "up" | "down") => void;
-  isFirst: boolean;
-  isLast: boolean;
 };
 
-export const RoutineBlock = ({ routine, onToggle, onDelete, onMove, isFirst, isLast }: Props) => {
+export const RoutineBlock = ({ routine, onToggle, onDelete }: Props) => {
+  const navigate = useNavigate();
+  const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
+
   const handleToggle = () => {
     if (!routine.isCompleted) successHaptic();
     else tapHaptic();
     onToggle(routine.id);
+  };
+
+  const startPress = () => {
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true;
+      tapHaptic();
+      if (confirm(`Delete "${routine.title}"?`)) onDelete(routine.id);
+    }, 550);
+  };
+  const endPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+  };
+
+  const openDetail = () => {
+    if (longPressed.current) return;
+    navigate(`/routine/${routine.id}`);
   };
 
   return (
@@ -29,24 +49,29 @@ export const RoutineBlock = ({ routine, onToggle, onDelete, onMove, isFirst, isL
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.18 }}
       className={cn(
-        "group relative flex items-start gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-smooth",
+        "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
         routine.isCompleted && "bg-success-soft/40 border-success/20",
       )}
     >
-      <div className="pt-0.5">
+      <div className="shrink-0">
         <RoutineCheckbox checked={routine.isCompleted} onChange={handleToggle} />
       </div>
 
       <button
         type="button"
-        onClick={handleToggle}
-        className="flex-1 min-w-0 text-left"
+        onClick={openDetail}
+        onPointerDown={startPress}
+        onPointerUp={endPress}
+        onPointerLeave={endPress}
+        onPointerCancel={endPress}
+        onContextMenu={(e) => e.preventDefault()}
+        className="flex-1 min-w-0 text-left select-none"
       >
-        <div className="flex items-center gap-2">
-          {routine.emoji && <span className="text-base leading-none">{routine.emoji}</span>}
+        <div className="flex items-center gap-2 min-w-0">
+          {routine.emoji && <span className="text-base leading-none shrink-0">{routine.emoji}</span>}
           <span
             className={cn(
-              "font-medium text-[15px] leading-snug transition-smooth",
+              "font-medium text-[15px] leading-snug truncate transition-colors",
               routine.isCompleted && "line-through text-muted-foreground",
             )}
           >
@@ -54,11 +79,12 @@ export const RoutineBlock = ({ routine, onToggle, onDelete, onMove, isFirst, isL
           </span>
         </div>
         {routine.description && (
-          <p className="mt-0.5 text-[13px] text-muted-foreground line-clamp-2">{routine.description}</p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground line-clamp-1">{routine.description}</p>
         )}
       </button>
 
-      <div className="flex items-center gap-1.5 pt-0.5">
+      {/* Streak chip — reserved fixed width so layout never shifts */}
+      <div className="shrink-0 min-w-[44px] flex justify-end">
         {routine.streakCount > 0 && (
           <div
             className="flex items-center gap-0.5 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent"
@@ -68,31 +94,6 @@ export const RoutineBlock = ({ routine, onToggle, onDelete, onMove, isFirst, isL
             {routine.streakCount}
           </div>
         )}
-        <div className="hidden group-hover:flex items-center gap-0.5">
-          <button
-            onClick={() => onMove(routine.id, "up")}
-            disabled={isFirst}
-            className="p-1 rounded text-muted-foreground hover:bg-muted disabled:opacity-30"
-            aria-label="Move up"
-          >
-            <ArrowUp size={13} />
-          </button>
-          <button
-            onClick={() => onMove(routine.id, "down")}
-            disabled={isLast}
-            className="p-1 rounded text-muted-foreground hover:bg-muted disabled:opacity-30"
-            aria-label="Move down"
-          >
-            <ArrowDown size={13} />
-          </button>
-          <button
-            onClick={() => onDelete(routine.id)}
-            className="p-1 rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            aria-label="Delete"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
       </div>
     </motion.div>
   );

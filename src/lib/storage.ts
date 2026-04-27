@@ -1,4 +1,4 @@
-import type { RoutineState } from "./routine-types";
+import type { DayHistory, RoutineState } from "./routine-types";
 
 const KEY = "daily-routine-os/v1";
 
@@ -19,6 +19,7 @@ const seed = (): RoutineState => {
   const today = todayKey();
   return {
     lastResetDate: today,
+    history: {},
     sections: [
       { id: "s-morning", title: "Morning", emoji: "🌅", collapsed: false, order: 0 },
       { id: "s-work", title: "Work", emoji: "💼", collapsed: false, order: 1 },
@@ -39,7 +40,9 @@ export const loadState = (): RoutineState => {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return applyDailyReset(seed());
-    return applyDailyReset(JSON.parse(raw) as RoutineState);
+    const parsed = JSON.parse(raw) as RoutineState;
+    if (!parsed.history) parsed.history = {};
+    return applyDailyReset(parsed);
   } catch {
     return applyDailyReset(seed());
   }
@@ -49,21 +52,37 @@ export const saveState = (s: RoutineState) => {
   localStorage.setItem(KEY, JSON.stringify(s));
 };
 
+const snapshotForDate = (state: RoutineState): DayHistory["snapshot"] => {
+  const sectionMap = Object.fromEntries(state.sections.map((s) => [s.id, s.title]));
+  const snap: DayHistory["snapshot"] = {};
+  for (const r of state.routines) {
+    snap[r.id] = { title: r.title, emoji: r.emoji, sectionTitle: sectionMap[r.sectionId] };
+  }
+  return snap;
+};
+
 /**
- * Daily reset engine.
- * - Compares lastResetDate with today (local time)
- * - Resets all isCompleted to false
- * - Breaks streaks for routines not completed yesterday (or earlier)
- * - Idempotent: only runs once per local day
- * - Survives device restart, app close, timezone changes
+ * Daily reset engine — also persists yesterday's completion record into history.
  */
 export const applyDailyReset = (state: RoutineState): RoutineState => {
   const today = todayKey();
   if (state.lastResetDate === today) return state;
 
+  // Save snapshot of the day that's ending (state.lastResetDate)
+  const endingDate = state.lastResetDate;
+  const completedIds = state.routines.filter((r) => r.isCompleted).map((r) => r.id);
+  const history = { ...state.history };
+  if (endingDate) {
+    history[endingDate] = {
+      date: endingDate,
+      completedRoutineIds: completedIds,
+      snapshot: snapshotForDate(state),
+      total: state.routines.length,
+    };
+  }
+
   const yesterday = yesterdayKey(today);
   const routines = state.routines.map((r) => {
-    // If their last completion was not yesterday and not today, streak resets
     const keepStreak = r.lastCompletedDate === yesterday || r.lastCompletedDate === today;
     return {
       ...r,
@@ -72,7 +91,18 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
     };
   });
 
-  const next: RoutineState = { ...state, routines, lastResetDate: today };
+  const next: RoutineState = { ...state, routines, lastResetDate: today, history };
   saveState(next);
   return next;
+};
+
+/** Live snapshot of today's history (for showing today in calendar before reset). */
+export const todayLiveHistory = (state: RoutineState): DayHistory => {
+  const today = todayKey();
+  return {
+    date: today,
+    completedRoutineIds: state.routines.filter((r) => r.isCompleted).map((r) => r.id),
+    snapshot: snapshotForDate(state),
+    total: state.routines.length,
+  };
 };

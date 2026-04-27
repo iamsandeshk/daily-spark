@@ -18,7 +18,6 @@ type Props = {
   onDeleteSection: (id: string) => void;
   onToggleRoutine: (id: string) => void;
   onDeleteRoutine: (id: string) => void;
-  onMoveRoutine: (id: string, dir: "up" | "down") => void;
 };
 
 export const SectionBlock = ({
@@ -29,7 +28,6 @@ export const SectionBlock = ({
   onDeleteSection,
   onToggleRoutine,
   onDeleteRoutine,
-  onMoveRoutine,
 }: Props) => {
   const sorted = [...routines].sort((a, b) => a.order - b.order);
   const done = sorted.filter((r) => r.isCompleted).length;
@@ -100,15 +98,12 @@ export const SectionBlock = ({
                   + Add a routine
                 </button>
               )}
-              {sorted.map((r, i) => (
+              {sorted.map((r) => (
                 <RoutineBlock
                   key={r.id}
                   routine={r}
                   onToggle={onToggleRoutine}
                   onDelete={onDeleteRoutine}
-                  onMove={onMoveRoutine}
-                  isFirst={i === 0}
-                  isLast={i === sorted.length - 1}
                 />
               ))}
             </div>

@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Routine, RoutineState, Section } from "@/lib/routine-types";
-import { applyDailyReset, loadState, saveState, todayKey, yesterdayKey } from "@/lib/storage";
+import { applyDailyReset, loadState, saveState, todayKey, todayLiveHistory, yesterdayKey } from "@/lib/storage";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+/** Merge today's live snapshot into history so the calendar always reflects current progress. */
+const withLiveToday = (s: RoutineState): RoutineState => {
+  const today = todayLiveHistory(s);
+  return { ...s, history: { ...s.history, [today.date]: today } };
+};
+
 export const useRoutines = () => {
-  const [state, setState] = useState<RoutineState>(() => loadState());
+  const [state, setState] = useState<RoutineState>(() => withLiveToday(loadState()));
   const timerRef = useRef<number | null>(null);
 
-  // Persist on every change
   useEffect(() => {
     saveState(state);
   }, [state]);
 
-  // Re-check reset: on focus, on visibility change, and via a scheduled timer to next midnight
   const recheck = useCallback(() => {
-    setState((s) => applyDailyReset(s));
+    setState((s) => withLiveToday(applyDailyReset(s)));
   }, []);
 
   useEffect(() => {
@@ -27,7 +31,7 @@ export const useRoutines = () => {
     const scheduleMidnight = () => {
       const now = new Date();
       const next = new Date(now);
-      next.setHours(24, 0, 5, 0); // 00:00:05 next day local
+      next.setHours(24, 0, 5, 0);
       const ms = next.getTime() - now.getTime();
       timerRef.current = window.setTimeout(() => {
         recheck();
@@ -47,7 +51,7 @@ export const useRoutines = () => {
     setState((s) => {
       const today = todayKey();
       const yest = yesterdayKey(today);
-      return {
+      const next: RoutineState = {
         ...s,
         routines: s.routines.map((r) => {
           if (r.id !== id) return r;
@@ -61,7 +65,6 @@ export const useRoutines = () => {
               streakCount: continuing ? (r.lastCompletedDate === today ? r.streakCount : r.streakCount + 1) : 1,
             };
           }
-          // Un-checking on the same day rolls back the streak we just added
           const rollback = r.lastCompletedDate === today ? Math.max(0, r.streakCount - 1) : r.streakCount;
           return {
             ...r,
@@ -71,6 +74,7 @@ export const useRoutines = () => {
           };
         }),
       };
+      return withLiveToday(next);
     });
   }, []);
 
@@ -78,19 +82,19 @@ export const useRoutines = () => {
     setState((s) => {
       const sectionRoutines = s.routines.filter((r) => r.sectionId === data.sectionId);
       const order = sectionRoutines.length;
-      return {
+      return withLiveToday({
         ...s,
         routines: [...s.routines, { ...data, id: uid(), isCompleted: false, streakCount: 0, order }],
-      };
+      });
     });
   }, []);
 
   const updateRoutine = useCallback((id: string, patch: Partial<Routine>) => {
-    setState((s) => ({ ...s, routines: s.routines.map((r) => (r.id === id ? { ...r, ...patch } : r)) }));
+    setState((s) => withLiveToday({ ...s, routines: s.routines.map((r) => (r.id === id ? { ...r, ...patch } : r)) }));
   }, []);
 
   const deleteRoutine = useCallback((id: string) => {
-    setState((s) => ({ ...s, routines: s.routines.filter((r) => r.id !== id) }));
+    setState((s) => withLiveToday({ ...s, routines: s.routines.filter((r) => r.id !== id) }));
   }, []);
 
   const reorderRoutine = useCallback((id: string, direction: "up" | "down") => {
