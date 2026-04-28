@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, Flame, Trash2 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tapHaptic } from "@/lib/haptics";
+import { BlockEditor } from "@/components/routine/BlockEditor";
+import type { RoutineBlockContent } from "@/lib/routine-types";
 
 const emojiPresets = ["✨", "💧", "🧘", "🏃", "📖", "🎯", "💪", "🍎", "🌅", "🌙", "📚", "🎨", "💼", "☕", "🛌", "🧠"];
 
@@ -16,22 +16,35 @@ const RoutineDetail = () => {
   const r = useRoutines();
 
   const isNew = id === "new";
-  const existing = useMemo(() => (isNew ? undefined : r.state.routines.find((x) => x.id === id)), [id, isNew, r.state.routines]);
+  const existing = useMemo(
+    () => (isNew ? undefined : r.state.routines.find((x) => x.id === id)),
+    [id, isNew, r.state.routines],
+  );
 
   const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
   const initialSection = params.get("section") ?? sortedSections[0]?.id ?? "";
 
   const [title, setTitle] = useState(existing?.title ?? "");
-  const [description, setDescription] = useState(existing?.description ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "✨");
   const [sectionId, setSectionId] = useState(existing?.sectionId ?? initialSection);
+  const [blocks, setBlocks] = useState<RoutineBlockContent[]>(
+    existing?.blocks ??
+      (existing?.description
+        ? [{ id: "legacy", type: "text", text: existing.description }]
+        : []),
+  );
 
   useEffect(() => {
     if (existing) {
       setTitle(existing.title);
-      setDescription(existing.description ?? "");
       setEmoji(existing.emoji ?? "✨");
       setSectionId(existing.sectionId);
+      setBlocks(
+        existing.blocks ??
+          (existing.description
+            ? [{ id: "legacy", type: "text", text: existing.description }]
+            : []),
+      );
     }
   }, [existing]);
 
@@ -42,14 +55,19 @@ const RoutineDetail = () => {
 
   const save = () => {
     if (!title.trim() || !sectionId) return;
+    // Derive a plain-text description from the first text-like block for list preview.
+    const firstText = blocks.find((b) => ["text", "quote", "subheading"].includes(b.type) && b.text?.trim());
+    const description = firstText?.text?.trim() || undefined;
+
     if (isNew) {
-      r.addRoutine({ title: title.trim(), description: description.trim() || undefined, emoji, sectionId });
+      r.addRoutine({ title: title.trim(), description, emoji, sectionId, blocks });
     } else if (existing) {
       r.updateRoutine(existing.id, {
         title: title.trim(),
-        description: description.trim() || undefined,
+        description,
         emoji,
         sectionId,
+        blocks,
       });
     }
     tapHaptic();
@@ -96,7 +114,7 @@ const RoutineDetail = () => {
         </div>
       </header>
 
-      <main className="px-5 pt-6 space-y-6">
+      <main className="px-5 pt-6 space-y-5">
         {/* Notion-like big emoji + title */}
         <div className="space-y-3">
           <button
@@ -125,22 +143,11 @@ const RoutineDetail = () => {
           )}
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Notes</label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add details, reminders, or context…"
-            rows={4}
-            className="resize-none text-base"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Section</label>
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={sectionId} onValueChange={setSectionId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Choose a section" />
+            <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-muted/60 px-3 text-xs font-medium">
+              <SelectValue placeholder="Section" />
             </SelectTrigger>
             <SelectContent>
               {sortedSections.map((s) => (
@@ -150,25 +157,34 @@ const RoutineDetail = () => {
               ))}
             </SelectContent>
           </Select>
+
+          <details className="relative">
+            <summary className="list-none inline-flex items-center gap-1.5 h-8 rounded-full border border-border bg-muted/60 px-3 text-xs font-medium cursor-pointer select-none">
+              <span>{emoji}</span> Icon
+            </summary>
+            <div className="absolute z-20 mt-2 rounded-lg border border-border bg-popover p-2 shadow-elevated">
+              <div className="grid grid-cols-8 gap-1">
+                {emojiPresets.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setEmoji(e)}
+                    className={`h-8 w-8 rounded-md text-base transition-smooth ${
+                      emoji === e ? "bg-accent-soft" : "hover:bg-muted"
+                    }`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </details>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Icon</label>
-          <div className="flex flex-wrap gap-1.5">
-            {emojiPresets.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => setEmoji(e)}
-                className={`h-10 w-10 rounded-md border text-lg transition-smooth ${
-                  emoji === e ? "border-accent bg-accent-soft" : "border-border hover:bg-muted"
-                }`}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="h-px bg-border" />
+
+        {/* Notion-style block editor */}
+        <BlockEditor blocks={blocks} onChange={setBlocks} />
       </main>
     </div>
   );
