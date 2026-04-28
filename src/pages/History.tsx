@@ -7,20 +7,30 @@ import { cn } from "@/lib/utils";
 
 const monthLabel = (d: Date) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
-/** Compute current streak: consecutive days ending today (or yesterday) where total>0 and all completed. */
+/**
+ * Current streak = consecutive days (ending today, or yesterday if today isn't perfect yet)
+ * where the day had at least one routine AND every routine was completed.
+ * A partial/empty day breaks the streak.
+ */
 const computeStreak = (history: Record<string, { completedRoutineIds: string[]; total: number }>) => {
-  let cursor = new Date();
-  let streak = 0;
-  // If today not fully complete, start from yesterday
   const today = todayKey();
-  const t = history[today];
-  if (!t || t.total === 0 || t.completedRoutineIds.length < t.total) {
+  const isPerfect = (k: string) => {
+    const d = history[k];
+    return !!d && d.total > 0 && d.completedRoutineIds.length >= d.total;
+  };
+
+  let cursor: Date;
+  if (isPerfect(today)) {
+    cursor = new Date();
+  } else {
+    // Today not perfect — streak, if any, ended yesterday.
     cursor = new Date(yesterdayKey() + "T12:00:00");
   }
+
+  let streak = 0;
   for (;;) {
     const k = todayKey(cursor);
-    const day = history[k];
-    if (!day || day.total === 0 || day.completedRoutineIds.length < day.total) break;
+    if (!isPerfect(k)) break;
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
