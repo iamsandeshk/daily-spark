@@ -7,20 +7,30 @@ import { cn } from "@/lib/utils";
 
 const monthLabel = (d: Date) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
-/** Compute current streak: consecutive days ending today (or yesterday) where total>0 and all completed. */
+/**
+ * Current streak = consecutive days (ending today, or yesterday if today isn't perfect yet)
+ * where the day had at least one routine AND every routine was completed.
+ * A partial/empty day breaks the streak.
+ */
 const computeStreak = (history: Record<string, { completedRoutineIds: string[]; total: number }>) => {
-  let cursor = new Date();
-  let streak = 0;
-  // If today not fully complete, start from yesterday
   const today = todayKey();
-  const t = history[today];
-  if (!t || t.total === 0 || t.completedRoutineIds.length < t.total) {
+  const isPerfect = (k: string) => {
+    const d = history[k];
+    return !!d && d.total > 0 && d.completedRoutineIds.length >= d.total;
+  };
+
+  let cursor: Date;
+  if (isPerfect(today)) {
+    cursor = new Date();
+  } else {
+    // Today not perfect — streak, if any, ended yesterday.
     cursor = new Date(yesterdayKey() + "T12:00:00");
   }
+
+  let streak = 0;
   for (;;) {
     const k = todayKey(cursor);
-    const day = history[k];
-    if (!day || day.total === 0 || day.completedRoutineIds.length < day.total) break;
+    if (!isPerfect(k)) break;
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -179,42 +189,90 @@ const History = () => {
           {!selectedDay || selectedDay.total === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">No data for this day.</p>
           ) : (
-            <>
-              <p className="mt-1 text-2xl font-semibold tabular-nums">
-                {selectedDay.completedRoutineIds.length}
-                <span className="text-muted-foreground text-base font-medium"> / {selectedDay.total} completed</span>
-              </p>
-              <ul className="mt-4 space-y-2">
-                {Object.entries(selectedDay.snapshot).map(([rid, snap]) => {
-                  const done = selectedDay.completedRoutineIds.includes(rid);
-                  return (
-                    <li
-                      key={rid}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm",
-                        done ? "bg-success-soft/40" : "opacity-70",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "h-4 w-4 rounded-sm border flex items-center justify-center text-[10px]",
-                          done ? "bg-success border-success text-success-foreground" : "border-input",
-                        )}
-                      >
-                        {done && "✓"}
+            (() => {
+              const completedIds = selectedDay.completedRoutineIds;
+              const entries = Object.entries(selectedDay.snapshot);
+              const completed = entries.filter(([rid]) => completedIds.includes(rid));
+              const missed = entries.filter(([rid]) => !completedIds.includes(rid));
+              const ratio = selectedDay.total === 0 ? 0 : completed.length / selectedDay.total;
+              const perfect = ratio >= 1;
+
+              return (
+                <>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <p className="text-2xl font-semibold tabular-nums">
+                      {completed.length}
+                      <span className="text-muted-foreground text-base font-medium"> / {selectedDay.total}</span>
+                    </p>
+                    {perfect ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
+                        <Flame size={11} strokeWidth={2.5} /> Streak day
                       </span>
-                      {snap.emoji && <span>{snap.emoji}</span>}
-                      <span className={cn("flex-1 truncate", done && "line-through text-muted-foreground")}>
-                        {snap.title}
+                    ) : (
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {Math.round(ratio * 100)}% complete
                       </span>
-                      {snap.sectionTitle && (
-                        <span className="text-[10px] text-muted-foreground">{snap.sectionTitle}</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
+                    )}
+                  </div>
+
+                  {/* Completed routines */}
+                  <div className="mt-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
+                      Completed ({completed.length})
+                    </p>
+                    {completed.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No routines were completed this day.</p>
+                    ) : (
+                      <ul className="space-y-1.5">
+                        {completed.map(([rid, snap]) => (
+                          <li
+                            key={rid}
+                            className="flex items-center gap-3 rounded-lg border border-success/20 bg-success-soft/40 px-3 py-2 text-sm"
+                          >
+                            <span className="h-4 w-4 rounded-sm bg-success border border-success text-success-foreground flex items-center justify-center text-[10px]">
+                              ✓
+                            </span>
+                            <span className="text-base leading-none">{snap.emoji ?? "•"}</span>
+                            <span className="flex-1 truncate font-medium">{snap.title}</span>
+                            {snap.sectionTitle && (
+                              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                {snap.sectionTitle}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Missed routines */}
+                  {missed.length > 0 && (
+                    <div className="mt-5">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
+                        Missed ({missed.length})
+                      </p>
+                      <ul className="space-y-1.5">
+                        {missed.map(([rid, snap]) => (
+                          <li
+                            key={rid}
+                            className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm opacity-70"
+                          >
+                            <span className="h-4 w-4 rounded-sm border border-input" />
+                            <span className="text-base leading-none">{snap.emoji ?? "•"}</span>
+                            <span className="flex-1 truncate text-muted-foreground">{snap.title}</span>
+                            {snap.sectionTitle && (
+                              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                {snap.sectionTitle}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              );
+            })()
           )}
         </div>
       </main>
