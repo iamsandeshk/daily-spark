@@ -1,16 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, FolderPlus, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
-import { AddSectionDialog } from "@/components/routine/AddSectionDialog";
 
 const Index = () => {
   const r = useRoutines();
   const navigate = useNavigate();
-  const [sectionDialog, setSectionDialog] = useState(false);
 
   const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
 
@@ -50,12 +47,6 @@ const Index = () => {
           ))}
         </AnimatePresence>
 
-        <button
-          onClick={() => setSectionDialog(true)}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border px-3.5 py-3 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-smooth"
-        >
-          <FolderPlus size={15} /> New section
-        </button>
 
         {r.total > 0 && (
           <p className="text-center text-xs text-muted-foreground pt-4">
@@ -88,7 +79,7 @@ const Index = () => {
         </motion.button>
       </div>
 
-      <AddSectionDialog open={sectionDialog} onOpenChange={setSectionDialog} onCreate={r.addSection} />
+      
     </div>
   );
 };
