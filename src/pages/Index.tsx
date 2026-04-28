@@ -47,12 +47,6 @@ const Index = () => {
           ))}
         </AnimatePresence>
 
-        <button
-          onClick={() => setSectionDialog(true)}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border px-3.5 py-3 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-smooth"
-        >
-          <FolderPlus size={15} /> New section
-        </button>
 
         {r.total > 0 && (
           <p className="text-center text-xs text-muted-foreground pt-4">
