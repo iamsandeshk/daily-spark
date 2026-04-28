@@ -1,3 +1,21 @@
+export type BlockType =
+  | "text"
+  | "heading"
+  | "subheading"
+  | "bullet"
+  | "checkbox"
+  | "divider"
+  | "quote"
+  | "link";
+
+export type RoutineBlockContent = {
+  id: string;
+  type: BlockType;
+  text?: string;
+  checked?: boolean;
+  url?: string;
+};
+
 export type Routine = {
   id: string;
   title: string;
@@ -8,6 +26,8 @@ export type Routine = {
   streakCount: number;
   sectionId: string;
   order: number;
+  /** Notion-style rich content blocks (optional for legacy routines). */
+  blocks?: RoutineBlockContent[];
 };
 
 export type Section = {
