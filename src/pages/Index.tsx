@@ -1,16 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, FolderPlus, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
-import { AddSectionDialog } from "@/components/routine/AddSectionDialog";
 
 const Index = () => {
   const r = useRoutines();
   const navigate = useNavigate();
-  const [sectionDialog, setSectionDialog] = useState(false);
 
   const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
 
