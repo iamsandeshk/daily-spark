@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Flame, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Flame, Trash2, Pencil } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
+import { EmojiPicker } from "@/components/routine/EmojiPicker";
+import { SectionPicker } from "@/components/routine/SectionPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-
-const emojiPresets = ["✨", "💧", "🧘", "🏃", "📖", "🎯", "💪", "🍎", "🌅", "🌙", "📚", "🎨", "💼", "☕", "🛌", "🧠"];
+import { cn } from "@/lib/utils";
 
 const RoutineDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +33,9 @@ const RoutineDetail = () => {
         ? [{ id: "legacy", type: "text", text: existing.description }]
         : []),
   );
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  // New routines start in edit mode; existing routines start locked
+  const [editing, setEditing] = useState(isNew);
 
   useEffect(() => {
     if (existing) {
@@ -48,14 +51,12 @@ const RoutineDetail = () => {
     }
   }, [existing]);
 
-  // Redirect if editing nonexistent routine
   useEffect(() => {
     if (!isNew && !existing && r.state.routines.length > 0) navigate("/", { replace: true });
   }, [isNew, existing, navigate, r.state.routines.length]);
 
   const save = () => {
     if (!title.trim() || !sectionId) return;
-    // Derive a plain-text description from the first text-like block for list preview.
     const firstText = blocks.find((b) => ["text", "quote", "subheading"].includes(b.type) && b.text?.trim());
     const description = firstText?.text?.trim() || undefined;
 
@@ -93,7 +94,16 @@ const RoutineDetail = () => {
             <ArrowLeft size={20} />
           </button>
           <div className="flex items-center gap-1">
-            {existing && (
+            {existing && !editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+              >
+                <Pencil size={13} strokeWidth={2.5} />
+                Edit
+              </button>
+            )}
+            {existing && editing && (
               <button
                 onClick={remove}
                 className="p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-smooth"
@@ -102,34 +112,38 @@ const RoutineDetail = () => {
                 <Trash2 size={18} />
               </button>
             )}
-            <button
-              onClick={save}
-              disabled={!title.trim()}
-              className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-sm font-semibold disabled:opacity-40"
-            >
-              <Check size={16} strokeWidth={2.5} />
-              {isNew ? "Create" : "Save"}
-            </button>
+            {editing && (
+              <button
+                onClick={save}
+                disabled={!title.trim()}
+                className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-sm font-semibold disabled:opacity-40"
+              >
+                <Check size={16} strokeWidth={2.5} />
+                {isNew ? "Create" : "Save"}
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       <main className="px-5 pt-6 space-y-5">
-        {/* Notion-like big emoji + title */}
         <div className="space-y-3">
           <button
             type="button"
-            onClick={() => {
-              const i = emojiPresets.indexOf(emoji);
-              setEmoji(emojiPresets[(i + 1) % emojiPresets.length]);
-            }}
-            className="text-6xl leading-none hover:scale-105 transition-transform"
+            disabled={!editing}
+            onClick={() => setEmojiOpen(true)}
+            className={cn(
+              "text-6xl leading-none transition-transform",
+              editing && "hover:scale-105 active:scale-95",
+              !editing && "cursor-default",
+            )}
             aria-label="Change icon"
           >
             {emoji}
           </button>
           <input
             autoFocus={isNew}
+            readOnly={!editing}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Untitled routine"
@@ -143,49 +157,35 @@ const RoutineDetail = () => {
           )}
         </div>
 
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={sectionId} onValueChange={setSectionId}>
-            <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-muted/60 px-3 text-xs font-medium">
-              <SelectValue placeholder="Section" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedSections.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.emoji} {s.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <details className="relative">
-            <summary className="list-none inline-flex items-center gap-1.5 h-8 rounded-full border border-border bg-muted/60 px-3 text-xs font-medium cursor-pointer select-none">
-              <span>{emoji}</span> Icon
-            </summary>
-            <div className="absolute z-20 mt-2 rounded-lg border border-border bg-popover p-2 shadow-elevated">
-              <div className="grid grid-cols-8 gap-1">
-                {emojiPresets.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    onClick={() => setEmoji(e)}
-                    className={`h-8 w-8 rounded-md text-base transition-smooth ${
-                      emoji === e ? "bg-accent-soft" : "hover:bg-muted"
-                    }`}
-                  >
-                    {e}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </details>
-        </div>
+        {editing && (
+          <div className="flex flex-wrap items-center gap-2">
+            <SectionPicker
+              sections={sortedSections}
+              value={sectionId}
+              onChange={setSectionId}
+              onCreateSection={r.addSection}
+            />
+            <button
+              type="button"
+              onClick={() => setEmojiOpen(true)}
+              className="inline-flex items-center gap-1.5 h-8 rounded-full border border-border bg-muted/60 px-3 text-xs font-medium"
+            >
+              <span>{emoji}</span> Change icon
+            </button>
+          </div>
+        )}
 
         <div className="h-px bg-border" />
 
-        {/* Notion-style block editor */}
-        <BlockEditor blocks={blocks} onChange={setBlocks} />
+        <BlockEditor blocks={blocks} onChange={setBlocks} editable={editing} />
       </main>
+
+      <EmojiPicker
+        open={emojiOpen}
+        value={emoji}
+        onClose={() => setEmojiOpen(false)}
+        onSelect={setEmoji}
+      />
     </div>
   );
 };
