@@ -11,12 +11,17 @@ const withLiveToday = (s: RoutineState): RoutineState => {
 };
 
 export const useRoutines = () => {
-  const [state, setState] = useState<RoutineState>(() => withLiveToday(loadState()));
+  const [state, setStateRaw] = useState<RoutineState>(() => withLiveToday(loadState()));
   const timerRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    saveState(state);
-  }, [state]);
+  // Persist synchronously on every state update so navigation away doesn't drop writes.
+  const setState = useCallback<typeof setStateRaw>((updater) => {
+    setStateRaw((prev) => {
+      const next = typeof updater === "function" ? (updater as (p: RoutineState) => RoutineState)(prev) : updater;
+      saveState(next);
+      return next;
+    });
+  }, []);
 
   const recheck = useCallback(() => {
     setState((s) => withLiveToday(applyDailyReset(s)));
