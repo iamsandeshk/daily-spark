@@ -79,7 +79,7 @@ const Index = () => {
         </motion.button>
       </div>
 
-      <AddSectionDialog open={sectionDialog} onOpenChange={setSectionDialog} onCreate={r.addSection} />
+      
     </div>
   );
 };
