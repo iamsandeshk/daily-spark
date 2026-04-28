@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   Heading1,
   Heading2,
@@ -10,7 +10,7 @@ import {
   Link as LinkIcon,
   Plus,
   Trash2,
-  GripVertical,
+  X,
 } from "lucide-react";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
@@ -31,15 +31,19 @@ const blockMenu: { type: BlockType; label: string; icon: typeof Type }[] = [
 type Props = {
   blocks: RoutineBlockContent[];
   onChange: (next: RoutineBlockContent[]) => void;
+  editable: boolean;
 };
 
-export const BlockEditor = ({ blocks, onChange }: Props) => {
+export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
+  const [toolboxOpen, setToolboxOpen] = useState(false);
+
   const addBlock = (type: BlockType, afterIndex?: number) => {
     const nb: RoutineBlockContent = { id: uid(), type, text: "", checked: type === "checkbox" ? false : undefined };
     const next = [...blocks];
     const at = afterIndex === undefined ? next.length : afterIndex + 1;
     next.splice(at, 0, nb);
     onChange(next);
+    setToolboxOpen(false);
   };
 
   const updateBlock = (id: string, patch: Partial<RoutineBlockContent>) => {
@@ -58,11 +62,17 @@ export const BlockEditor = ({ blocks, onChange }: Props) => {
 
   return (
     <div className="space-y-1">
+      {blocks.length === 0 && (
+        <p className="text-sm text-muted-foreground/70 italic py-2">
+          {editable ? "Empty page. Tap the toolbox below to add blocks." : "No content yet. Tap Edit to add some."}
+        </p>
+      )}
+
       {blocks.map((b, i) => (
         <BlockRow
           key={b.id}
           block={b}
-          index={i}
+          editable={editable}
           onUpdate={(patch) => updateBlock(b.id, patch)}
           onRemove={() => removeBlock(b.id)}
           onMoveUp={() => moveBlock(i, -1)}
@@ -71,35 +81,60 @@ export const BlockEditor = ({ blocks, onChange }: Props) => {
         />
       ))}
 
-      {/* Add-block toolbar */}
-      <div className="pt-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
-          Add block
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {blockMenu.map((m) => {
-            const Icon = m.icon;
-            return (
-              <button
-                key={m.type}
-                type="button"
-                onClick={() => addBlock(m.type)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-smooth"
-              >
-                <Icon size={13} strokeWidth={2.25} />
-                {m.label}
-              </button>
-            );
-          })}
+      {/* Add-block toolbox — only in edit mode */}
+      {editable && (
+        <div className="pt-4">
+          {!toolboxOpen ? (
+            <button
+              type="button"
+              onClick={() => setToolboxOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-dashed border-border bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-muted transition-smooth"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              Add block
+            </button>
+          ) : (
+            <div className="rounded-xl border border-border bg-card/60 p-3 animate-in fade-in slide-in-from-top-1">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Choose a block
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setToolboxOpen(false)}
+                  className="h-6 w-6 grid place-items-center rounded-md text-muted-foreground hover:bg-muted"
+                  aria-label="Close toolbox"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {blockMenu.map((m) => {
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={m.type}
+                      type="button"
+                      onClick={() => addBlock(m.type)}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted hover:border-foreground/20 transition-smooth"
+                    >
+                      <Icon size={15} strokeWidth={2.25} className="text-muted-foreground" />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 type RowProps = {
   block: RoutineBlockContent;
-  index: number;
+  editable: boolean;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -107,7 +142,7 @@ type RowProps = {
   onAddAfter: (type: BlockType) => void;
 };
 
-const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter }: RowProps) => {
+const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter }: RowProps) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const autoGrow = (el: HTMLTextAreaElement | null) => {
@@ -117,9 +152,9 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!editable) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      // Continue same block type on Enter for list-like blocks
       const continueTypes: BlockType[] = ["bullet", "checkbox", "text"];
       onAddAfter(continueTypes.includes(block.type) ? block.type : "text");
     }
@@ -129,27 +164,35 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
     }
   };
 
+  const ro = !editable;
+
   return (
-    <div className="group relative flex items-start gap-1.5 rounded-md -mx-1 px-1 py-0.5 hover:bg-muted/40 transition-colors">
-      {/* Gutter controls */}
-      <div className="flex flex-col items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={onMoveUp}
-          className="h-5 w-5 rounded text-muted-foreground hover:bg-muted text-[10px]"
-          aria-label="Move up"
-        >
-          ↑
-        </button>
-        <button
-          type="button"
-          onClick={onMoveDown}
-          className="h-5 w-5 rounded text-muted-foreground hover:bg-muted text-[10px]"
-          aria-label="Move down"
-        >
-          ↓
-        </button>
-      </div>
+    <div
+      className={cn(
+        "group relative flex items-start gap-1.5 rounded-md -mx-1 px-1 py-0.5 transition-colors",
+        editable && "hover:bg-muted/40",
+      )}
+    >
+      {editable && (
+        <div className="flex flex-col items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            className="h-5 w-5 rounded text-muted-foreground hover:bg-muted text-[10px]"
+            aria-label="Move up"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            className="h-5 w-5 rounded text-muted-foreground hover:bg-muted text-[10px]"
+            aria-label="Move down"
+          >
+            ↓
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 min-w-0">
         {block.type === "divider" ? (
@@ -161,12 +204,14 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
             <input
               type="checkbox"
               checked={!!block.checked}
+              disabled={ro}
               onChange={(e) => onUpdate({ checked: e.target.checked })}
-              className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0"
+              className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0 disabled:cursor-not-allowed"
             />
             <textarea
               ref={inputRef}
               rows={1}
+              readOnly={ro}
               value={block.text ?? ""}
               onChange={(e) => {
                 onUpdate({ text: e.target.value });
@@ -186,6 +231,7 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
             <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
             <textarea
               rows={1}
+              readOnly={ro}
               value={block.text ?? ""}
               onChange={(e) => {
                 onUpdate({ text: e.target.value });
@@ -200,6 +246,7 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
         ) : block.type === "heading" ? (
           <textarea
             rows={1}
+            readOnly={ro}
             value={block.text ?? ""}
             onChange={(e) => {
               onUpdate({ text: e.target.value });
@@ -213,6 +260,7 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
         ) : block.type === "subheading" ? (
           <textarea
             rows={1}
+            readOnly={ro}
             value={block.text ?? ""}
             onChange={(e) => {
               onUpdate({ text: e.target.value });
@@ -227,6 +275,7 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
           <div className="border-l-2 border-accent pl-3 py-1">
             <textarea
               rows={1}
+              readOnly={ro}
               value={block.text ?? ""}
               onChange={(e) => {
                 onUpdate({ text: e.target.value });
@@ -241,21 +290,35 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
         ) : block.type === "link" ? (
           <div className="space-y-1 py-1">
             <input
+              readOnly={ro}
               value={block.text ?? ""}
               onChange={(e) => onUpdate({ text: e.target.value })}
               placeholder="Link label"
               className="w-full bg-transparent border-0 outline-none text-[15px] font-medium"
             />
-            <input
-              value={block.url ?? ""}
-              onChange={(e) => onUpdate({ url: e.target.value })}
-              placeholder="https://…"
-              className="w-full bg-transparent border-0 outline-none text-[13px] text-accent underline underline-offset-2"
-            />
+            {ro && block.url ? (
+              <a
+                href={block.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-[13px] text-accent underline underline-offset-2"
+              >
+                {block.url}
+              </a>
+            ) : (
+              <input
+                readOnly={ro}
+                value={block.url ?? ""}
+                onChange={(e) => onUpdate({ url: e.target.value })}
+                placeholder="https://…"
+                className="w-full bg-transparent border-0 outline-none text-[13px] text-accent underline underline-offset-2"
+              />
+            )}
           </div>
         ) : (
           <textarea
             rows={1}
+            readOnly={ro}
             value={block.text ?? ""}
             onChange={(e) => {
               onUpdate({ text: e.target.value });
@@ -269,21 +332,23 @@ const BlockRow = ({ block, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter 
         )}
       </div>
 
-      <div className="flex items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={onRemove}
-          className="h-6 w-6 grid place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-          aria-label="Delete block"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
+      {editable && (
+        <div className="flex items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="h-6 w-6 grid place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            aria-label="Delete block"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-/** Read-only block renderer (used on the list/detail preview if needed). */
+/** Read-only block renderer */
 export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
   return (
     <div className="space-y-1.5">
@@ -336,6 +401,4 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
   );
 };
 
-// Re-export unused icons to quiet linter
 export type { BlockType };
-void [Plus, GripVertical];

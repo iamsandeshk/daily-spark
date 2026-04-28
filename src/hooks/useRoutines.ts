@@ -118,11 +118,13 @@ export const useRoutines = () => {
     });
   }, []);
 
-  const addSection = useCallback((title: string, emoji?: string) => {
+  const addSection = useCallback((title: string, emoji?: string): string => {
+    const newId = uid();
     setState((s) => ({
       ...s,
-      sections: [...s.sections, { id: uid(), title, emoji, collapsed: false, order: s.sections.length }],
+      sections: [...s.sections, { id: newId, title, emoji, collapsed: false, order: s.sections.length }],
     }));
+    return newId;
   }, []);
 
   const updateSection = useCallback((id: string, patch: Partial<Section>) => {
