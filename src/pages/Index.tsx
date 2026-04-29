@@ -35,21 +35,11 @@ const Index = () => {
         completed={r.completed}
         total={r.total}
         onOpenHistory={() => navigate("/history")}
+        reorderActive={reorderMode}
+        onToggleReorder={() => setReorderMode((v) => !v)}
       />
 
       <main className="px-4">
-        <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setReorderMode((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-            aria-pressed={reorderMode}
-            aria-label="Toggle section reorder"
-          >
-            <GripVertical size={14} />
-            {reorderMode ? "Done" : "Reorder"}
-          </button>
-        </div>
         <Reorder.Group axis="y" values={order} onReorder={handleReorder} className="space-y-6">
           {order.map((s) => (
             <SectionReorderItem
