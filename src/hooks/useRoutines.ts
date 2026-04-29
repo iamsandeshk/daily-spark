@@ -127,7 +127,7 @@ export const useRoutines = () => {
         ...s,
         routines: s.routines.map((r) => {
           if (r.id !== id) return r;
-          const checks = (blocks ?? []).filter((b) => b.type === "checkbox");
+          const checks = (blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
           let isCompleted = r.isCompleted;
           let lastCompletedDate = r.lastCompletedDate;
           let streakCount = r.streakCount;
@@ -218,7 +218,6 @@ export const useRoutines = () => {
     }));
   }, []);
 
-  /** Reorder sections to match the provided id list (drag-and-drop). */
   const reorderSections = useCallback((orderedIds: string[]) => {
     setState((s) => {
       const indexById = new Map(orderedIds.map((id, i) => [id, i] as const));
@@ -232,8 +231,35 @@ export const useRoutines = () => {
     });
   }, []);
 
-  const completed = state.routines.filter((r) => r.isCompleted).length;
-  const total = state.routines.length;
+  const toggleRoutineCollapsed = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      routines: s.routines.map((x) => (x.id === id ? { ...x, collapsed: !x.collapsed } : x)),
+    }));
+  }, []);
+
+  const reorderRoutines = useCallback((orderedIds: string[]) => {
+    setState((s) => {
+      const indexById = new Map(orderedIds.map((id, i) => [id, i] as const));
+      return {
+        ...s,
+        routines: s.routines.map((x) => ({
+          ...x,
+          order: indexById.has(x.id) ? (indexById.get(x.id) as number) : x.order,
+        })),
+      };
+    });
+  }, []);
+
+  const completed = state.routines.reduce((acc, r) => {
+    const checks = (r.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+    return acc + checks.filter((b) => !!b.checked).length;
+  }, 0);
+
+  const total = state.routines.reduce((acc, r) => {
+    const checks = (r.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+    return acc + checks.length;
+  }, 0);
 
   return {
     state,
@@ -250,5 +276,7 @@ export const useRoutines = () => {
     deleteSection,
     toggleSectionCollapsed,
     reorderSections,
+    toggleRoutineCollapsed,
+    reorderRoutines,
   };
 };

@@ -129,6 +129,6 @@
   .shadow-block { box-shadow: var(--shadow-block); }
   .shadow-elevated { box-shadow: var(--shadow-elevated); }
   .transition-smooth { transition: all 280ms var(--transition-smooth); }
-  .safe-top { padding-top: max(env(safe-area-inset-top), 1rem); }
+  .safe-top { padding-top: calc(max(env(safe-area-inset-top), 1rem) + 0.75rem); }
   .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
 }

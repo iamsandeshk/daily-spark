@@ -28,6 +28,7 @@ export type Routine = {
   order: number;
   /** Notion-style rich content blocks (optional for legacy routines). */
   blocks?: RoutineBlockContent[];
+  collapsed?: boolean;
 };
 
 export type Section = {

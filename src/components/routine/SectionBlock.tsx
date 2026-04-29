@@ -1,61 +1,86 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, MoreHorizontal, Plus, Trash2 } from "lucide-react";
-import type { Routine, Section } from "@/lib/routine-types";
-import { RoutineBlock } from "./RoutineBlock";
+import { ChevronDown, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import type { Routine } from "@/lib/routine-types";
+import { RoutineCheckbox } from "./RoutineCheckbox";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { successHaptic, tapHaptic } from "@/lib/haptics";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Props = {
-  section: Section;
-  routines: Routine[];
+  routine: Routine;
   onToggleCollapsed: (id: string) => void;
-  onAdd: (sectionId: string) => void;
+  onAdd: (id: string) => void;
   onDeleteSection: (id: string) => void;
-  onToggleRoutine: (id: string) => void;
-  onDeleteRoutine: (id: string) => void;
+  onToggleReorder: () => void;
+  setRoutineBlocks: (id: string, blocks: Routine["blocks"]) => void;
 };
 
 export const SectionBlock = ({
-  section,
-  routines,
+  routine,
   onToggleCollapsed,
   onAdd,
   onDeleteSection,
-  onToggleRoutine,
-  onDeleteRoutine,
+  onToggleReorder,
+  setRoutineBlocks,
 }: Props) => {
-  const sorted = [...routines].sort((a, b) => a.order - b.order);
-  const done = sorted.filter((r) => r.isCompleted).length;
+  const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const blocks = (routine.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+  const done = blocks.filter((b) => b.checked).length;
+
+  const handleToggleCheckbox = (blockId: string) => {
+    const updatedBlocks = (routine.blocks ?? []).map((b) => {
+      if (b.id === blockId) {
+        if (!b.checked) successHaptic();
+        else tapHaptic();
+        return { ...b, checked: !b.checked };
+      }
+      return b;
+    });
+    setRoutineBlocks(routine.id, updatedBlocks);
+  };
 
   return (
     <section className="space-y-2">
       <header className="flex items-center gap-2 px-1 group">
         <button
-          onClick={() => onToggleCollapsed(section.id)}
+          onClick={() => onToggleCollapsed(routine.id)}
           className="flex items-center gap-2 flex-1 min-w-0 text-left"
         >
           <motion.span
-            animate={{ rotate: section.collapsed ? -90 : 0 }}
+            animate={{ rotate: routine.collapsed ? -90 : 0 }}
             transition={{ duration: 0.18 }}
             className="text-muted-foreground"
           >
             <ChevronDown size={16} />
           </motion.span>
-          {section.emoji && <span className="text-lg leading-none">{section.emoji}</span>}
-          <h2 className="text-base font-semibold tracking-tight truncate">{section.title}</h2>
+          {routine.emoji && <span className="text-lg leading-none">{routine.emoji}</span>}
+          <h2 className="text-base font-semibold tracking-tight truncate">{routine.title}</h2>
           <span className="text-xs text-muted-foreground tabular-nums">
-            {done}/{sorted.length}
+            {done}/{blocks.length}
           </span>
         </button>
         <button
-          onClick={() => onAdd(section.id)}
+          onClick={() => onAdd(routine.id)}
           className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-          aria-label="Add routine"
+          aria-label="Edit routine"
         >
           <Plus size={16} />
         </button>
@@ -71,16 +96,39 @@ export const SectionBlock = ({
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
-              onSelect={() => onDeleteSection(section.id)}
+              onSelect={() => setDeleteOpen(true)}
             >
               <Trash2 size={14} className="mr-2" /> Delete section
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onToggleReorder}>
+              <GripVertical size={14} className="mr-2" /> Reorder sections
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
 
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete section?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{routine.title}" and all routines inside it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => onDeleteSection(routine.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AnimatePresence initial={false}>
-        {!section.collapsed && (
+        {!routine.collapsed && (
           <motion.div
             key="content"
             initial={{ height: 0, opacity: 0 }}
@@ -90,21 +138,49 @@ export const SectionBlock = ({
             className="overflow-hidden"
           >
             <div className={cn("space-y-1.5 pb-1")}>
-              {sorted.length === 0 && (
+              {blocks.length === 0 && (
                 <button
-                  onClick={() => onAdd(section.id)}
+                  onClick={() => onAdd(routine.id)}
                   className="w-full text-left text-sm text-muted-foreground rounded-xl border border-dashed border-border px-3.5 py-3 hover:bg-muted/50 transition-smooth"
                 >
-                  + Add a routine
+                  + Add tasks inside this section
                 </button>
               )}
-              {sorted.map((r) => (
-                <RoutineBlock
-                  key={r.id}
-                  routine={r}
-                  onToggle={onToggleRoutine}
-                  onDelete={onDeleteRoutine}
-                />
+              {blocks.map((b) => (
+                <motion.div
+                  key={b.id}
+                  layout
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.18 }}
+                  className={cn(
+                    "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
+                    b.checked && "bg-success-soft/40 border-success/20",
+                  )}
+                >
+                  <div className="shrink-0">
+                    <RoutineCheckbox
+                      checked={!!b.checked}
+                      onChange={() => handleToggleCheckbox(b.id)}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/routine/${routine.id}`)}
+                    className="flex-1 min-w-0 text-left select-none"
+                  >
+                    <span
+                      className={cn(
+                        "font-medium text-[15px] leading-snug truncate transition-colors",
+                        b.checked && "line-through text-muted-foreground",
+                      )}
+                    >
+                      {b.text || "Untitled Task"}
+                    </span>
+                  </button>
+                </motion.div>
               ))}
             </div>
           </motion.div>

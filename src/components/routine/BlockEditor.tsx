@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   Heading1,
   Heading2,
@@ -9,7 +9,6 @@ import {
   Quote,
   Link as LinkIcon,
   Plus,
-  Trash2,
   X,
 } from "lucide-react";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
@@ -36,14 +35,54 @@ type Props = {
 
 export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
   const [toolboxOpen, setToolboxOpen] = useState(false);
+  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
+  const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
 
   const addBlock = (type: BlockType, afterIndex?: number) => {
     const nb: RoutineBlockContent = { id: uid(), type, text: "", checked: type === "checkbox" ? false : undefined };
     const next = [...blocks];
     const at = afterIndex === undefined ? next.length : afterIndex + 1;
     next.splice(at, 0, nb);
+    setFocusedBlockId(nb.id);
+    setFocusedCursorPos(0);
     onChange(next);
     setToolboxOpen(false);
+  };
+
+  const handleEnter = (index: number) => {
+    const block = blocks[index];
+    const nextBlock = blocks[index + 1];
+    if (nextBlock && nextBlock.type === block.type) {
+      setFocusedBlockId(nextBlock.id);
+      setFocusedCursorPos(0);
+    } else if (block.text?.trim()) {
+      const continueTypes: BlockType[] = ["bullet", "checkbox", "text"];
+      addBlock(continueTypes.includes(block.type) ? block.type : "text", index);
+    }
+  };
+
+  const mergeWithPrevious = (index: number) => {
+    const current = blocks[index];
+    if (index === 0) {
+      if (!current.text) {
+        onChange(blocks.filter((_, i) => i !== 0));
+      }
+      return;
+    }
+    const prev = blocks[index - 1];
+    const prevText = prev.text ?? "";
+    const currentText = current.text ?? "";
+    
+    const next = blocks.map((b, i) => {
+      if (i === index - 1) {
+        return { ...b, text: prevText + currentText };
+      }
+      return b;
+    }).filter((_, i) => i !== index);
+    
+    setFocusedBlockId(prev.id);
+    setFocusedCursorPos(prevText.length);
+    onChange(next);
   };
 
   const updateBlock = (id: string, patch: Partial<RoutineBlockContent>) => {
@@ -51,14 +90,6 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
   };
 
   const removeBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));
-
-  const moveBlock = (index: number, dir: -1 | 1) => {
-    const next = [...blocks];
-    const swap = index + dir;
-    if (swap < 0 || swap >= next.length) return;
-    [next[index], next[swap]] = [next[swap], next[index]];
-    onChange(next);
-  };
 
   return (
     <div className="space-y-1">
@@ -73,11 +104,12 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
           key={b.id}
           block={b}
           editable={editable}
+          isFocused={b.id === focusedBlockId}
+          cursorPos={b.id === focusedBlockId ? focusedCursorPos : undefined}
           onUpdate={(patch) => updateBlock(b.id, patch)}
           onRemove={() => removeBlock(b.id)}
-          onMoveUp={() => moveBlock(i, -1)}
-          onMoveDown={() => moveBlock(i, 1)}
-          onAddAfter={(type) => addBlock(type, i)}
+          onEnter={() => handleEnter(i)}
+          onMergeWithPrevious={() => mergeWithPrevious(i)}
         />
       ))}
 
@@ -135,14 +167,15 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
 type RowProps = {
   block: RoutineBlockContent;
   editable: boolean;
+  isFocused?: boolean;
+  cursorPos?: number | null;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
   onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onAddAfter: (type: BlockType) => void;
+  onEnter: () => void;
+  onMergeWithPrevious: () => void;
 };
 
-const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, onAddAfter }: RowProps) => {
+const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const autoGrow = (el: HTMLTextAreaElement | null) => {
@@ -151,16 +184,25 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
     el.style.height = el.scrollHeight + "px";
   };
 
+  useEffect(() => {
+    if (isFocused && inputRef.current) {
+      inputRef.current.focus();
+      if (typeof cursorPos === "number") {
+        inputRef.current.selectionStart = cursorPos;
+        inputRef.current.selectionEnd = cursorPos;
+      }
+    }
+  }, [isFocused, cursorPos]);
+
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!editable) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      const continueTypes: BlockType[] = ["bullet", "checkbox", "text"];
-      onAddAfter(continueTypes.includes(block.type) ? block.type : "text");
+      onEnter();
     }
-    if (e.key === "Backspace" && !block.text) {
+    if (e.key === "Backspace" && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
-      onRemove();
+      onMergeWithPrevious();
     }
   };
 
@@ -173,27 +215,6 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
         editable && "hover:bg-muted/40",
       )}
     >
-      {editable && (
-        <div className="flex flex-col items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <button
-            type="button"
-            onClick={onMoveUp}
-            className="h-5 w-5 rounded text-muted-foreground hover:bg-muted text-[10px]"
-            aria-label="Move up"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            onClick={onMoveDown}
-            className="h-5 w-5 rounded text-muted-foreground hover:bg-muted text-[10px]"
-            aria-label="Move down"
-          >
-            ↓
-          </button>
-        </div>
-      )}
-
       <div className="flex-1 min-w-0">
         {block.type === "divider" ? (
           <div className="py-3">
@@ -229,6 +250,7 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
           <div className="flex items-start gap-2 py-1">
             <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
             <textarea
+              ref={inputRef}
               rows={1}
               readOnly={ro}
               value={block.text ?? ""}
@@ -244,6 +266,7 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
           </div>
         ) : block.type === "heading" ? (
           <textarea
+            ref={inputRef}
             rows={1}
             readOnly={ro}
             value={block.text ?? ""}
@@ -258,6 +281,7 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
           />
         ) : block.type === "subheading" ? (
           <textarea
+            ref={inputRef}
             rows={1}
             readOnly={ro}
             value={block.text ?? ""}
@@ -273,6 +297,7 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
         ) : block.type === "quote" ? (
           <div className="border-l-2 border-accent pl-3 py-1">
             <textarea
+              ref={inputRef}
               rows={1}
               readOnly={ro}
               value={block.text ?? ""}
@@ -289,8 +314,8 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
         ) : block.type === "link" ? (
           <div className="space-y-1 py-1">
             <input
-              readOnly={ro}
               value={block.text ?? ""}
+              readOnly={ro}
               onChange={(e) => onUpdate({ text: e.target.value })}
               placeholder="Link label"
               className="w-full bg-transparent border-0 outline-none text-[15px] font-medium"
@@ -306,8 +331,8 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
               </a>
             ) : (
               <input
-                readOnly={ro}
                 value={block.url ?? ""}
+                readOnly={ro}
                 onChange={(e) => onUpdate({ url: e.target.value })}
                 placeholder="https://…"
                 className="w-full bg-transparent border-0 outline-none text-[13px] text-accent underline underline-offset-2"
@@ -316,6 +341,7 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
           </div>
         ) : (
           <textarea
+            ref={inputRef}
             rows={1}
             readOnly={ro}
             value={block.text ?? ""}
@@ -330,19 +356,6 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
           />
         )}
       </div>
-
-      {editable && (
-        <div className="flex items-center gap-0.5 pt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <button
-            type="button"
-            onClick={onRemove}
-            className="h-6 w-6 grid place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-            aria-label="Delete block"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      )}
     </div>
   );
 };

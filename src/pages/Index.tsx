@@ -5,41 +5,54 @@ import { useNavigate } from "react-router-dom";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
-import type { Section } from "@/lib/routine-types";
+import type { Routine } from "@/lib/routine-types";
 
 const Index = () => {
   const r = useRoutines();
   const navigate = useNavigate();
   const [reorderMode, setReorderMode] = useState(false);
+  const [showFullButton, setShowFullButton] = useState(true);
 
-  const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
-  // Local mirror so dragging feels instantaneous; sync when source changes.
-  const [order, setOrder] = useState<Section[]>(sortedSections);
   useEffect(() => {
-    setOrder(sortedSections);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [r.state.sections]);
+    const timer = setTimeout(() => {
+      setShowFullButton(false);
+    }, 3000);
 
-  const newRoutine = (sectionId?: string) => {
-    if (sectionId) {
-      // If the section already has a routine, open it so the user can add more
-      // checkboxes inside (per the "title = section" model). Otherwise create new.
-      const existing = r.state.routines
-        .filter((x) => x.sectionId === sectionId)
-        .sort((a, b) => a.order - b.order)[0];
-      if (existing) {
-        navigate(`/routine/${existing.id}`);
-        return;
-      }
-      navigate(`/routine/new?section=${sectionId}`);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!reorderMode) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-reorder-keep="true"]')) return;
+      setReorderMode(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [reorderMode]);
+
+  const sortedRoutines = [...r.state.routines].sort((a, b) => a.order - b.order);
+  const [order, setOrder] = useState<Routine[]>(sortedRoutines);
+  
+  useEffect(() => {
+    setOrder(sortedRoutines);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r.state.routines]);
+
+  const newRoutine = (routineId?: string) => {
+    if (routineId) {
+      navigate(`/routine/${routineId}`);
       return;
     }
     navigate("/routine/new");
   };
 
-  const handleReorder = (next: Section[]) => {
+  const handleReorder = (next: Routine[]) => {
     setOrder(next);
-    r.reorderSections(next.map((s) => s.id));
+    r.reorderRoutines(next.map((s) => s.id));
   };
 
   return (
@@ -48,37 +61,36 @@ const Index = () => {
         completed={r.completed}
         total={r.total}
         onOpenHistory={() => navigate("/history")}
-        reorderActive={reorderMode}
-        onToggleReorder={() => setReorderMode((v) => !v)}
       />
 
       <main className="px-4">
         <Reorder.Group axis="y" values={order} onReorder={handleReorder} className="space-y-6">
-          {order.map((s) => (
+          {order.map((routine) => (
             <SectionReorderItem
-              key={s.id}
-              section={s}
+              key={routine.id}
+              routine={routine}
               reorderMode={reorderMode}
-              routines={r.state.routines.filter((x) => x.sectionId === s.id)}
-              onToggleCollapsed={r.toggleSectionCollapsed}
-              onAdd={newRoutine}
-              onDeleteSection={r.deleteSection}
+              onToggleReorder={() => setReorderMode((v) => !v)}
+              onToggleCollapsed={r.toggleRoutineCollapsed}
+              onAdd={() => newRoutine(routine.id)}
+              onDeleteSection={r.deleteRoutine}
               onToggleRoutine={r.toggleRoutine}
               onDeleteRoutine={r.deleteRoutine}
+              setRoutineBlocks={r.setRoutineBlocks}
             />
           ))}
         </Reorder.Group>
 
         {r.total > 0 && (
           <p className="text-center text-xs text-muted-foreground pt-6">
-            Tap a routine to edit · Long-press to delete · Resets at midnight
+            Tap the + button to add/edit items · Drag handles to reorder
           </p>
         )}
       </main>
 
       {/* Floating Action: History + New */}
       <div
-        className="fixed right-5 bottom-6 z-40 flex items-center gap-3"
+        className="fixed right-5 bottom-6 z-40 flex items-end flex-col gap-3"
         style={{ marginBottom: "env(safe-area-inset-bottom)" }}
       >
         <button
@@ -90,11 +102,15 @@ const Index = () => {
         </button>
         <button
           onClick={() => newRoutine()}
-          className="flex items-center gap-2 rounded-full bg-foreground text-background pl-4 pr-5 py-3.5 shadow-elevated transition-smooth hover:opacity-90 active:scale-95"
+          className={`flex items-center gap-2 rounded-full bg-foreground text-background shadow-elevated transition-all duration-700 hover:opacity-90 active:scale-95 ${
+            showFullButton
+              ? "pl-4 pr-5 py-3.5"
+              : "h-12 w-12 justify-center"
+          }`}
           aria-label="Add routine"
         >
           <Plus size={18} strokeWidth={2.5} />
-          <span className="text-sm font-semibold">New routine</span>
+          {showFullButton && <span className="text-sm font-semibold">New Section</span>}
         </button>
       </div>
     </div>
@@ -102,21 +118,22 @@ const Index = () => {
 };
 
 type ItemProps = {
-  section: Section;
+  routine: Routine;
   reorderMode: boolean;
-  routines: ReturnType<typeof useRoutines>["state"]["routines"];
+  onToggleReorder: () => void;
   onToggleCollapsed: (id: string) => void;
-  onAdd: (sectionId: string) => void;
+  onAdd: (id: string) => void;
   onDeleteSection: (id: string) => void;
   onToggleRoutine: (id: string) => void;
   onDeleteRoutine: (id: string) => void;
+  setRoutineBlocks: ReturnType<typeof useRoutines>["setRoutineBlocks"];
 };
 
-const SectionReorderItem = ({ section, reorderMode, ...rest }: ItemProps) => {
+const SectionReorderItem = ({ routine, reorderMode, ...rest }: ItemProps) => {
   const controls = useDragControls();
   return (
     <Reorder.Item
-      value={section}
+      value={routine}
       dragListener={false}
       dragControls={controls}
       className="relative"
@@ -126,13 +143,14 @@ const SectionReorderItem = ({ section, reorderMode, ...rest }: ItemProps) => {
           type="button"
           onPointerDown={(e) => controls.start(e)}
           className="absolute -left-1 top-1.5 z-10 p-1 text-muted-foreground/60 hover:text-foreground touch-none cursor-grab active:cursor-grabbing"
-          aria-label={`Drag ${section.title}`}
+          data-reorder-keep="true"
+          aria-label={`Drag ${routine.title}`}
         >
           <GripVertical size={14} />
         </button>
       )}
       <div className={reorderMode ? "pl-5" : "pl-0"}>
-        <SectionBlock section={section} {...rest} />
+        <SectionBlock routine={routine} {...rest} />
       </div>
     </Reorder.Item>
   );

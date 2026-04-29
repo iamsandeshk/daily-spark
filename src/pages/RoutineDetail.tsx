@@ -7,6 +7,16 @@ import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -47,6 +57,7 @@ const RoutineDetail = () => {
   const [emojiOpen, setEmojiOpen] = useState(false);
   // New routines start in edit mode; existing routines start locked
   const [editing, setEditing] = useState(isNew);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (existing) {
@@ -94,7 +105,6 @@ const RoutineDetail = () => {
 
   const remove = () => {
     if (!existing) return;
-    if (!confirm(`Delete "${existing.title}"?`)) return;
     r.deleteRoutine(existing.id);
     navigate("/");
   };
@@ -122,7 +132,7 @@ const RoutineDetail = () => {
             )}
             {existing && editing && (
               <button
-                onClick={remove}
+                onClick={() => setDeleteOpen(true)}
                 className="p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-smooth"
                 aria-label="Delete"
               >
@@ -190,6 +200,23 @@ const RoutineDetail = () => {
 
         <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={editing} />
       </main>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete routine?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{existing?.title}" and its progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={remove}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <EmojiPicker
         open={emojiOpen}

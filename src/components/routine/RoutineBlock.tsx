@@ -1,11 +1,21 @@
 import { motion } from "framer-motion";
 import { Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Routine } from "@/lib/routine-types";
 import { RoutineCheckbox } from "./RoutineCheckbox";
 import { successHaptic, tapHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Props = {
   routine: Routine;
@@ -17,6 +27,7 @@ export const RoutineBlock = ({ routine, onToggle, onDelete }: Props) => {
   const navigate = useNavigate();
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleToggle = () => {
     if (!routine.isCompleted) successHaptic();
@@ -29,7 +40,7 @@ export const RoutineBlock = ({ routine, onToggle, onDelete }: Props) => {
     pressTimer.current = window.setTimeout(() => {
       longPressed.current = true;
       tapHaptic();
-      if (confirm(`Delete "${routine.title}"?`)) onDelete(routine.id);
+      setDeleteOpen(true);
     }, 550);
   };
   const endPress = () => {
@@ -39,6 +50,11 @@ export const RoutineBlock = ({ routine, onToggle, onDelete }: Props) => {
   const openDetail = () => {
     if (longPressed.current) return;
     navigate(`/routine/${routine.id}`);
+  };
+
+  const confirmDelete = () => {
+    setDeleteOpen(false);
+    onDelete(routine.id);
   };
 
   return (
@@ -95,6 +111,22 @@ export const RoutineBlock = ({ routine, onToggle, onDelete }: Props) => {
           </div>
         )}
       </div>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete routine?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{routine.title}" and its progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

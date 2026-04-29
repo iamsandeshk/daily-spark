@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CalendarDays, GripVertical, Moon, Sun } from "lucide-react";
+import { GripVertical, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Props = {
@@ -61,15 +61,6 @@ export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive,
               aria-pressed={reorderActive}
             >
               <GripVertical size={16} />
-            </button>
-          )}
-          {onOpenHistory && (
-            <button
-              onClick={onOpenHistory}
-              className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
-              aria-label="History"
-            >
-              <CalendarDays size={16} />
             </button>
           )}
           <button
