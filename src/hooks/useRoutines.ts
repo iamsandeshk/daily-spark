@@ -242,6 +242,7 @@ export const useRoutines = () => {
     toggleRoutine,
     addRoutine,
     updateRoutine,
+    setRoutineBlocks,
     deleteRoutine,
     reorderRoutine,
     addSection,
