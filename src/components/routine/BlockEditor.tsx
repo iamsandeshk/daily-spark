@@ -204,9 +204,8 @@ const BlockRow = ({ block, editable, onUpdate, onRemove, onMoveUp, onMoveDown, o
             <input
               type="checkbox"
               checked={!!block.checked}
-              disabled={ro}
               onChange={(e) => onUpdate({ checked: e.target.checked })}
-              className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0 disabled:cursor-not-allowed"
+              className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0"
             />
             <textarea
               ref={inputRef}

@@ -5,9 +5,10 @@ import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
-import { SectionPicker } from "@/components/routine/SectionPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
+
+const uid = () => Math.random().toString(36).slice(2, 10);
 
 const RoutineDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,17 +22,27 @@ const RoutineDetail = () => {
     [id, isNew, r.state.routines],
   );
 
-  const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
-  const initialSection = params.get("section") ?? sortedSections[0]?.id ?? "";
+  // The "section" the new routine belongs to is implicit: from URL or a default
+  // single section. We never expose section selection in the UI anymore — the
+  // routine title IS the visible section heading on the home page.
+  const ensureDefaultSection = (): string => {
+    const fromUrl = params.get("section");
+    if (fromUrl && r.state.sections.find((s) => s.id === fromUrl)) return fromUrl;
+    const first = [...r.state.sections].sort((a, b) => a.order - b.order)[0];
+    if (first) return first.id;
+    return r.addSection("Routines");
+  };
 
   const [title, setTitle] = useState(existing?.title ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "✨");
-  const [sectionId, setSectionId] = useState(existing?.sectionId ?? initialSection);
+  const [sectionId] = useState(existing?.sectionId ?? ensureDefaultSection());
   const [blocks, setBlocks] = useState<RoutineBlockContent[]>(
     existing?.blocks ??
       (existing?.description
         ? [{ id: "legacy", type: "text", text: existing.description }]
-        : []),
+        : isNew
+          ? [{ id: uid(), type: "checkbox", text: "", checked: false }]
+          : []),
   );
   const [emojiOpen, setEmojiOpen] = useState(false);
   // New routines start in edit mode; existing routines start locked
@@ -41,7 +52,6 @@ const RoutineDetail = () => {
     if (existing) {
       setTitle(existing.title);
       setEmoji(existing.emoji ?? "✨");
-      setSectionId(existing.sectionId);
       setBlocks(
         existing.blocks ??
           (existing.description
@@ -54,6 +64,13 @@ const RoutineDetail = () => {
   useEffect(() => {
     if (!isNew && !existing && r.state.routines.length > 0) navigate("/", { replace: true });
   }, [isNew, existing, navigate, r.state.routines.length]);
+
+  // Live-sync block edits for an existing routine so home-page completion
+  // updates the moment all checkboxes are ticked.
+  const handleBlocksChange = (next: RoutineBlockContent[]) => {
+    setBlocks(next);
+    if (existing) r.setRoutineBlocks(existing.id, next);
+  };
 
   const save = () => {
     if (!title.trim() || !sectionId) return;
@@ -146,8 +163,8 @@ const RoutineDetail = () => {
             readOnly={!editing}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled routine"
-            className="w-full bg-transparent border-0 outline-none text-3xl font-semibold tracking-tight placeholder:text-muted-foreground/50"
+            placeholder="Name this section…"
+            className="w-full bg-transparent border-0 outline-none text-3xl font-semibold tracking-tight placeholder:text-muted-foreground/40"
           />
           {existing && existing.streakCount > 0 && (
             <div className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
@@ -159,12 +176,6 @@ const RoutineDetail = () => {
 
         {editing && (
           <div className="flex flex-wrap items-center gap-2">
-            <SectionPicker
-              sections={sortedSections}
-              value={sectionId}
-              onChange={setSectionId}
-              onCreateSection={r.addSection}
-            />
             <button
               type="button"
               onClick={() => setEmojiOpen(true)}
@@ -177,7 +188,7 @@ const RoutineDetail = () => {
 
         <div className="h-px bg-border" />
 
-        <BlockEditor blocks={blocks} onChange={setBlocks} editable={editing} />
+        <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={editing} />
       </main>
 
       <EmojiPicker

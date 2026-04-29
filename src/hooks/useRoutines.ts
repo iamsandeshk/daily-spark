@@ -86,10 +86,15 @@ export const useRoutines = () => {
         routines: s.routines.map((r) => {
           if (r.id !== id) return r;
           const willComplete = !r.isCompleted;
+          // Sync all checkbox blocks inside this routine to the new state
+          const syncedBlocks = r.blocks
+            ? r.blocks.map((b) => (b.type === "checkbox" ? { ...b, checked: willComplete } : b))
+            : r.blocks;
           if (willComplete) {
             const continuing = r.lastCompletedDate === yest || r.lastCompletedDate === today;
             return {
               ...r,
+              blocks: syncedBlocks,
               isCompleted: true,
               lastCompletedDate: today,
               streakCount: continuing ? (r.lastCompletedDate === today ? r.streakCount : r.streakCount + 1) : 1,
@@ -98,6 +103,7 @@ export const useRoutines = () => {
           const rollback = r.lastCompletedDate === today ? Math.max(0, r.streakCount - 1) : r.streakCount;
           return {
             ...r,
+            blocks: syncedBlocks,
             isCompleted: false,
             lastCompletedDate: r.lastCompletedDate === today ? yest : r.lastCompletedDate,
             streakCount: rollback,
@@ -105,6 +111,42 @@ export const useRoutines = () => {
         }),
       };
       return withLiveToday(next);
+    });
+  }, []);
+
+  /** Update blocks AND auto-sync isCompleted based on checkbox state.
+   *  - All checkboxes checked (and ≥1 exists) → routine complete
+   *  - Any checkbox unchecked → routine not complete
+   *  - No checkbox blocks → leave isCompleted alone
+   */
+  const setRoutineBlocks = useCallback((id: string, blocks: RoutineState["routines"][number]["blocks"]) => {
+    setState((s) => {
+      const today = todayKey();
+      const yest = yesterdayKey(today);
+      return withLiveToday({
+        ...s,
+        routines: s.routines.map((r) => {
+          if (r.id !== id) return r;
+          const checks = (blocks ?? []).filter((b) => b.type === "checkbox");
+          let isCompleted = r.isCompleted;
+          let lastCompletedDate = r.lastCompletedDate;
+          let streakCount = r.streakCount;
+          if (checks.length > 0) {
+            const allDone = checks.every((b) => !!b.checked);
+            if (allDone && !r.isCompleted) {
+              const continuing = r.lastCompletedDate === yest || r.lastCompletedDate === today;
+              isCompleted = true;
+              streakCount = continuing ? (r.lastCompletedDate === today ? r.streakCount : r.streakCount + 1) : 1;
+              lastCompletedDate = today;
+            } else if (!allDone && r.isCompleted) {
+              isCompleted = false;
+              streakCount = r.lastCompletedDate === today ? Math.max(0, r.streakCount - 1) : r.streakCount;
+              lastCompletedDate = r.lastCompletedDate === today ? yest : r.lastCompletedDate;
+            }
+          }
+          return { ...r, blocks, isCompleted, lastCompletedDate, streakCount };
+        }),
+      });
     });
   }, []);
 
@@ -200,6 +242,7 @@ export const useRoutines = () => {
     toggleRoutine,
     addRoutine,
     updateRoutine,
+    setRoutineBlocks,
     deleteRoutine,
     reorderRoutine,
     addSection,
