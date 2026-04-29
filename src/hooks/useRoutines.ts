@@ -35,7 +35,7 @@ export const useRoutines = () => {
     const next = typeof updater === "function" ? (updater as (p: RoutineState) => RoutineState)(prev) : updater;
     commitState(next);
     return next;
-  }, []);
+  }, [commitState]);
 
   const recheck = useCallback(() => {
     setState((s) => withLiveToday(applyDailyReset(s)));
