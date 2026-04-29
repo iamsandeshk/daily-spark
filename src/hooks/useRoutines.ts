@@ -56,6 +56,8 @@ export const useRoutines = () => {
 
     return () => {
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("routines:updated", onLocal);
       document.removeEventListener("visibilitychange", onVisibility);
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
