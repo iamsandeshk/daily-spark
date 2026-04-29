@@ -21,7 +21,20 @@ const Index = () => {
   }, [r.state.sections]);
 
   const newRoutine = (sectionId?: string) => {
-    navigate(sectionId ? `/routine/new?section=${sectionId}` : "/routine/new");
+    if (sectionId) {
+      // If the section already has a routine, open it so the user can add more
+      // checkboxes inside (per the "title = section" model). Otherwise create new.
+      const existing = r.state.routines
+        .filter((x) => x.sectionId === sectionId)
+        .sort((a, b) => a.order - b.order)[0];
+      if (existing) {
+        navigate(`/routine/${existing.id}`);
+        return;
+      }
+      navigate(`/routine/new?section=${sectionId}`);
+      return;
+    }
+    navigate("/routine/new");
   };
 
   const handleReorder = (next: Section[]) => {
