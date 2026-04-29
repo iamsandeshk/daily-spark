@@ -12,17 +12,29 @@ const withLiveToday = (s: RoutineState): RoutineState => {
 
 export const useRoutines = () => {
   const [state, setStateRaw] = useState<RoutineState>(() => withLiveToday(loadState()));
+  const stateRef = useRef(state);
   const timerRef = useRef<number | null>(null);
 
-  // Persist synchronously on every state update so navigation away doesn't drop writes.
-  const setState = useCallback<typeof setStateRaw>((updater) => {
-    setStateRaw((prev) => {
-      const next = typeof updater === "function" ? (updater as (p: RoutineState) => RoutineState)(prev) : updater;
-      saveState(next);
-      // Notify other useRoutines() instances in this tab to refresh.
-      window.dispatchEvent(new Event("routines:updated"));
-      return next;
-    });
+  const syncFromStorage = useCallback(() => {
+    const next = withLiveToday(loadState());
+    stateRef.current = next;
+    setStateRaw(next);
+  }, []);
+
+  const commitState = useCallback((next: RoutineState) => {
+    stateRef.current = next;
+    saveState(next);
+    setStateRaw(next);
+    // Notify other useRoutines() instances in this tab to refresh.
+    window.dispatchEvent(new Event("routines:updated"));
+  }, []);
+
+  // Persist immediately before React navigation can unmount this hook.
+  const setState = useCallback((updater: RoutineState | ((p: RoutineState) => RoutineState)) => {
+    const prev = stateRef.current;
+    const next = typeof updater === "function" ? (updater as (p: RoutineState) => RoutineState)(prev) : updater;
+    commitState(next);
+    return next;
   }, []);
 
   const recheck = useCallback(() => {
@@ -35,10 +47,10 @@ export const useRoutines = () => {
     // Cross-tab + cross-instance sync: when any other useRoutines() saves, refresh from storage.
     const onStorage = (e: StorageEvent) => {
       if (e.key === null || e.key === "daily-routine-os/v1") {
-        setStateRaw(withLiveToday(loadState()));
+        syncFromStorage();
       }
     };
-    const onLocal = () => setStateRaw(withLiveToday(loadState()));
+    const onLocal = () => syncFromStorage();
     window.addEventListener("focus", onFocus);
     window.addEventListener("storage", onStorage);
     window.addEventListener("routines:updated", onLocal);
@@ -63,7 +75,7 @@ export const useRoutines = () => {
       document.removeEventListener("visibilitychange", onVisibility);
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-  }, [recheck]);
+  }, [recheck, syncFromStorage]);
 
   const toggleRoutine = useCallback((id: string) => {
     setState((s) => {
