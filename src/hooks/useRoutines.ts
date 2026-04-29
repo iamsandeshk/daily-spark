@@ -164,6 +164,20 @@ export const useRoutines = () => {
     }));
   }, []);
 
+  /** Reorder sections to match the provided id list (drag-and-drop). */
+  const reorderSections = useCallback((orderedIds: string[]) => {
+    setState((s) => {
+      const indexById = new Map(orderedIds.map((id, i) => [id, i] as const));
+      return {
+        ...s,
+        sections: s.sections.map((x) => ({
+          ...x,
+          order: indexById.has(x.id) ? (indexById.get(x.id) as number) : x.order,
+        })),
+      };
+    });
+  }, []);
+
   const completed = state.routines.filter((r) => r.isCompleted).length;
   const total = state.routines.length;
 
@@ -180,5 +194,6 @@ export const useRoutines = () => {
     updateSection,
     deleteSection,
     toggleSectionCollapsed,
+    reorderSections,
   };
 };
