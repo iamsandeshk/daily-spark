@@ -19,6 +19,8 @@ export const useRoutines = () => {
     setStateRaw((prev) => {
       const next = typeof updater === "function" ? (updater as (p: RoutineState) => RoutineState)(prev) : updater;
       saveState(next);
+      // Notify other useRoutines() instances in this tab to refresh.
+      window.dispatchEvent(new Event("routines:updated"));
       return next;
     });
   }, []);
