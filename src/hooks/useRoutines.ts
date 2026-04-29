@@ -30,7 +30,16 @@ export const useRoutines = () => {
   useEffect(() => {
     const onFocus = () => recheck();
     const onVisibility = () => document.visibilityState === "visible" && recheck();
+    // Cross-tab + cross-instance sync: when any other useRoutines() saves, refresh from storage.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === "daily-routine-os/v1") {
+        setStateRaw(withLiveToday(loadState()));
+      }
+    };
+    const onLocal = () => setStateRaw(withLiveToday(loadState()));
     window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("routines:updated", onLocal);
     document.addEventListener("visibilitychange", onVisibility);
 
     const scheduleMidnight = () => {
