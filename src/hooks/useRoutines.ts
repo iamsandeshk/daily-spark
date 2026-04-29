@@ -19,6 +19,8 @@ export const useRoutines = () => {
     setStateRaw((prev) => {
       const next = typeof updater === "function" ? (updater as (p: RoutineState) => RoutineState)(prev) : updater;
       saveState(next);
+      // Notify other useRoutines() instances in this tab to refresh.
+      window.dispatchEvent(new Event("routines:updated"));
       return next;
     });
   }, []);
@@ -30,7 +32,16 @@ export const useRoutines = () => {
   useEffect(() => {
     const onFocus = () => recheck();
     const onVisibility = () => document.visibilityState === "visible" && recheck();
+    // Cross-tab + cross-instance sync: when any other useRoutines() saves, refresh from storage.
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === "daily-routine-os/v1") {
+        setStateRaw(withLiveToday(loadState()));
+      }
+    };
+    const onLocal = () => setStateRaw(withLiveToday(loadState()));
     window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("routines:updated", onLocal);
     document.addEventListener("visibilitychange", onVisibility);
 
     const scheduleMidnight = () => {
@@ -47,6 +58,8 @@ export const useRoutines = () => {
 
     return () => {
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("routines:updated", onLocal);
       document.removeEventListener("visibilitychange", onVisibility);
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
@@ -151,6 +164,20 @@ export const useRoutines = () => {
     }));
   }, []);
 
+  /** Reorder sections to match the provided id list (drag-and-drop). */
+  const reorderSections = useCallback((orderedIds: string[]) => {
+    setState((s) => {
+      const indexById = new Map(orderedIds.map((id, i) => [id, i] as const));
+      return {
+        ...s,
+        sections: s.sections.map((x) => ({
+          ...x,
+          order: indexById.has(x.id) ? (indexById.get(x.id) as number) : x.order,
+        })),
+      };
+    });
+  }, []);
+
   const completed = state.routines.filter((r) => r.isCompleted).length;
   const total = state.routines.length;
 
@@ -167,5 +194,6 @@ export const useRoutines = () => {
     updateSection,
     deleteSection,
     toggleSectionCollapsed,
+    reorderSections,
   };
 };
