@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
-import { CalendarDays, Moon, Sun } from "lucide-react";
+import { CalendarDays, GripVertical, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Props = {
   completed: number;
   total: number;
   onOpenHistory?: () => void;
+  reorderActive?: boolean;
+  onToggleReorder?: () => void;
 };
 
 const greeting = () => {
@@ -39,7 +41,7 @@ const useTheme = () => {
   return { isDark, toggle };
 };
 
-export const ProgressHeader = ({ completed, total, onOpenHistory }: Props) => {
+export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive, onToggleReorder }: Props) => {
   const { isDark, toggle } = useTheme();
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
@@ -51,6 +53,16 @@ export const ProgressHeader = ({ completed, total, onOpenHistory }: Props) => {
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{greeting()}</h1>
         </div>
         <div className="flex items-center gap-2">
+          {onToggleReorder && (
+            <button
+              onClick={onToggleReorder}
+              className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+              aria-label="Toggle section reorder"
+              aria-pressed={reorderActive}
+            >
+              <GripVertical size={16} />
+            </button>
+          )}
           {onOpenHistory && (
             <button
               onClick={onOpenHistory}

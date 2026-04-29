@@ -10,6 +10,7 @@ import type { Section } from "@/lib/routine-types";
 const Index = () => {
   const r = useRoutines();
   const navigate = useNavigate();
+  const [reorderMode, setReorderMode] = useState(false);
 
   const sortedSections = [...r.state.sections].sort((a, b) => a.order - b.order);
   // Local mirror so dragging feels instantaneous; sync when source changes.
@@ -34,6 +35,8 @@ const Index = () => {
         completed={r.completed}
         total={r.total}
         onOpenHistory={() => navigate("/history")}
+        reorderActive={reorderMode}
+        onToggleReorder={() => setReorderMode((v) => !v)}
       />
 
       <main className="px-4">
@@ -42,6 +45,7 @@ const Index = () => {
             <SectionReorderItem
               key={s.id}
               section={s}
+              reorderMode={reorderMode}
               routines={r.state.routines.filter((x) => x.sectionId === s.id)}
               onToggleCollapsed={r.toggleSectionCollapsed}
               onAdd={newRoutine}
@@ -54,7 +58,7 @@ const Index = () => {
 
         {r.total > 0 && (
           <p className="text-center text-xs text-muted-foreground pt-6">
-            Tap a routine to edit · Long-press to delete · Drag <GripVertical size={11} className="inline -mt-0.5" /> to reorder · Resets at midnight
+            Tap a routine to edit · Long-press to delete · Resets at midnight
           </p>
         )}
       </main>
@@ -86,6 +90,7 @@ const Index = () => {
 
 type ItemProps = {
   section: Section;
+  reorderMode: boolean;
   routines: ReturnType<typeof useRoutines>["state"]["routines"];
   onToggleCollapsed: (id: string) => void;
   onAdd: (sectionId: string) => void;
@@ -94,7 +99,7 @@ type ItemProps = {
   onDeleteRoutine: (id: string) => void;
 };
 
-const SectionReorderItem = ({ section, ...rest }: ItemProps) => {
+const SectionReorderItem = ({ section, reorderMode, ...rest }: ItemProps) => {
   const controls = useDragControls();
   return (
     <Reorder.Item
@@ -103,15 +108,17 @@ const SectionReorderItem = ({ section, ...rest }: ItemProps) => {
       dragControls={controls}
       className="relative"
     >
-      <button
-        type="button"
-        onPointerDown={(e) => controls.start(e)}
-        className="absolute -left-1 top-1.5 z-10 p-1 text-muted-foreground/60 hover:text-foreground touch-none cursor-grab active:cursor-grabbing"
-        aria-label={`Drag ${section.title}`}
-      >
-        <GripVertical size={14} />
-      </button>
-      <div className="pl-5">
+      {reorderMode && (
+        <button
+          type="button"
+          onPointerDown={(e) => controls.start(e)}
+          className="absolute -left-1 top-1.5 z-10 p-1 text-muted-foreground/60 hover:text-foreground touch-none cursor-grab active:cursor-grabbing"
+          aria-label={`Drag ${section.title}`}
+        >
+          <GripVertical size={14} />
+        </button>
+      )}
+      <div className={reorderMode ? "pl-5" : "pl-0"}>
         <SectionBlock section={section} {...rest} />
       </div>
     </Reorder.Item>
