@@ -4,8 +4,8 @@ import type { Routine } from "@/lib/routine-types";
 
 // Shared animation config — used by all section open/close transitions
 // and routine card stagger so timing/easing stay perfectly in sync.
-const SECTION_EASE = [0.22, 1, 0.36, 1] as const;
-const SECTION_DURATION = 0.4;
+const SECTION_EASE = [0.32, 0.72, 0, 1] as const;
+const SECTION_DURATION = 0.45;
 const CARD_DURATION = 0.28;
 const STAGGER = 0.04;
 const STAGGER_DELAY = 0.04;
@@ -21,15 +21,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   routine: Routine;
@@ -71,7 +70,7 @@ export const SectionBlock = ({
   };
 
   return (
-    <section className="space-y-2">
+    <section className="flex flex-col">
       <header className="flex items-center gap-2 px-1 group">
         <button
           onClick={() => onToggleCollapsed(routine.id)}
@@ -120,25 +119,35 @@ export const SectionBlock = ({
         </DropdownMenu>
       </header>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete section?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete "{routine.title}" and all routines inside it.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => onDeleteSection(routine.id)}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Delete section?</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
+              This will permanently delete "{routine.title}" and all tasks inside it. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteOpen(false)}
+              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                onDeleteSection(routine.id);
+                setDeleteOpen(false);
+              }}
+              className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-destructive/20"
             >
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AnimatePresence initial={false}>
         {!routine.collapsed && (
@@ -149,14 +158,14 @@ export const SectionBlock = ({
             exit={{ height: 0, opacity: 0 }}
             transition={{
               height: { duration: SECTION_DURATION, ease: SECTION_EASE },
-              opacity: { duration: SECTION_DURATION * 0.85, ease: SECTION_EASE },
+              opacity: { duration: SECTION_DURATION, ease: SECTION_EASE },
             }}
             style={{ overflow: "hidden" }}
           >
             {/* Inner wrapper: flex+gap (not space-y) so margins don't clip
                 during height animation, and pt provides top breathing room
                 that's included in the measured height. */}
-            <div className="flex flex-col gap-1.5 pt-1.5">
+            <div className="flex flex-col gap-1.5 pt-3 pb-1">
               {blocks.length === 0 && (
                 <button
                   onClick={() => onAdd(routine.id)}

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { GripVertical, Moon, Sun } from "lucide-react";
+import { GripVertical, Moon, Sun, Flame } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Props = {
@@ -8,6 +8,7 @@ type Props = {
   onOpenHistory?: () => void;
   reorderActive?: boolean;
   onToggleReorder?: () => void;
+  globalStreak?: number;
 };
 
 const greeting = () => {
@@ -41,7 +42,7 @@ const useTheme = () => {
   return { isDark, toggle };
 };
 
-export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive, onToggleReorder }: Props) => {
+export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive, onToggleReorder, globalStreak = 0 }: Props) => {
   const { isDark, toggle } = useTheme();
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
@@ -53,6 +54,10 @@ export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive,
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{greeting()}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center h-8 gap-1.5 rounded-full bg-accent/10 px-2.5 text-[11px] font-black text-accent border border-accent/20">
+            <Flame size={13} strokeWidth={3} className="fill-accent/20" />
+            {globalStreak}
+          </div>
           {onToggleReorder && (
             <button
               onClick={onToggleReorder}
@@ -84,9 +89,6 @@ export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive,
           </div>
           <div className="text-right">
             <p className="text-3xl font-semibold tabular-nums tracking-tight">{pct}%</p>
-            {pct === 100 && total > 0 && (
-              <p className="text-xs text-success font-medium mt-0.5">Day complete ✨</p>
-            )}
           </div>
         </div>
         <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">

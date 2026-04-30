@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Routine, RoutineState, Section } from "@/lib/routine-types";
 import { applyDailyReset, loadState, saveState, todayKey, todayLiveHistory, yesterdayKey } from "@/lib/storage";
 
@@ -261,10 +261,33 @@ export const useRoutines = () => {
     return acc + checks.length;
   }, 0);
 
+  const globalStreak = useMemo(() => {
+    let streak = 0;
+    const today = todayKey();
+    const todayHistory = todayLiveHistory(state);
+    const isTodayComplete = todayHistory.total > 0 && todayHistory.completedRoutineIds.length === todayHistory.total;
+    
+    // Count consecutive complete days backwards from yesterday
+    let checkDate = yesterdayKey(today);
+    while (true) {
+      const hist = state.history[checkDate];
+      if (!hist) break;
+      const isComplete = hist.total > 0 && hist.completedRoutineIds.length === hist.total;
+      if (!isComplete) break;
+      streak++;
+      checkDate = yesterdayKey(checkDate);
+    }
+    
+    // If today is complete, it adds to the streak. 
+    // If not, the streak is just the past consecutive days.
+    return isTodayComplete ? streak + 1 : streak;
+  }, [state]);
+
   return {
     state,
     completed,
     total,
+    globalStreak,
     toggleRoutine,
     addRoutine,
     updateRoutine,

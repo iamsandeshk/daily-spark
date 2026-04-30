@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Flame, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Flame, Trash2, Pencil, Plus, Undo2 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
@@ -8,15 +9,14 @@ import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -48,16 +48,19 @@ const RoutineDetail = () => {
   const [sectionId] = useState(existing?.sectionId ?? ensureDefaultSection());
   const [blocks, setBlocks] = useState<RoutineBlockContent[]>(
     existing?.blocks ??
-      (existing?.description
-        ? [{ id: "legacy", type: "text", text: existing.description }]
-        : isNew
-          ? [{ id: uid(), type: "checkbox", text: "", checked: false }]
-          : []),
+    (existing?.description
+      ? [{ id: "legacy", type: "text", text: existing.description }]
+      : isNew
+        ? [{ id: uid(), type: "checkbox", text: "", checked: false }]
+        : []),
   );
   const [emojiOpen, setEmojiOpen] = useState(false);
-  // New routines start in edit mode; existing routines start locked
-  const [editing, setEditing] = useState(isNew);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // History for undo
+  const [history, setHistory] = useState<{ title: string; emoji: string; blocks: RoutineBlockContent[] }[]>([]);
+  const [showUndo, setShowUndo] = useState(false);
+  const isUndoing = useRef(false);
 
   useEffect(() => {
     if (existing) {
@@ -65,9 +68,9 @@ const RoutineDetail = () => {
       setEmoji(existing.emoji ?? "✨");
       setBlocks(
         existing.blocks ??
-          (existing.description
-            ? [{ id: "legacy", type: "text", text: existing.description }]
-            : []),
+        (existing.description
+          ? [{ id: "legacy", type: "text", text: existing.description }]
+          : []),
       );
     }
   }, [existing]);
@@ -76,11 +79,71 @@ const RoutineDetail = () => {
     if (!isNew && !existing && r.state.routines.length > 0) navigate("/", { replace: true });
   }, [isNew, existing, navigate, r.state.routines.length]);
 
-  // Live-sync block edits for an existing routine so home-page completion
-  // updates the moment all checkboxes are ticked.
+  // Snapshot state before change for undo history
+  const takeSnapshot = () => {
+    if (isUndoing.current) return;
+    setHistory(prev => [...prev, { title, emoji, blocks }].slice(-20));
+  };
+
+  const handleTitleChange = (val: string) => {
+    takeSnapshot();
+    setTitle(val);
+    setShowUndo(true);
+    if (existing) {
+      r.updateRoutine(existing.id, { title: val });
+    } else if (isNew && val.trim()) {
+      // Auto-create routine on first title entry
+      const newId = uid();
+      r.addRoutine({ title: val.trim(), emoji, sectionId, blocks });
+      navigate(`/routine/${newId}`, { replace: true });
+    }
+  };
+
+  const handleEmojiChange = (val: string) => {
+    takeSnapshot();
+    setEmoji(val);
+    setShowUndo(false);
+    if (existing) {
+      r.updateRoutine(existing.id, { emoji: val });
+    }
+  };
+
   const handleBlocksChange = (next: RoutineBlockContent[]) => {
+    // Show undo for any change that isn't just a checkbox toggle
+    const isOnlyCheckboxToggle = next.length === blocks.length && next.every((nb, i) => {
+      const ob = blocks[i];
+      return ob && nb.id === ob.id && nb.text === ob.text && nb.type === ob.type;
+    });
+
+    takeSnapshot();
     setBlocks(next);
+    setShowUndo(!isOnlyCheckboxToggle);
     if (existing) r.setRoutineBlocks(existing.id, next);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    isUndoing.current = true;
+    const prev = history[history.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setShowUndo(false);
+
+    setTitle(prev.title);
+    setEmoji(prev.emoji);
+    setBlocks(prev.blocks);
+
+    if (existing) {
+      r.updateRoutine(existing.id, {
+        title: prev.title,
+        emoji: prev.emoji,
+        blocks: prev.blocks
+      });
+    }
+
+    setTimeout(() => {
+      isUndoing.current = false;
+    }, 100);
+    tapHaptic();
   };
 
   const save = () => {
@@ -110,119 +173,119 @@ const RoutineDetail = () => {
   };
 
   return (
-    <div className="min-h-full bg-background pb-24">
-      <header className="safe-top sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border">
-        <div className="flex items-center justify-between px-2 py-2">
+    <div className="min-h-full bg-background pb-32">
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 transition-smooth">
+        <div className="flex items-center justify-between px-3 h-16">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+            className="h-9 w-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
             aria-label="Back"
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="flex items-center gap-1">
-            {existing && !editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1.5 text-xs font-semibold hover:bg-muted"
-              >
-                <Pencil size={13} strokeWidth={2.5} />
-                Edit
-              </button>
+
+          <div className="flex items-center gap-1.5">
+            {existing && (
+              <div className="h-9 flex items-center gap-1.5 rounded-full bg-accent/10 px-3 text-[11px] font-black text-accent border border-accent/20">
+                <Flame size={13} strokeWidth={3} className="fill-accent/20" />
+                {existing.streakCount}
+              </div>
             )}
-            {existing && editing && (
+            {existing && (
               <button
                 onClick={() => setDeleteOpen(true)}
-                className="p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-smooth"
+                className="h-9 w-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20 transition-smooth"
                 aria-label="Delete"
               >
-                <Trash2 size={18} />
-              </button>
-            )}
-            {editing && (
-              <button
-                onClick={save}
-                disabled={!title.trim()}
-                className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-foreground text-background px-4 py-2 text-sm font-semibold disabled:opacity-40"
-              >
-                <Check size={16} strokeWidth={2.5} />
-                {isNew ? "Create" : "Save"}
+                <Trash2 size={16} />
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <main className="px-5 pt-6 space-y-5">
-        <div className="space-y-3">
-          <button
-            type="button"
-            disabled={!editing}
-            onClick={() => setEmojiOpen(true)}
-            className={cn(
-              "text-6xl leading-none transition-transform",
-              editing && "hover:scale-105 active:scale-95",
-              !editing && "cursor-default",
-            )}
-            aria-label="Change icon"
-          >
-            {emoji}
-          </button>
-          <input
-            autoFocus={isNew}
-            readOnly={!editing}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Name this section…"
-            className="w-full bg-transparent border-0 outline-none text-3xl font-semibold tracking-tight placeholder:text-muted-foreground/40"
-          />
-          {existing && existing.streakCount > 0 && (
-            <div className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
-              <Flame size={12} strokeWidth={2.5} />
-              {existing.streakCount} day streak
-            </div>
-          )}
-        </div>
-
-        {editing && (
-          <div className="flex flex-wrap items-center gap-2">
+      <main className="max-w-2xl mx-auto px-6 pt-10 space-y-8">
+        <div className="relative space-y-4">
+          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => setEmojiOpen(true)}
-              className="inline-flex items-center gap-1.5 h-8 rounded-full border border-border bg-muted/60 px-3 text-xs font-medium"
+              className="group relative flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+              aria-label="Change icon"
             >
-              <span>{emoji}</span> Change icon
+              <span className="relative z-10 text-3xl leading-none">{emoji}</span>
+              <div className="absolute -inset-1 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-background/90 p-1 rounded-full shadow-block border border-border">
+                  <Plus size={10} className="text-foreground" />
+                </div>
+              </div>
             </button>
+
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <input
+                autoFocus={isNew}
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="Routine Name"
+                className="w-full bg-transparent border-0 outline-none text-3xl font-serif font-bold tracking-tight placeholder:text-muted-foreground/30 text-foreground"
+              />
+            </div>
           </div>
-        )}
+        </div>
 
-        <div className="h-px bg-border" />
-
-        <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={editing} />
+        <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={true} />
       </main>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete routine?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete "{existing?.title}" and its progress.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={remove}>
+      {/* Floating Undo Button */}
+      <AnimatePresence>
+        {showUndo && history.length > 0 && (
+          <motion.button
+            layout
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            onClick={handleUndo}
+            className="fixed right-6 z-50 flex items-center gap-2 rounded-full bg-foreground text-background px-4 py-2.5 shadow-elevated transition-transform hover:scale-105 active:scale-95"
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}
+          >
+            <Undo2 size={16} strokeWidth={2.5} />
+            <span className="text-sm font-bold">Undo</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Delete routine?</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
+              This will permanently delete "{existing?.title}" and its progress. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteOpen(false)}
+              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={remove}
+              className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-destructive/20"
+            >
               Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <EmojiPicker
         open={emojiOpen}
         value={emoji}
         onClose={() => setEmojiOpen(false)}
-        onSelect={setEmoji}
+        onSelect={handleEmojiChange}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RoutineDetail from "./pages/RoutineDetail.tsx";
 import History from "./pages/History.tsx";
+import { BackButtonHandler } from "./components/BackButtonHandler";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <BackButtonHandler />
         <Routes>
         <Route path="/" element={<Index />} />
           <Route path="/routine/:id" element={<RoutineDetail />} />

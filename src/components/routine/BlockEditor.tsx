@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Heading1,
   Heading2,
@@ -14,6 +15,7 @@ import {
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
+import { RoutineCheckbox } from "./RoutineCheckbox";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -102,11 +104,19 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
   const removeBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {blocks.length === 0 && (
-        <p className="text-sm text-muted-foreground/70 italic py-2">
-          {editable ? "Empty page. Tap the toolbox below to add blocks." : "No content yet. Tap Edit to add some."}
-        </p>
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-3 rounded-2xl border-2 border-dashed border-border/50 bg-muted/20">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+            <List size={24} />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">No tasks yet</p>
+            <p className="text-xs text-muted-foreground max-w-[200px]">
+              {editable ? "Use the toolbox below to start building your routine." : "This routine has no content yet."}
+            </p>
+          </div>
+        </div>
       )}
 
       {blocks.map((b, i) => (
@@ -125,32 +135,32 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
 
       {/* Add-block toolbox — only in edit mode */}
       {editable && (
-        <div className="pt-4">
+        <div className="pt-6">
           {!toolboxOpen ? (
             <button
               type="button"
               onClick={() => setToolboxOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-dashed border-border bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/40 hover:bg-muted transition-smooth"
+              className="group flex items-center justify-center w-full gap-2 rounded-xl border border-dashed border-border py-4 text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-muted/50 transition-smooth active:scale-[0.98]"
             >
-              <Plus size={14} strokeWidth={2.5} />
+              <Plus size={16} strokeWidth={2.5} className="text-muted-foreground/60 group-hover:text-foreground transition-colors" />
               Add block
             </button>
           ) : (
-            <div className="rounded-xl border border-border bg-card/60 p-3 animate-in fade-in slide-in-from-top-1">
-              <div className="flex items-center justify-between mb-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Choose a block
+            <div className="rounded-2xl border border-border bg-card shadow-elevated p-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  Quick Add
                 </p>
                 <button
                   type="button"
                   onClick={() => setToolboxOpen(false)}
-                  className="h-6 w-6 grid place-items-center rounded-md text-muted-foreground hover:bg-muted"
+                  className="h-8 w-8 grid place-items-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
                   aria-label="Close toolbox"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {blockMenu.map((m) => {
                   const Icon = m.icon;
                   return (
@@ -158,10 +168,12 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
                       key={m.type}
                       type="button"
                       onClick={() => addBlock(m.type)}
-                      className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted hover:border-foreground/20 transition-smooth"
+                      className="group flex flex-row items-center gap-3 rounded-xl border border-border bg-background p-2.5 text-[13px] font-bold text-foreground hover:bg-muted hover:border-accent/30 hover:text-accent transition-all active:scale-[0.97]"
                     >
-                      <Icon size={15} strokeWidth={2.25} className="text-muted-foreground" />
-                      {m.label}
+                      <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center group-hover:bg-accent/10 shrink-0 transition-colors">
+                        <Icon size={16} strokeWidth={2.5} className="text-muted-foreground/80 group-hover:text-accent transition-colors" />
+                      </div>
+                      <span className="truncate">{m.label}</span>
                     </button>
                   );
                 })}
@@ -204,7 +216,7 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
     }
   }, [isFocused, cursorPos]);
 
-  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     if (!editable) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -221,48 +233,70 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-1.5 rounded-md -mx-1 px-1 py-0.5 transition-colors",
-        editable && "hover:bg-muted/40",
+        "group relative flex items-start gap-3 rounded-xl px-2 py-1.5 transition-all",
+        editable && "hover:bg-muted/50",
       )}
     >
       <div className="flex-1 min-w-0">
         {block.type === "divider" ? (
-          <div className="py-3">
-            <div className="h-px w-full bg-border" />
+          <div className="py-4">
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
           </div>
         ) : block.type === "checkbox" ? (
-          <div className="flex items-start gap-2 py-1">
-            <input
-              type="checkbox"
-              checked={!!block.checked}
-              onChange={(e) => {
-                if (e.target.checked) successHaptic();
-                else tapHaptic();
-                onUpdate({ checked: e.target.checked });
-              }}
-              className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0"
-            />
-            <textarea
-              ref={inputRef}
-              rows={1}
-              readOnly={ro}
-              value={block.text ?? ""}
-              onChange={(e) => {
-                onUpdate({ text: e.target.value });
-                autoGrow(e.target);
-              }}
-              onInput={(e) => autoGrow(e.currentTarget)}
-              onKeyDown={handleKey}
-              placeholder="To-do"
-              className={cn(
-                "flex-1 bg-transparent border-0 outline-none resize-none text-[15px] leading-snug",
-                block.checked && "line-through text-muted-foreground",
-              )}
-            />
+          <div className="flex items-start gap-3 py-1">
+            <div className="mt-0.5">
+              <RoutineCheckbox
+                checked={!!block.checked}
+                onChange={() => {
+                  if (!block.checked) successHaptic();
+                  else tapHaptic();
+                  onUpdate({ checked: !block.checked });
+                }}
+                size={20}
+              />
+            </div>
+            <div className="relative flex-1 min-w-0">
+              <textarea
+                ref={inputRef}
+                rows={1}
+                readOnly={ro}
+                value={block.text ?? ""}
+                onChange={(e) => {
+                  onUpdate({ text: e.target.value });
+                  autoGrow(e.target);
+                }}
+                onInput={(e) => autoGrow(e.currentTarget)}
+                onKeyDown={handleKey}
+                placeholder="What needs to be done?"
+                className={cn(
+                  "w-full bg-transparent border-0 outline-none resize-none text-[15px] font-medium leading-snug transition-all",
+                  block.checked ? "text-muted-foreground/60" : "text-foreground",
+                  ro && "cursor-default",
+                )}
+              />
+              <AnimatePresence>
+                {block.checked && (
+                  <div className="absolute inset-0 pointer-events-none flex items-start">
+                    <div className="relative inline-flex">
+                      <span className="opacity-0 whitespace-pre text-[15px] font-medium leading-snug select-none">
+                        {block.text || " "}
+                      </span>
+                      <motion.div
+                        initial={{ scaleX: 0, opacity: 0 }}
+                        animate={{ scaleX: 1, opacity: 1 }}
+                        exit={{ scaleX: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+                        className="absolute left-0 right-0 top-[0.7em] h-[1.5px] bg-muted-foreground/60 origin-left"
+                      />
+                    </div>
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         ) : block.type === "bullet" ? (
-          <div className="flex items-start gap-2 py-1">
-            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
+          <div className="flex items-start gap-3 py-1">
+            <span className="mt-2.5 h-1.5 w-1.5 rounded-full bg-accent/60 shrink-0" />
             <textarea
               ref={inputRef}
               rows={1}
@@ -275,7 +309,10 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
               onInput={(e) => autoGrow(e.currentTarget)}
               onKeyDown={handleKey}
               placeholder="List item"
-              className="flex-1 bg-transparent border-0 outline-none resize-none text-[15px] leading-snug"
+              className={cn(
+                "flex-1 bg-transparent border-0 outline-none resize-none text-[15px] leading-snug",
+                ro && "cursor-default",
+              )}
             />
           </div>
         ) : block.type === "heading" ? (
@@ -291,7 +328,10 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             onInput={(e) => autoGrow(e.currentTarget)}
             onKeyDown={handleKey}
             placeholder="Heading"
-            className="w-full bg-transparent border-0 outline-none resize-none text-2xl font-semibold tracking-tight py-1"
+            className={cn(
+              "w-full bg-transparent border-0 outline-none resize-none text-2xl font-serif font-bold tracking-tight py-2",
+              ro && "cursor-default",
+            )}
           />
         ) : block.type === "subheading" ? (
           <textarea
@@ -306,10 +346,13 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             onInput={(e) => autoGrow(e.currentTarget)}
             onKeyDown={handleKey}
             placeholder="Subheading"
-            className="w-full bg-transparent border-0 outline-none resize-none text-lg font-semibold py-1"
+            className={cn(
+              "w-full bg-transparent border-0 outline-none resize-none text-lg font-semibold tracking-tight py-1",
+              ro && "cursor-default",
+            )}
           />
         ) : block.type === "quote" ? (
-          <div className="border-l-2 border-accent pl-3 py-1">
+          <div className="border-l-4 border-accent/20 pl-4 py-2 my-1 bg-accent/5 rounded-r-lg">
             <textarea
               ref={inputRef}
               rows={1}
@@ -321,26 +364,34 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
               }}
               onInput={(e) => autoGrow(e.currentTarget)}
               onKeyDown={handleKey}
-              placeholder="Note or quote"
-              className="w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-snug italic text-muted-foreground"
+              placeholder="Add a note or reminder…"
+              className={cn(
+                "w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-relaxed italic text-muted-foreground",
+                ro && "cursor-default",
+              )}
             />
           </div>
         ) : block.type === "link" ? (
-          <div className="space-y-1 py-1">
+          <div className="py-2 px-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors">
             <input
               value={block.text ?? ""}
               readOnly={ro}
               onChange={(e) => onUpdate({ text: e.target.value })}
-              placeholder="Link label"
-              className="w-full bg-transparent border-0 outline-none text-[15px] font-medium"
+              onKeyDown={handleKey}
+              placeholder="Link title"
+              className={cn(
+                "w-full bg-transparent border-0 outline-none text-[15px] font-bold",
+                ro && "cursor-default",
+              )}
             />
             {ro && block.url ? (
               <a
                 href={block.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-[13px] text-accent underline underline-offset-2"
+                className="inline-flex items-center gap-1 text-[13px] text-accent font-medium hover:underline mt-1"
               >
+                <LinkIcon size={12} />
                 {block.url}
               </a>
             ) : (
@@ -348,8 +399,12 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
                 value={block.url ?? ""}
                 readOnly={ro}
                 onChange={(e) => onUpdate({ url: e.target.value })}
+                onKeyDown={handleKey}
                 placeholder="https://…"
-                className="w-full bg-transparent border-0 outline-none text-[13px] text-accent underline underline-offset-2"
+                className={cn(
+                  "w-full bg-transparent border-0 outline-none text-[13px] text-accent font-medium mt-0.5",
+                  ro && "cursor-default",
+                )}
               />
             )}
           </div>
@@ -365,8 +420,11 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             }}
             onInput={(e) => autoGrow(e.currentTarget)}
             onKeyDown={handleKey}
-            placeholder="Type something, press Enter for a new block…"
-            className="w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-snug py-1"
+            placeholder="Start typing…"
+            className={cn(
+              "w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-relaxed py-1",
+              ro && "cursor-default",
+            )}
           />
         )}
       </div>

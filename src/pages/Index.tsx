@@ -66,6 +66,7 @@ const Index = () => {
       <ProgressHeader
         completed={r.completed}
         total={r.total}
+        globalStreak={r.globalStreak}
         onOpenHistory={() => navigate("/history")}
       />
 
