@@ -20,3 +20,16 @@ export const successHaptic = async () => {
     }
   }
 };
+
+/** Stronger celebratory haptic — fired when an entire routine is completed. */
+export const completionHaptic = async () => {
+  try {
+    await Haptics.impact({ style: ImpactStyle.Heavy });
+    setTimeout(() => Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {}), 90);
+    setTimeout(() => Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {}), 200);
+  } catch {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate?.([18, 40, 22, 40, 32]);
+    }
+  }
+};

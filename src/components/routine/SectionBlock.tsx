@@ -4,7 +4,7 @@ import type { Routine } from "@/lib/routine-types";
 import { RoutineCheckbox } from "./RoutineCheckbox";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { successHaptic, tapHaptic } from "@/lib/haptics";
+import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -54,6 +54,11 @@ export const SectionBlock = ({
       }
       return b;
     });
+    // Detect "just completed everything" transition → stronger haptic
+    const checks = updatedBlocks.filter((b) => b.type === "checkbox" && b.text?.trim());
+    const wasAllDone = blocks.length > 0 && blocks.every((b) => b.checked);
+    const isAllDone = checks.length > 0 && checks.every((b) => b.checked);
+    if (!wasAllDone && isAllDone) completionHaptic();
     setRoutineBlocks(routine.id, updatedBlocks);
   };
 
@@ -134,10 +139,22 @@ export const SectionBlock = ({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            transition={{
+              height: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+              opacity: { duration: 0.32, ease: "easeOut" },
+            }}
             className="overflow-hidden"
           >
-            <div className={cn("space-y-1.5 pb-1")}>
+            <motion.div
+              className={cn("space-y-1.5 pb-1")}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              variants={{
+                visible: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
+                hidden: { transition: { staggerChildren: 0.025, staggerDirection: -1 } },
+              }}
+            >
               {blocks.length === 0 && (
                 <button
                   onClick={() => onAdd(routine.id)}
@@ -150,10 +167,11 @@ export const SectionBlock = ({
                 <motion.div
                   key={b.id}
                   layout
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.18 }}
+                  variants={{
+                    hidden: { opacity: 0, y: -8, scale: 0.98 },
+                    visible: { opacity: 1, y: 0, scale: 1 },
+                  }}
+                  transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
                   className={cn(
                     "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
                     b.checked && "bg-success-soft/40 border-success/20",
@@ -182,7 +200,7 @@ export const SectionBlock = ({
                   </button>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
