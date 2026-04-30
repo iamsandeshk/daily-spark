@@ -148,19 +148,29 @@ export const SectionBlock = ({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{
-              height: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-              opacity: { duration: 0.32, ease: "easeOut" },
+              height: { duration: SECTION_DURATION, ease: SECTION_EASE },
+              opacity: { duration: SECTION_DURATION, ease: SECTION_EASE },
             }}
-            className="overflow-hidden"
+            style={{ overflow: "hidden" }}
           >
             <motion.div
-              className={cn("space-y-1.5 pb-1")}
+              className={cn("space-y-1.5 pb-1 pt-0.5")}
               initial="hidden"
               animate="visible"
               exit="hidden"
               variants={{
-                visible: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
-                hidden: { transition: { staggerChildren: 0.025, staggerDirection: -1 } },
+                visible: {
+                  transition: {
+                    staggerChildren: STAGGER,
+                    delayChildren: STAGGER_DELAY,
+                  },
+                },
+                hidden: {
+                  transition: {
+                    staggerChildren: STAGGER,
+                    staggerDirection: -1,
+                  },
+                },
               }}
             >
               {blocks.length === 0 && (
@@ -174,12 +184,11 @@ export const SectionBlock = ({
               {blocks.map((b) => (
                 <motion.div
                   key={b.id}
-                  layout
                   variants={{
-                    hidden: { opacity: 0, y: -8, scale: 0.98 },
-                    visible: { opacity: 1, y: 0, scale: 1 },
+                    hidden: { opacity: 0, scale: 0.98 },
+                    visible: { opacity: 1, scale: 1 },
                   }}
-                  transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: CARD_DURATION, ease: SECTION_EASE }}
                   className={cn(
                     "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
                     b.checked && "bg-success-soft/40 border-success/20",
