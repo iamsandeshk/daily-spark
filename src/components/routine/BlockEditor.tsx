@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
+import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -225,7 +226,11 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             <input
               type="checkbox"
               checked={!!block.checked}
-              onChange={(e) => onUpdate({ checked: e.target.checked })}
+              onChange={(e) => {
+                if (e.target.checked) successHaptic();
+                else tapHaptic();
+                onUpdate({ checked: e.target.checked });
+              }}
               className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0"
             />
             <textarea
