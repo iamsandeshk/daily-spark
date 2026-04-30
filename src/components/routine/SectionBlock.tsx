@@ -149,30 +149,14 @@ export const SectionBlock = ({
             exit={{ height: 0, opacity: 0 }}
             transition={{
               height: { duration: SECTION_DURATION, ease: SECTION_EASE },
-              opacity: { duration: SECTION_DURATION, ease: SECTION_EASE },
+              opacity: { duration: SECTION_DURATION * 0.85, ease: SECTION_EASE },
             }}
             style={{ overflow: "hidden" }}
           >
-            <motion.div
-              className={cn("space-y-1.5 pb-1 pt-0.5")}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              variants={{
-                visible: {
-                  transition: {
-                    staggerChildren: STAGGER,
-                    delayChildren: STAGGER_DELAY,
-                  },
-                },
-                hidden: {
-                  transition: {
-                    staggerChildren: STAGGER,
-                    staggerDirection: -1,
-                  },
-                },
-              }}
-            >
+            {/* Inner wrapper: flex+gap (not space-y) so margins don't clip
+                during height animation, and pt provides top breathing room
+                that's included in the measured height. */}
+            <div className="flex flex-col gap-1.5 pt-1.5">
               {blocks.length === 0 && (
                 <button
                   onClick={() => onAdd(routine.id)}
@@ -182,13 +166,8 @@ export const SectionBlock = ({
                 </button>
               )}
               {blocks.map((b) => (
-                <motion.div
+                <div
                   key={b.id}
-                  variants={{
-                    hidden: { opacity: 0, scale: 0.98 },
-                    visible: { opacity: 1, scale: 1 },
-                  }}
-                  transition={{ duration: CARD_DURATION, ease: SECTION_EASE }}
                   className={cn(
                     "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
                     b.checked && "bg-success-soft/40 border-success/20",
@@ -215,9 +194,9 @@ export const SectionBlock = ({
                       {b.text || "Untitled Task"}
                     </span>
                   </button>
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
