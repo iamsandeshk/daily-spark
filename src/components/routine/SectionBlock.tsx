@@ -71,7 +71,7 @@ export const SectionBlock = ({
         >
           <motion.span
             animate={{ rotate: routine.collapsed ? -90 : 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             className="text-muted-foreground"
           >
             <ChevronDown size={16} />

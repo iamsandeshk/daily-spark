@@ -7,15 +7,21 @@ import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
 import type { Routine } from "@/lib/routine-types";
 
+// Module-level flag: the FAB "New Section → +" intro animation only plays
+// the first time the app mounts in this session, not on every Home navigation.
+let fabIntroPlayed = false;
+
 const Index = () => {
   const r = useRoutines();
   const navigate = useNavigate();
   const [reorderMode, setReorderMode] = useState(false);
-  const [showFullButton, setShowFullButton] = useState(true);
+  const [showFullButton, setShowFullButton] = useState(() => !fabIntroPlayed);
 
   useEffect(() => {
+    if (fabIntroPlayed) return;
     const timer = setTimeout(() => {
       setShowFullButton(false);
+      fabIntroPlayed = true;
     }, 3500);
 
     return () => clearTimeout(timer);
