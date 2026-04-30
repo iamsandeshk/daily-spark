@@ -1,6 +1,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import type { Routine } from "@/lib/routine-types";
+
+// Shared animation config — used by all section open/close transitions
+// and routine card stagger so timing/easing stay perfectly in sync.
+const SECTION_EASE = [0.22, 1, 0.36, 1] as const;
+const SECTION_DURATION = 0.4;
+const CARD_DURATION = 0.28;
+const STAGGER = 0.04;
+const STAGGER_DELAY = 0.04;
 import { RoutineCheckbox } from "./RoutineCheckbox";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
