@@ -1,4 +1,4 @@
-import { Reorder, useDragControls } from "framer-motion";
+import { AnimatePresence, motion, Reorder, useDragControls } from "framer-motion";
 import { CalendarDays, GripVertical, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +16,7 @@ const Index = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowFullButton(false);
-    }, 3000);
+    }, 3500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -100,18 +100,30 @@ const Index = () => {
         >
           <CalendarDays size={18} />
         </button>
-        <button
+        <motion.button
           onClick={() => newRoutine()}
-          className={`flex items-center gap-2 rounded-full bg-foreground text-background shadow-elevated transition-all duration-700 hover:opacity-90 active:scale-95 ${
-            showFullButton
-              ? "pl-4 pr-5 py-3.5"
-              : "h-12 w-12 justify-center"
-          }`}
+          initial={false}
+          animate={{ width: showFullButton ? "auto" : 48 }}
+          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center justify-center h-12 rounded-full bg-foreground text-background shadow-elevated overflow-hidden px-3.5 hover:opacity-90 active:scale-95"
           aria-label="Add routine"
         >
-          <Plus size={18} strokeWidth={2.5} />
-          {showFullButton && <span className="text-sm font-semibold">New Section</span>}
-        </button>
+          <Plus size={18} strokeWidth={2.5} className="shrink-0" />
+          <AnimatePresence initial={false}>
+            {showFullButton && (
+              <motion.span
+                key="label"
+                initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                animate={{ opacity: 1, width: "auto", marginLeft: 8 }}
+                exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="text-sm font-semibold whitespace-nowrap pr-1.5"
+              >
+                New Section
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
     </div>
   );
