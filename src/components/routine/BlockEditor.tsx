@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
+import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -86,7 +87,16 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
   };
 
   const updateBlock = (id: string, patch: Partial<RoutineBlockContent>) => {
-    onChange(blocks.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+    const next = blocks.map((b) => (b.id === id ? { ...b, ...patch } : b));
+    // Detect "all checkboxes just became complete" → stronger haptic
+    if ("checked" in patch) {
+      const prevChecks = blocks.filter((b) => b.type === "checkbox" && b.text?.trim());
+      const nextChecks = next.filter((b) => b.type === "checkbox" && b.text?.trim());
+      const wasAll = prevChecks.length > 0 && prevChecks.every((b) => b.checked);
+      const isAll = nextChecks.length > 0 && nextChecks.every((b) => b.checked);
+      if (!wasAll && isAll) completionHaptic();
+    }
+    onChange(next);
   };
 
   const removeBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));
@@ -225,7 +235,11 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             <input
               type="checkbox"
               checked={!!block.checked}
-              onChange={(e) => onUpdate({ checked: e.target.checked })}
+              onChange={(e) => {
+                if (e.target.checked) successHaptic();
+                else tapHaptic();
+                onUpdate({ checked: e.target.checked });
+              }}
               className="mt-1.5 h-4 w-4 accent-[hsl(var(--success))] shrink-0"
             />
             <textarea
