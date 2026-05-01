@@ -329,7 +329,7 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             onKeyDown={handleKey}
             placeholder="Heading"
             className={cn(
-              "w-full bg-transparent border-0 outline-none resize-none text-2xl font-serif font-bold tracking-tight py-2",
+              "w-full bg-transparent border-0 outline-none resize-none text-[26px] font-serif font-bold tracking-tight leading-tight pt-4 pb-1",
               ro && "cursor-default",
             )}
           />
@@ -347,12 +347,12 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             onKeyDown={handleKey}
             placeholder="Subheading"
             className={cn(
-              "w-full bg-transparent border-0 outline-none resize-none text-lg font-semibold tracking-tight py-1",
+              "w-full bg-transparent border-0 outline-none resize-none text-[17px] font-semibold tracking-tight leading-snug pt-2 pb-0.5 text-foreground/90",
               ro && "cursor-default",
             )}
           />
         ) : block.type === "quote" ? (
-          <div className="border-l-4 border-accent/20 pl-4 py-2 my-1 bg-accent/5 rounded-r-lg">
+          <div className="border-l-[3px] border-accent/40 pl-4 py-1 my-1">
             <textarea
               ref={inputRef}
               rows={1}
@@ -372,41 +372,43 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             />
           </div>
         ) : block.type === "link" ? (
-          <div className="py-2 px-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors">
-            <input
-              value={block.text ?? ""}
-              readOnly={ro}
-              onChange={(e) => onUpdate({ text: e.target.value })}
-              onKeyDown={handleKey}
-              placeholder="Link title"
-              className={cn(
-                "w-full bg-transparent border-0 outline-none text-[15px] font-bold",
-                ro && "cursor-default",
-              )}
-            />
-            {ro && block.url ? (
-              <a
-                href={block.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[13px] text-accent font-medium hover:underline mt-1"
-              >
-                <LinkIcon size={12} />
-                {block.url}
-              </a>
-            ) : (
+          <div className="flex items-start gap-2.5 py-1.5">
+            <LinkIcon size={14} strokeWidth={2.5} className="mt-1 text-accent shrink-0" />
+            <div className="flex-1 min-w-0">
               <input
-                value={block.url ?? ""}
+                value={block.text ?? ""}
                 readOnly={ro}
-                onChange={(e) => onUpdate({ url: e.target.value })}
+                onChange={(e) => onUpdate({ text: e.target.value })}
                 onKeyDown={handleKey}
-                placeholder="https://…"
+                placeholder="Link title"
                 className={cn(
-                  "w-full bg-transparent border-0 outline-none text-[13px] text-accent font-medium mt-0.5",
+                  "w-full bg-transparent border-0 outline-none text-[15px] font-medium text-accent underline underline-offset-[3px] decoration-accent/40",
                   ro && "cursor-default",
                 )}
               />
-            )}
+              {ro && block.url ? (
+                <a
+                  href={block.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-[12px] text-muted-foreground hover:underline truncate"
+                >
+                  {block.url}
+                </a>
+              ) : (
+                <input
+                  value={block.url ?? ""}
+                  readOnly={ro}
+                  onChange={(e) => onUpdate({ url: e.target.value })}
+                  onKeyDown={handleKey}
+                  placeholder="https://…"
+                  className={cn(
+                    "w-full bg-transparent border-0 outline-none text-[12px] text-muted-foreground",
+                    ro && "cursor-default",
+                  )}
+                />
+              )}
+            </div>
           </div>
         ) : (
           <textarea
@@ -422,7 +424,7 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             onKeyDown={handleKey}
             placeholder="Start typing…"
             className={cn(
-              "w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-relaxed py-1",
+              "w-full bg-transparent border-0 outline-none resize-none text-[15px] leading-relaxed text-muted-foreground/95 py-1",
               ro && "cursor-default",
             )}
           />
