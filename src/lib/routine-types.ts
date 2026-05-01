@@ -47,9 +47,23 @@ export type DayHistory = {
   total: number;
 };
 
+export type MoodValue = "great" | "ok" | "tired" | "stressed";
+
+export type CarryForwardItem = {
+  routineId: string;
+  blockIds: string[]; // unfinished checkbox block ids from the previous day
+};
+
 export type RoutineState = {
   sections: Section[];
   routines: Routine[];
   lastResetDate: string; // YYYY-MM-DD
   history: Record<string, DayHistory>; // keyed by date
+  /** Unfinished checkboxes from the most recent ended day awaiting user decision. */
+  pendingCarryForward?: {
+    fromDate: string;
+    items: CarryForwardItem[];
+  };
+  /** Daily mood entries keyed by date (YYYY-MM-DD). */
+  moods?: Record<string, MoodValue>;
 };
