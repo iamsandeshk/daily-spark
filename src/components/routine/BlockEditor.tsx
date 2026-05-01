@@ -439,33 +439,36 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
   return (
     <div className="space-y-1.5">
       {blocks.map((b) => {
-        if (b.type === "divider") return <div key={b.id} className="h-px w-full bg-border my-2" />;
-        if (b.type === "heading") return <h3 key={b.id} className="text-xl font-semibold">{b.text}</h3>;
-        if (b.type === "subheading") return <h4 key={b.id} className="text-base font-semibold">{b.text}</h4>;
+        if (b.type === "divider")
+          return <div key={b.id} className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-3" />;
+        if (b.type === "heading")
+          return <h3 key={b.id} className="text-[22px] font-serif font-bold tracking-tight pt-3 pb-1">{b.text}</h3>;
+        if (b.type === "subheading")
+          return <h4 key={b.id} className="text-[16px] font-semibold tracking-tight pt-1 text-foreground/90">{b.text}</h4>;
         if (b.type === "bullet")
           return (
-            <div key={b.id} className="flex items-start gap-2">
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
-              <p className="text-sm">{b.text}</p>
+            <div key={b.id} className="flex items-start gap-2.5 py-0.5">
+              <span className="mt-[9px] h-1.5 w-1.5 rounded-full bg-accent/60 shrink-0" />
+              <p className="text-[15px] leading-snug">{b.text}</p>
             </div>
           );
         if (b.type === "checkbox")
           return (
-            <div key={b.id} className="flex items-start gap-2">
+            <div key={b.id} className="flex items-start gap-2.5 py-0.5">
               <span
                 className={cn(
-                  "mt-0.5 h-4 w-4 rounded-sm border flex items-center justify-center text-[10px]",
+                  "mt-1 h-4 w-4 rounded-sm border flex items-center justify-center text-[10px] shrink-0",
                   b.checked ? "bg-success border-success text-success-foreground" : "border-input",
                 )}
               >
                 {b.checked && "✓"}
               </span>
-              <p className={cn("text-sm", b.checked && "line-through text-muted-foreground")}>{b.text}</p>
+              <p className={cn("text-[15px] leading-snug", b.checked && "line-through text-muted-foreground")}>{b.text}</p>
             </div>
           );
         if (b.type === "quote")
           return (
-            <p key={b.id} className="border-l-2 border-accent pl-3 italic text-muted-foreground text-sm">
+            <p key={b.id} className="border-l-[3px] border-accent/40 pl-4 py-1 my-1 italic text-muted-foreground text-[15px] leading-relaxed">
               {b.text}
             </p>
           );
@@ -476,12 +479,13 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
               href={b.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-sm text-accent underline underline-offset-2"
+              className="flex items-start gap-2 py-1 text-[15px] text-accent font-medium underline underline-offset-[3px] decoration-accent/40 hover:decoration-accent"
             >
-              {b.text || b.url}
+              <LinkIcon size={14} strokeWidth={2.5} className="mt-1 shrink-0" />
+              <span className="truncate">{b.text || b.url}</span>
             </a>
           );
-        return <p key={b.id} className="text-sm leading-relaxed">{b.text}</p>;
+        return <p key={b.id} className="text-[15px] leading-relaxed text-muted-foreground/90">{b.text}</p>;
       })}
     </div>
   );
