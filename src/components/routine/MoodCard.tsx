@@ -131,12 +131,12 @@ export const MoodCard = ({ state, onSelectMood }: Props) => {
                 key={m.value}
                 onClick={() => handlePick(m.value)}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-xl border border-border bg-background py-2.5 px-1 transition-all",
-                  "hover:bg-muted hover:border-foreground/20 hover:scale-[1.04] active:scale-95",
+                  "flex flex-col items-center gap-2 py-3 px-1 transition-all rounded-2xl",
+                  "hover:bg-muted/50 hover:scale-110 active:scale-90",
                 )}
               >
-                <span className="text-2xl leading-none">{m.emoji}</span>
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className="text-3xl leading-none">{m.emoji}</span>
+                <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-[0.1em]">
                   {m.label}
                 </span>
               </button>

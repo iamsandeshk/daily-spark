@@ -7,7 +7,7 @@ import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-import { cn } from "@/lib/utils";
+import { cn, uid } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-const uid = () => Math.random().toString(36).slice(2, 10);
 
 const RoutineDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,11 +43,12 @@ const RoutineDetail = () => {
   };
 
   const [title, setTitle] = useState(existing?.title ?? "");
+  const [description, setDescription] = useState(existing?.description ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "✨");
   const [sectionId] = useState(existing?.sectionId ?? ensureDefaultSection());
   const [blocks, setBlocks] = useState<RoutineBlockContent[]>(
     existing?.blocks ??
-    (existing?.description
+    (existing?.description && !existing?.blocks
       ? [{ id: "legacy", type: "text", text: existing.description }]
       : isNew
         ? [{ id: uid(), type: "checkbox", text: "", checked: false }]
@@ -57,10 +57,54 @@ const RoutineDetail = () => {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // History for undo
+  // Reset history on ID change
   const [history, setHistory] = useState<{ title: string; emoji: string; blocks: RoutineBlockContent[] }[]>([]);
   const [showUndo, setShowUndo] = useState(false);
   const isUndoing = useRef(false);
+
+  // Prevent initializing state with empty values if data isn't ready yet
+  if (!isNew && !existing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Auto-hide undo button after 4 seconds
+  useEffect(() => {
+    if (showUndo) {
+      const timer = setTimeout(() => setShowUndo(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showUndo]);
+
+  // Track latest state for cleanup
+  const stateRef = useRef({ title, description, blocks, id: existing?.id });
+  useEffect(() => {
+    stateRef.current = { title, description, blocks, id: existing?.id };
+  }, [title, description, blocks, existing?.id]);
+
+  // Cleanup empty routines on unmount
+  useEffect(() => {
+    return () => {
+      const { title: fTitle, description: fDesc, blocks: fBlocks, id: fId } = stateRef.current;
+      if (fId && !fTitle.trim() && !fDesc.trim()) {
+        // Check if there is ANY meaningful content in blocks
+        const hasContent = fBlocks.some(b => {
+          if (b.type === "divider") return true;
+          if (b.type === "routine") return true;
+          if (b.type === "link" && b.url?.trim()) return true;
+          if (b.text?.trim()) return true;
+          return false;
+        });
+
+        if (!hasContent) {
+          r.deleteRoutine(fId);
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (existing) {
@@ -94,7 +138,7 @@ const RoutineDetail = () => {
     } else if (isNew && val.trim()) {
       // Auto-create routine on first title entry
       const newId = uid();
-      r.addRoutine({ title: val.trim(), emoji, sectionId, blocks });
+      r.addRoutine({ id: newId, title: val.trim(), description, emoji, sectionId, blocks });
       navigate(`/routine/${newId}`, { replace: true });
     }
   };
@@ -105,6 +149,15 @@ const RoutineDetail = () => {
     setShowUndo(false);
     if (existing) {
       r.updateRoutine(existing.id, { emoji: val });
+    }
+  };
+
+  const handleDescriptionChange = (val: string) => {
+    takeSnapshot();
+    setDescription(val);
+    setShowUndo(true);
+    if (existing) {
+      r.updateRoutine(existing.id, { description: val });
     }
   };
 
@@ -149,14 +202,14 @@ const RoutineDetail = () => {
   const save = () => {
     if (!title.trim() || !sectionId) return;
     const firstText = blocks.find((b) => ["text", "quote", "subheading"].includes(b.type) && b.text?.trim());
-    const description = firstText?.text?.trim() || undefined;
+    const displayDescription = description.trim() || firstText?.text?.trim() || undefined;
 
     if (isNew) {
-      r.addRoutine({ title: title.trim(), description, emoji, sectionId, blocks });
+      r.addRoutine({ title: title.trim(), description: displayDescription, emoji, sectionId, blocks });
     } else if (existing) {
       r.updateRoutine(existing.id, {
         title: title.trim(),
-        description,
+        description: displayDescription,
         emoji,
         sectionId,
         blocks,
@@ -174,7 +227,7 @@ const RoutineDetail = () => {
 
   return (
     <div className="min-h-full bg-background pb-32">
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 transition-smooth">
+      <header className="safe-top sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 transition-smooth">
         <div className="flex items-center justify-between px-3 h-16">
           <button
             onClick={() => navigate(-1)}
@@ -185,12 +238,33 @@ const RoutineDetail = () => {
           </button>
 
           <div className="flex items-center gap-1.5">
-            {existing && (
-              <div className="h-9 flex items-center gap-1.5 rounded-full bg-accent/10 px-3 text-[11px] font-black text-accent border border-accent/20">
-                <Flame size={13} strokeWidth={3} className="fill-accent/20" />
-                {existing.streakCount}
-              </div>
-            )}
+            {existing && (() => {
+              let done = 0;
+              let total = 0;
+              
+              const countTasks = (blkList: RoutineBlockContent[]) => {
+                blkList.forEach(b => {
+                  if (b.type === 'checkbox') {
+                    total++;
+                    if (b.checked) done++;
+                  } else if (b.type === 'routine' && b.linkedRoutineId) {
+                    const linked = r.state.routines.find(x => x.id === b.linkedRoutineId);
+                    if (linked?.blocks) countTasks(linked.blocks);
+                  }
+                });
+              };
+              
+              countTasks(blocks);
+              
+              if (total === 0) return null;
+              
+              return (
+                <div className="h-9 flex items-center gap-1.5 rounded-full bg-accent/10 px-3 text-[11px] font-black text-accent border border-accent/20">
+                  <Flame size={13} strokeWidth={3} className="fill-accent/20" />
+                  {done}
+                </div>
+              );
+            })()}
             {existing && (
               <button
                 onClick={() => setDeleteOpen(true)}
@@ -221,7 +295,7 @@ const RoutineDetail = () => {
               </div>
             </button>
 
-            <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex-1 min-w-0 space-y-1">
               <input
                 autoFocus={isNew}
                 value={title}
@@ -229,11 +303,17 @@ const RoutineDetail = () => {
                 placeholder="Routine Name"
                 className="w-full bg-transparent border-0 outline-none text-3xl font-serif font-bold tracking-tight placeholder:text-muted-foreground/30 text-foreground"
               />
+              <input
+                value={description}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                placeholder="Start every day with intention."
+                className="w-full bg-transparent border-0 outline-none text-sm font-medium italic text-muted-foreground/60 placeholder:text-muted-foreground/20"
+              />
             </div>
           </div>
         </div>
 
-        <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={true} />
+        <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={true} currentRoutineId={id} />
       </main>
 
       {/* Floating Undo Button */}

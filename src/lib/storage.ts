@@ -56,7 +56,12 @@ const snapshotForDate = (state: RoutineState): DayHistory["snapshot"] => {
   const sectionMap = Object.fromEntries(state.sections.map((s) => [s.id, s.title]));
   const snap: DayHistory["snapshot"] = {};
   for (const r of state.routines) {
-    snap[r.id] = { title: r.title, emoji: r.emoji, sectionTitle: sectionMap[r.sectionId] };
+    snap[r.id] = {
+      title: r.title,
+      emoji: r.emoji,
+      sectionTitle: sectionMap[r.sectionId],
+      blocks: r.blocks,
+    };
   }
   return snap;
 };
@@ -101,6 +106,9 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
       ...r,
       isCompleted: false,
       streakCount: keepStreak ? r.streakCount : 0,
+      blocks: (r.blocks ?? []).map((b) =>
+        b.type === "checkbox" ? { ...b, checked: false } : b
+      ),
     };
   });
 

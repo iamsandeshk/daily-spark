@@ -11,11 +11,20 @@ import {
   Link as LinkIcon,
   Plus,
   X,
+  Check,
+  Layers,
+  ChevronRight,
+  ExternalLink,
+  Settings2,
+  Link2Off,
+  Flame,
 } from "lucide-react";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 import { RoutineCheckbox } from "./RoutineCheckbox";
+import { useRoutines } from "@/hooks/useRoutines";
+import { useNavigate } from "react-router-dom";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -25,18 +34,20 @@ const blockMenu: { type: BlockType; label: string; icon: typeof Type }[] = [
   { type: "subheading", label: "Subheading", icon: Heading2 },
   { type: "checkbox", label: "To-do", icon: CheckSquare },
   { type: "bullet", label: "Bullet list", icon: List },
-  { type: "quote", label: "Note / Quote", icon: Quote },
+  { type: "routine", label: "Routine", icon: Layers },
   { type: "link", label: "Link", icon: LinkIcon },
   { type: "divider", label: "Divider", icon: Minus },
+  { type: "quote", label: "Quote", icon: Quote },
 ];
 
 type Props = {
   blocks: RoutineBlockContent[];
   onChange: (next: RoutineBlockContent[]) => void;
   editable: boolean;
+  currentRoutineId?: string;
 };
 
-export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
+export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Props) => {
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
   const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
@@ -73,6 +84,14 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
       return;
     }
     const prev = blocks[index - 1];
+    
+    // Special case: If the previous block is a divider, just remove the divider
+    if (prev.type === "divider") {
+      const next = blocks.filter((_, i) => i !== index - 1);
+      onChange(next);
+      return;
+    }
+
     const prevText = prev.text ?? "";
     const currentText = current.text ?? "";
     
@@ -104,7 +123,7 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
   const removeBlock = (id: string) => onChange(blocks.filter((b) => b.id !== id));
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       {blocks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center space-y-3 rounded-2xl border-2 border-dashed border-border/50 bg-muted/20">
           <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
@@ -126,6 +145,7 @@ export const BlockEditor = ({ blocks, onChange, editable }: Props) => {
           editable={editable}
           isFocused={b.id === focusedBlockId}
           cursorPos={b.id === focusedBlockId ? focusedCursorPos : undefined}
+          currentRoutineId={currentRoutineId}
           onUpdate={(patch) => updateBlock(b.id, patch)}
           onRemove={() => removeBlock(b.id)}
           onEnter={() => handleEnter(i)}
@@ -191,14 +211,60 @@ type RowProps = {
   editable: boolean;
   isFocused?: boolean;
   cursorPos?: number | null;
+  currentRoutineId?: string;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
   onRemove: () => void;
   onEnter: () => void;
   onMergeWithPrevious: () => void;
 };
 
-const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
+const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [localIsEditing, setLocalIsEditing] = useState(false);
+  const [showUnlink, setShowUnlink] = useState(false);
+  const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
+  const longPressTimer = useRef<number | null>(null);
+  
+  const { state: routineState, addRoutine, setRoutineBlocks } = useRoutines();
+  const navigate = useNavigate();
+  
+  const linkedRoutine = routineState.routines.find(r => r.id === block.linkedRoutineId);
+
+  const toggleLinkedBlock = (blockId: string) => {
+    if (!linkedRoutine) return;
+    const isChecking = !(linkedRoutine.blocks ?? []).find(b => b.id === blockId)?.checked;
+    
+    if (isChecking) {
+      setRecentlyCheckedIds(prev => new Set(prev).add(blockId));
+      setTimeout(() => {
+        setRecentlyCheckedIds(prev => {
+          const next = new Set(prev);
+          next.delete(blockId);
+          return next;
+        });
+      }, 700);
+    }
+
+    const nextBlocks = (linkedRoutine.blocks ?? []).map(b => 
+      b.id === blockId ? { ...b, checked: !b.checked } : b
+    );
+    setRoutineBlocks(linkedRoutine.id, nextBlocks);
+    tapHaptic();
+  };
+
+  const startLongPress = () => {
+    longPressTimer.current = window.setTimeout(() => {
+      tapHaptic();
+      setShowUnlink(true);
+    }, 600); // 600ms for long press
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   const autoGrow = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
@@ -216,6 +282,10 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
     }
   }, [isFocused, cursorPos]);
 
+  useEffect(() => {
+    autoGrow(inputRef.current);
+  }, [block.text, editable, localIsEditing]);
+
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     if (!editable) return;
     if (e.key === "Enter" && !e.shiftKey) {
@@ -224,6 +294,14 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
     }
     if (e.key === "Backspace" && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
+      
+      // If it's a special block (checkbox, heading, etc), convert it to text first
+      // instead of immediately merging and losing the tool type.
+      if (block.type !== "text") {
+        onUpdate({ type: "text" });
+        return;
+      }
+      
       onMergeWithPrevious();
     }
   };
@@ -233,14 +311,22 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-3 rounded-xl px-2 py-1.5 transition-all",
-        editable && "hover:bg-muted/50",
+        "group relative flex items-start gap-3 py-1 transition-all",
       )}
     >
       <div className="flex-1 min-w-0">
         {block.type === "divider" ? (
-          <div className="py-4">
+          <div className="py-0 group relative">
             <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
+            {!ro && (
+              <button
+                type="button"
+                onClick={onRemove}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-muted/80 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         ) : block.type === "checkbox" ? (
           <div className="flex items-start gap-3 py-1">
@@ -372,43 +458,213 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
             />
           </div>
         ) : block.type === "link" ? (
-          <div className="flex items-start gap-2.5 py-1.5">
-            <LinkIcon size={14} strokeWidth={2.5} className="mt-1 text-accent shrink-0" />
-            <div className="flex-1 min-w-0">
-              <input
-                value={block.text ?? ""}
-                readOnly={ro}
-                onChange={(e) => onUpdate({ text: e.target.value })}
-                onKeyDown={handleKey}
-                placeholder="Link title"
-                className={cn(
-                  "w-full bg-transparent border-0 outline-none text-[15px] font-medium text-accent underline underline-offset-[3px] decoration-accent/40",
-                  ro && "cursor-default",
+          <div className="flex flex-col gap-1 py-0.5">
+            <div 
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-2xl border border-border bg-card shadow-sm transition-all group",
+                !localIsEditing ? "hover:border-accent/40 active:scale-[0.98] cursor-pointer" : ""
+              )}
+              onClick={() => {
+                if (!localIsEditing && block.url) {
+                  tapHaptic();
+                  window.open(block.url, "_blank");
+                }
+              }}
+            >
+              <div className={cn(
+                "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden",
+                block.url ? "bg-white shadow-sm border border-border/40" : "bg-accent/5 border border-accent/10 text-accent"
+              )}>
+                {block.url ? (
+                  <img 
+                    src={`https://www.google.com/s2/favicons?sz=128&domain=${(() => {
+                      try { return new URL(block.url).hostname; } catch { return ""; }
+                    })()}`}
+                    className="w-7 h-7 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement!.classList.add('bg-accent/5', 'border-accent/10', 'text-accent');
+                      e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
+                    }}
+                    alt=""
+                  />
+                ) : (
+                  <LinkIcon size={18} strokeWidth={2.5} />
                 )}
-              />
-              {ro && block.url ? (
-                <a
-                  href={block.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-[12px] text-muted-foreground hover:underline truncate"
-                >
-                  {block.url}
-                </a>
-              ) : (
-                <input
-                  value={block.url ?? ""}
-                  readOnly={ro}
-                  onChange={(e) => onUpdate({ url: e.target.value })}
-                  onKeyDown={handleKey}
-                  placeholder="https://…"
+              </div>
+              
+              <div className="flex-1 min-w-0 space-y-0.5">
+                {localIsEditing ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={block.text ?? ""}
+                      onChange={(e) => onUpdate({ text: e.target.value })}
+                      onKeyDown={(e) => e.key === "Enter" && setLocalIsEditing(false)}
+                      placeholder="Link title"
+                      className="w-full bg-transparent border-0 outline-none text-[15px] font-bold text-foreground placeholder:text-muted-foreground/30"
+                    />
+                    <input
+                      value={block.url ?? ""}
+                      onChange={(e) => onUpdate({ url: e.target.value })}
+                      onKeyDown={(e) => e.key === "Enter" && setLocalIsEditing(false)}
+                      placeholder="https://..."
+                      className="w-full bg-transparent border-0 outline-none text-[12px] text-muted-foreground placeholder:text-muted-foreground/20"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[15px] font-bold text-foreground leading-tight truncate">{block.text || "Untitled Link"}</p>
+                    <p className="text-[12px] text-muted-foreground truncate opacity-60">
+                      {block.url ? (() => {
+                        try { return new URL(block.url).hostname; } catch { return block.url; }
+                      })() : "No link"}
+                    </p>
+                  </>
+                )}
+              </div>
+              
+              {editable && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    tapHaptic();
+                    setLocalIsEditing(!localIsEditing);
+                  }}
                   className={cn(
-                    "w-full bg-transparent border-0 outline-none text-[12px] text-muted-foreground",
-                    ro && "cursor-default",
+                    "h-8 w-8 shrink-0 rounded-full flex items-center justify-center border transition-all shadow-sm",
+                    localIsEditing 
+                      ? "bg-accent text-white border-accent shadow-accent/20" 
+                      : "bg-muted/30 border-border/50 text-muted-foreground/50 hover:text-accent hover:bg-accent/10 hover:border-accent/20"
                   )}
-                />
+                  title={localIsEditing ? "Save changes" : "Edit link"}
+                >
+                  {localIsEditing ? <Check size={14} strokeWidth={3} /> : <Settings2 size={14} strokeWidth={2.5} />}
+                </button>
               )}
             </div>
+          </div>
+        ) : block.type === "routine" ? (
+          <div className="flex flex-col gap-1 py-0.5">
+            {block.linkedRoutineId && linkedRoutine ? (
+              <div className="relative group">
+                <div 
+                  className={cn(
+                    "p-3 rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-accent/40 hover:shadow-md active:scale-[0.98] cursor-pointer group flex flex-col gap-2.5",
+                    showUnlink && "blur-[2px] pointer-events-none"
+                  )}
+                  onPointerDown={startLongPress}
+                  onPointerUp={cancelLongPress}
+                  onPointerLeave={cancelLongPress}
+                  onClick={() => {
+                    if (!showUnlink) {
+                      tapHaptic();
+                      navigate(`/routine/${block.linkedRoutineId}`);
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                      {linkedRoutine.emoji || "✨"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-bold text-foreground leading-tight truncate">{linkedRoutine.title}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-accent/5 border border-accent/10 text-accent/80 shrink-0">
+                      <Flame size={12} fill="currentColor" className="opacity-80" />
+                      <span className="text-[11px] font-bold tabular-nums">
+                        {(linkedRoutine.blocks ?? []).filter(b => b.type === 'checkbox' && b.checked).length}
+                      </span>
+                    </div>
+                    <ChevronRight size={16} className="mt-1 text-muted-foreground/30 group-hover:text-accent transition-colors shrink-0" />
+                  </div>
+                  
+                  {/* Focus Preview Tasks - Moved below the header for better left alignment */}
+                  {linkedRoutine.blocks && (
+                    <div className="pl-1 space-y-2" onClick={(e) => e.stopPropagation()}>
+                      {linkedRoutine.blocks
+                        .filter(b => b.type === 'checkbox' && (!b.checked || recentlyCheckedIds.has(b.id)))
+                        .slice(0, 3)
+                        .map(b => (
+                          <div key={b.id} className="flex items-center gap-2.5 group/task">
+                            <button
+                              onClick={() => toggleLinkedBlock(b.id)}
+                              className={cn(
+                                "h-4 w-4 rounded-sm border flex items-center justify-center transition-colors hover:border-accent text-[10px] shrink-0",
+                                b.checked ? "bg-success border-success text-success-foreground" : "border-muted-foreground/30"
+                              )}
+                            >
+                              {b.checked && "✓"}
+                            </button>
+                            <span className="text-[13.5px] font-medium text-muted-foreground/90 truncate leading-tight">
+                              {b.text}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                <AnimatePresence>
+                  {showUnlink && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-2xl border border-destructive/20"
+                    >
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            tapHaptic();
+                            onUpdate({ linkedRoutineId: undefined, text: "" });
+                            setShowUnlink(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold shadow-lg shadow-destructive/20 active:scale-95 transition-transform"
+                        >
+                          <Link2Off size={16} />
+                          Unlink Routine
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUnlink(false);
+                          }}
+                          className="p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="relative p-4 rounded-2xl border-2 border-dashed border-border/50 bg-muted/20 flex flex-col items-center gap-3">
+                <button
+                  onClick={onRemove}
+                  className="absolute top-3 right-3 h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground/40 hover:text-foreground hover:bg-muted transition-all"
+                  aria-label="Cancel"
+                >
+                  <X size={14} />
+                </button>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pt-1">Select Routine to link</p>
+                <div className="w-full max-h-48 overflow-y-auto space-y-1">
+                  {routineState.routines.filter(r => r.id !== currentRoutineId).map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => onUpdate({ linkedRoutineId: r.id, text: r.title })}
+                      className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-accent/10 transition-colors text-left"
+                    >
+                      <span className="text-xl">{r.emoji}</span>
+                      <span className="text-sm font-medium">{r.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <textarea
@@ -436,11 +692,38 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, onUpdate, onRemove, o
 
 /** Read-only block renderer */
 export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
+  const navigate = useNavigate();
+  const { state: routineState, setRoutineBlocks } = useRoutines();
+  const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
+
+  const toggleLinkedBlock = (routineId: string, blockId: string) => {
+    const routine = routineState.routines.find(r => r.id === routineId);
+    if (!routine) return;
+    const isChecking = !(routine.blocks ?? []).find(b => b.id === blockId)?.checked;
+
+    if (isChecking) {
+      setRecentlyCheckedIds(prev => new Set(prev).add(blockId));
+      setTimeout(() => {
+        setRecentlyCheckedIds(prev => {
+          const next = new Set(prev);
+          next.delete(blockId);
+          return next;
+        });
+      }, 700);
+    }
+
+    const nextBlocks = (routine.blocks ?? []).map(b => 
+      b.id === blockId ? { ...b, checked: !b.checked } : b
+    );
+    setRoutineBlocks(routineId, nextBlocks);
+    tapHaptic();
+  };
+
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       {blocks.map((b) => {
         if (b.type === "divider")
-          return <div key={b.id} className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-3" />;
+          return <div key={b.id} className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-2" />;
         if (b.type === "heading")
           return <h3 key={b.id} className="text-[22px] font-serif font-bold tracking-tight pt-3 pb-1">{b.text}</h3>;
         if (b.type === "subheading")
@@ -479,12 +762,102 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
               href={b.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-start gap-2 py-1 text-[15px] text-accent font-medium underline underline-offset-[3px] decoration-accent/40 hover:decoration-accent"
+              className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card shadow-block transition-all hover:border-accent/40 hover:shadow-elevated active:scale-[0.98] group"
             >
-              <LinkIcon size={14} strokeWidth={2.5} className="mt-1 shrink-0" />
-              <span className="truncate">{b.text || b.url}</span>
+              <div className={cn(
+                "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 overflow-hidden",
+                b.url ? "bg-white shadow-sm border border-border/40" : "bg-accent/5 border border-accent/10 text-accent"
+              )}>
+                {b.url ? (
+                  <img 
+                    src={`https://www.google.com/s2/favicons?sz=128&domain=${(() => {
+                      try { return new URL(b.url).hostname; } catch { return ""; }
+                    })()}`}
+                    className="w-7 h-7 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement!.classList.add('bg-accent/5', 'border-accent/10', 'text-accent');
+                      e.currentTarget.parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
+                    }}
+                    alt=""
+                  />
+                ) : (
+                  <LinkIcon size={18} strokeWidth={2.5} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-bold text-foreground leading-tight truncate">{b.text || "Link"}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate opacity-60">
+                  {b.url ? (() => {
+                    try { return new URL(b.url).hostname; } catch { return b.url; }
+                  })() : "No URL"}
+                </p>
+              </div>
+              <div className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center bg-muted/30 border border-border/50 text-muted-foreground/50 group-hover:text-accent group-hover:bg-accent/10 group-hover:border-accent/20 transition-all shadow-sm">
+                <ExternalLink size={14} strokeWidth={2.5} />
+              </div>
             </a>
           );
+        if (b.type === "routine") {
+          const linkedRoutine = routineState.routines.find((r) => r.id === b.linkedRoutineId);
+          if (!linkedRoutine) return null;
+          return (
+            <button
+              key={b.id}
+              onClick={() => {
+                tapHaptic();
+                navigate(`/routine/${b.linkedRoutineId}`);
+              }}
+              className="w-full p-3 rounded-2xl border border-border bg-card shadow-block transition-all hover:border-accent/40 hover:shadow-elevated active:scale-[0.98] group flex flex-col gap-2.5"
+            >
+              <div className="flex items-start gap-3 w-full">
+                <div className="h-10 w-10 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                  {linkedRoutine.emoji || "✨"}
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[15px] font-bold text-foreground leading-tight truncate">
+                    {linkedRoutine.title}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-accent/5 border border-accent/10 text-accent/80 shrink-0">
+                  <Flame size={12} fill="currentColor" className="opacity-80" />
+                  <span className="text-[11px] font-bold tabular-nums">
+                    {(linkedRoutine.blocks ?? []).filter(b => b.type === 'checkbox' && b.checked).length}
+                  </span>
+                </div>
+                <ChevronRight
+                  size={16}
+                  className="mt-1 text-muted-foreground/30 group-hover:text-accent transition-colors shrink-0"
+                />
+              </div>
+
+              {/* Focus Preview Tasks - Moved for left alignment */}
+              {linkedRoutine.blocks && (
+                <div className="pl-1 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  {linkedRoutine.blocks
+                    .filter(b => b.type === 'checkbox' && (!b.checked || recentlyCheckedIds.has(b.id)))
+                    .slice(0, 3)
+                    .map(b => (
+                      <div key={b.id} className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => toggleLinkedBlock(linkedRoutine.id, b.id)}
+                          className={cn(
+                            "h-4 w-4 rounded-sm border flex items-center justify-center transition-colors hover:border-accent text-[10px] shrink-0",
+                            b.checked ? "bg-success border-success text-success-foreground" : "border-muted-foreground/30"
+                          )}
+                        >
+                          {b.checked && "✓"}
+                        </button>
+                        <span className="text-[13.5px] font-medium text-muted-foreground/90 truncate leading-tight">
+                          {b.text}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </button>
+          );
+        }
         return <p key={b.id} className="text-[15px] leading-relaxed text-muted-foreground/90">{b.text}</p>;
       })}
     </div>

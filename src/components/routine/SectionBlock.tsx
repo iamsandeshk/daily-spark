@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 import { useState } from "react";
+import { Link as LinkIcon, ExternalLink } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,10 +50,37 @@ export const SectionBlock = ({
 }: Props) => {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const blocks = (routine.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
-  const done = blocks.filter((b) => b.checked).length;
+  const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
+  const allBlocks = (routine.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+  const done = allBlocks.filter((b) => b.checked).length;
+  
+  // Priority: show unchecked tasks first, then cap at 4.
+  // Items in recentlyCheckedIds stay visible as "unchecked" for 0.7s to avoid jarring jumps.
+  const visibleBlocks = [...allBlocks]
+    .sort((a, b) => {
+      const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
+      const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
+      if (aIsDone === bIsDone) return 0;
+      return aIsDone ? 1 : -1;
+    })
+    .slice(0, 4);
+    
+  const remainingCount = allBlocks.length - visibleBlocks.length;
 
   const handleToggleCheckbox = (blockId: string) => {
+    const isChecking = !(routine.blocks ?? []).find(b => b.id === blockId)?.checked;
+    
+    if (isChecking) {
+      setRecentlyCheckedIds(prev => new Set(prev).add(blockId));
+      setTimeout(() => {
+        setRecentlyCheckedIds(prev => {
+          const next = new Set(prev);
+          next.delete(blockId);
+          return next;
+        });
+      }, 700);
+    }
+
     const updatedBlocks = (routine.blocks ?? []).map((b) => {
       if (b.id === blockId) {
         if (!b.checked) successHaptic();
@@ -63,7 +91,7 @@ export const SectionBlock = ({
     });
     // Detect "just completed everything" transition → stronger haptic
     const checks = updatedBlocks.filter((b) => b.type === "checkbox" && b.text?.trim());
-    const wasAllDone = blocks.length > 0 && blocks.every((b) => b.checked);
+    const wasAllDone = allBlocks.length > 0 && allBlocks.every((b) => b.checked);
     const isAllDone = checks.length > 0 && checks.every((b) => b.checked);
     if (!wasAllDone && isAllDone) completionHaptic();
     setRoutineBlocks(routine.id, updatedBlocks);
@@ -84,10 +112,19 @@ export const SectionBlock = ({
             <ChevronDown size={16} />
           </motion.span>
           {routine.emoji && <span className="text-lg leading-none">{routine.emoji}</span>}
-          <h2 className="text-base font-semibold tracking-tight truncate">{routine.title}</h2>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {done}/{blocks.length}
-          </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold tracking-tight truncate">{routine.title}</h2>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {done}/{allBlocks.length}
+              </span>
+            </div>
+            {routine.description && (
+              <p className="text-[11px] text-muted-foreground italic truncate mt-0.5 opacity-60">
+                {routine.description}
+              </p>
+            )}
+          </div>
         </button>
         <button
           onClick={() => onAdd(routine.id)}
@@ -166,7 +203,7 @@ export const SectionBlock = ({
                 during height animation, and pt provides top breathing room
                 that's included in the measured height. */}
             <div className="flex flex-col gap-1.5 pt-3 pb-1">
-              {blocks.length === 0 && (
+              {allBlocks.length === 0 && (
                 <button
                   onClick={() => onAdd(routine.id)}
                   className="w-full text-left text-sm text-muted-foreground rounded-xl border border-dashed border-border px-3.5 py-3 hover:bg-muted/50 transition-smooth"
@@ -174,37 +211,54 @@ export const SectionBlock = ({
                   + Add tasks inside this section
                 </button>
               )}
-              {blocks.map((b) => (
-                <div
-                  key={b.id}
-                  className={cn(
-                    "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
-                    b.checked && "bg-success-soft/40 border-success/20",
-                  )}
-                >
-                  <div className="shrink-0">
-                    <RoutineCheckbox
-                      checked={!!b.checked}
-                      onChange={() => handleToggleCheckbox(b.id)}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/routine/${routine.id}`)}
-                    className="flex-1 min-w-0 text-left select-none"
+              
+              <AnimatePresence initial={false} mode="popLayout">
+                {visibleBlocks.map((b) => (
+                  <motion.div
+                    key={b.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className={cn(
+                      "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
+                      b.checked && "bg-success-soft/40 border-success/20",
+                    )}
                   >
-                    <span
-                      className={cn(
-                        "font-medium text-[15px] leading-snug truncate transition-colors",
-                        b.checked && "line-through text-muted-foreground",
-                      )}
+                    <div className="shrink-0">
+                      <RoutineCheckbox
+                        checked={!!b.checked}
+                        onChange={() => handleToggleCheckbox(b.id)}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/routine/${routine.id}`)}
+                      className="flex-1 min-w-0 text-left select-none"
                     >
-                      {b.text || "Untitled Task"}
-                    </span>
-                  </button>
-                </div>
-              ))}
+                      <span
+                        className={cn(
+                          "font-medium text-[15px] leading-snug truncate transition-colors",
+                          b.checked && "line-through text-muted-foreground",
+                        )}
+                      >
+                        {b.text || "Untitled Task"}
+                      </span>
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {remainingCount > 0 && (
+                <button
+                  onClick={() => navigate(`/routine/${routine.id}`)}
+                  className="text-[11px] text-muted-foreground/60 font-bold tracking-wider pl-1 mt-1 hover:text-foreground transition-colors uppercase"
+                >
+                  + {remainingCount} more tasks
+                </button>
+              )}
             </div>
           </motion.div>
         )}

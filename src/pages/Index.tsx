@@ -7,7 +7,9 @@ import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
 import { CarryForwardDialog } from "@/components/routine/CarryForwardDialog";
 import { MoodCard } from "@/components/routine/MoodCard";
-import type { Routine } from "@/lib/routine-types";
+import { TemplateLibrary } from "@/components/routine/TemplateLibrary";
+import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
+import { uid } from "@/lib/utils";
 
 // Module-level flag: the FAB "New Section → +" intro animation only plays
 // the first time the app mounts in this session, not on every Home navigation.
@@ -58,6 +60,49 @@ const Index = () => {
     navigate("/routine/new");
   };
 
+  const handleAddTemplate = (t: any) => {
+    const sectionId = r.state.sections[0]?.id || r.addSection("Routines");
+    
+    // Find or create a routine by title (helper for nested templates)
+    const findOrCreateRoutine = (routineTitle: string): string => {
+      const existing = r.state.routines.find(x => x.title.toLowerCase() === routineTitle.toLowerCase());
+      if (existing) return existing.id;
+      
+      // Look for a template with this title
+      const template = (TemplateLibrary as any).TEMPLATES?.find((tmp: any) => tmp.title.toLowerCase() === routineTitle.toLowerCase());
+      if (template) {
+        const depBlocks = template.blocks.map((b: any) => ({ ...b, id: uid() }));
+        return r.addRoutine({
+          title: template.title,
+          emoji: template.emoji,
+          description: template.description,
+          sectionId,
+          blocks: depBlocks,
+        });
+      }
+      
+      // Fallback: Create a blank one
+      return r.addRoutine({ title: routineTitle, sectionId, blocks: [] });
+    };
+
+    const blocks: RoutineBlockContent[] = t.blocks.map((b: any) => {
+      const newBlock = { ...b, id: uid() };
+      if (b.type === "routine" && b.text) {
+        newBlock.linkedRoutineId = findOrCreateRoutine(b.text);
+      }
+      return newBlock;
+    });
+
+    r.addRoutine({
+      title: t.title,
+      emoji: t.emoji,
+      description: t.description,
+      sectionId,
+      blocks,
+    });
+    tapHaptic();
+  };
+
   const handleReorder = (next: Routine[]) => {
     setOrder(next);
     r.reorderRoutines(next.map((s) => s.id));
@@ -103,6 +148,8 @@ const Index = () => {
             Tap the + button to add/edit items · Drag handles to reorder
           </p>
         )}
+
+        <TemplateLibrary onAdd={handleAddTemplate} />
       </main>
 
       {/* Floating Action: History + New */}

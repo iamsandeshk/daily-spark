@@ -6,7 +6,8 @@ export type BlockType =
   | "checkbox"
   | "divider"
   | "quote"
-  | "link";
+  | "link"
+  | "routine";
 
 export type RoutineBlockContent = {
   id: string;
@@ -14,6 +15,7 @@ export type RoutineBlockContent = {
   text?: string;
   checked?: boolean;
   url?: string;
+  linkedRoutineId?: string;
 };
 
 export type Routine = {
@@ -43,7 +45,7 @@ export type DayHistory = {
   date: string; // YYYY-MM-DD
   completedRoutineIds: string[];
   // Snapshot of routine titles/emoji at the time, so old days survive deletes
-  snapshot: Record<string, { title: string; emoji?: string; sectionTitle?: string }>;
+  snapshot: Record<string, { title: string; emoji?: string; sectionTitle?: string; blocks?: RoutineBlockContent[] }>;
   total: number;
 };
 

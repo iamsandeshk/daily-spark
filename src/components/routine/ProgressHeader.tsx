@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { GripVertical, Moon, Sun, Flame } from "lucide-react";
 import { useEffect, useState } from "react";
+import { StatusBar, Style } from "@capacitor/status-bar";
 
 type Props = {
   completed: number;
@@ -32,12 +33,19 @@ const useTheme = () => {
     const dark = saved ? saved === "dark" : prefers;
     document.documentElement.classList.toggle("dark", dark);
     setIsDark(dark);
+
+    // Update system status bar icons
+    StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
   }, []);
+
   const toggle = () => {
     const next = !isDark;
     document.documentElement.classList.toggle("dark", next);
     localStorage.setItem("theme", next ? "dark" : "light");
     setIsDark(next);
+
+    // Update system status bar icons
+    StatusBar.setStyle({ style: next ? Style.Dark : Style.Light }).catch(() => {});
   };
   return { isDark, toggle };
 };

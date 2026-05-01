@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Routine, RoutineState, Section } from "@/lib/routine-types";
 import { applyDailyReset, loadState, saveState, todayKey, todayLiveHistory, yesterdayKey } from "@/lib/storage";
-
-const uid = () => Math.random().toString(36).slice(2, 10);
+import { uid } from "@/lib/utils";
 
 /** Merge today's live snapshot into history so the calendar always reflects current progress. */
 const withLiveToday = (s: RoutineState): RoutineState => {
@@ -150,15 +149,17 @@ export const useRoutines = () => {
     });
   }, []);
 
-  const addRoutine = useCallback((data: Omit<Routine, "id" | "isCompleted" | "streakCount" | "order">) => {
+  const addRoutine = useCallback((data: Omit<Routine, "id" | "isCompleted" | "streakCount" | "order"> & { id?: string }) => {
+    const finalId = data.id || uid();
     setState((s) => {
       const sectionRoutines = s.routines.filter((r) => r.sectionId === data.sectionId);
       const order = sectionRoutines.length;
       return withLiveToday({
         ...s,
-        routines: [...s.routines, { ...data, id: uid(), isCompleted: false, streakCount: 0, order }],
+        routines: [...s.routines, { ...data, id: finalId, isCompleted: false, streakCount: 0, order }],
       });
     });
+    return finalId;
   }, []);
 
   const updateRoutine = useCallback((id: string, patch: Partial<Routine>) => {
