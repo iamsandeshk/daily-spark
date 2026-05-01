@@ -63,6 +63,8 @@ const snapshotForDate = (state: RoutineState): DayHistory["snapshot"] => {
 
 /**
  * Daily reset engine — also persists yesterday's completion record into history.
+ * If the ending day had unfinished checkbox tasks, record a `pendingCarryForward`
+ * so the user can decide (Smart Carry Forward).
  */
 export const applyDailyReset = (state: RoutineState): RoutineState => {
   const today = todayKey();
@@ -81,6 +83,17 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
     };
   }
 
+  // Detect unfinished checkbox blocks for carry-forward prompt
+  const carryItems: { routineId: string; blockIds: string[] }[] = [];
+  for (const r of state.routines) {
+    const unfinished = (r.blocks ?? [])
+      .filter((b) => b.type === "checkbox" && b.text?.trim() && !b.checked)
+      .map((b) => b.id);
+    if (unfinished.length > 0) {
+      carryItems.push({ routineId: r.id, blockIds: unfinished });
+    }
+  }
+
   const yesterday = yesterdayKey(today);
   const routines = state.routines.map((r) => {
     const keepStreak = r.lastCompletedDate === yesterday || r.lastCompletedDate === today;
@@ -91,7 +104,16 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
     };
   });
 
-  const next: RoutineState = { ...state, routines, lastResetDate: today, history };
+  const next: RoutineState = {
+    ...state,
+    routines,
+    lastResetDate: today,
+    history,
+    pendingCarryForward:
+      carryItems.length > 0 && endingDate
+        ? { fromDate: endingDate, items: carryItems }
+        : undefined,
+  };
   saveState(next);
   return next;
 };
