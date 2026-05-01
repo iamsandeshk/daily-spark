@@ -283,6 +283,36 @@ export const useRoutines = () => {
     return isTodayComplete ? streak + 1 : streak;
   }, [state]);
 
+  /** User accepted carry-forward: keep streaks (no penalty), checkboxes already
+   * reset to unchecked by applyDailyReset. Just clear the prompt. */
+  const acceptCarryForward = useCallback(() => {
+    setState((s) => ({ ...s, pendingCarryForward: undefined }));
+  }, []);
+
+  /** User declined: treat unfinished items as missed → break streaks for those
+   * routines, since the user didn't intend to carry them. */
+  const dismissCarryForward = useCallback(() => {
+    setState((s) => {
+      const carry = s.pendingCarryForward;
+      if (!carry) return { ...s, pendingCarryForward: undefined };
+      const carriedIds = new Set(carry.items.map((i) => i.routineId));
+      return {
+        ...s,
+        routines: s.routines.map((r) =>
+          carriedIds.has(r.id) ? { ...r, streakCount: 0, lastCompletedDate: undefined } : r,
+        ),
+        pendingCarryForward: undefined,
+      };
+    });
+  }, []);
+
+  const setMood = useCallback((mood: import("@/lib/routine-types").MoodValue) => {
+    setState((s) => ({
+      ...s,
+      moods: { ...(s.moods ?? {}), [todayKey()]: mood },
+    }));
+  }, []);
+
   return {
     state,
     completed,
@@ -301,5 +331,8 @@ export const useRoutines = () => {
     reorderSections,
     toggleRoutineCollapsed,
     reorderRoutines,
+    acceptCarryForward,
+    dismissCarryForward,
+    setMood,
   };
 };
