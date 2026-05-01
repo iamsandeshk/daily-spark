@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ProgressHeader } from "@/components/routine/ProgressHeader";
 import { SectionBlock } from "@/components/routine/SectionBlock";
+import { CarryForwardDialog } from "@/components/routine/CarryForwardDialog";
+import { MoodCard } from "@/components/routine/MoodCard";
 import type { Routine } from "@/lib/routine-types";
 
 // Module-level flag: the FAB "New Section → +" intro animation only plays
@@ -68,6 +70,14 @@ const Index = () => {
         total={r.total}
         globalStreak={r.globalStreak}
         onOpenHistory={() => navigate("/history")}
+      />
+
+      <MoodCard state={r.state} onSelectMood={r.setMood} />
+
+      <CarryForwardDialog
+        state={r.state}
+        onAccept={r.acceptCarryForward}
+        onDismiss={r.dismissCarryForward}
       />
 
       <main className="px-4">
