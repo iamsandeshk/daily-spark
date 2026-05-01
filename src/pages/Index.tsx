@@ -10,6 +10,7 @@ import { MoodCard } from "@/components/routine/MoodCard";
 import { TemplateLibrary } from "@/components/routine/TemplateLibrary";
 import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
 import { uid } from "@/lib/utils";
+import { tapHaptic } from "@/lib/haptics";
 
 // Module-level flag: the FAB "New Section → +" intro animation only plays
 // the first time the app mounts in this session, not on every Home navigation.
