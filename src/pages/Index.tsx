@@ -118,7 +118,7 @@ const Index = () => {
         onOpenHistory={() => navigate("/history")}
       />
 
-      <MoodCard state={r.state} onSelectMood={r.setMood} />
+      <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
 
       <CarryForwardDialog
         state={r.state}
