@@ -364,5 +364,6 @@ export const useRoutines = () => {
     acceptCarryForward,
     dismissCarryForward,
     setMood,
+    clearMood,
   };
 };
