@@ -54,6 +54,10 @@ export type MoodValue = "great" | "ok" | "tired" | "stressed";
 export type CarryForwardItem = {
   routineId: string;
   blockIds: string[]; // unfinished checkbox block ids from the previous day
+  /** Streak snapshot at the time of carry-forward, restored if user accepts. */
+  preservedStreak?: number;
+  /** lastCompletedDate snapshot at the time of carry-forward. */
+  preservedLastCompletedDate?: string;
 };
 
 export type RoutineState = {
