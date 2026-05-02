@@ -88,14 +88,20 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
     };
   }
 
-  // Detect unfinished checkbox blocks for carry-forward prompt
-  const carryItems: { routineId: string; blockIds: string[] }[] = [];
+  // Detect unfinished checkbox blocks for carry-forward prompt.
+  // Snapshot the streak BEFORE reset so we can restore it if the user accepts.
+  const carryItems: { routineId: string; blockIds: string[]; preservedStreak?: number; preservedLastCompletedDate?: string }[] = [];
   for (const r of state.routines) {
     const unfinished = (r.blocks ?? [])
       .filter((b) => b.type === "checkbox" && b.text?.trim() && !b.checked)
       .map((b) => b.id);
     if (unfinished.length > 0) {
-      carryItems.push({ routineId: r.id, blockIds: unfinished });
+      carryItems.push({
+        routineId: r.id,
+        blockIds: unfinished,
+        preservedStreak: r.streakCount,
+        preservedLastCompletedDate: r.lastCompletedDate,
+      });
     }
   }
 
