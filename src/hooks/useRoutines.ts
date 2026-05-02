@@ -335,6 +335,14 @@ export const useRoutines = () => {
     }));
   }, []);
 
+  const clearMood = useCallback(() => {
+    setState((s) => {
+      const moods = { ...(s.moods ?? {}) };
+      delete moods[todayKey()];
+      return { ...s, moods };
+    });
+  }, []);
+
   return {
     state,
     completed,
