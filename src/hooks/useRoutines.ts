@@ -284,10 +284,31 @@ export const useRoutines = () => {
     return isTodayComplete ? streak + 1 : streak;
   }, [state]);
 
-  /** User accepted carry-forward: keep streaks (no penalty), checkboxes already
-   * reset to unchecked by applyDailyReset. Just clear the prompt. */
+  /** User accepted carry-forward: restore the streaks that were active before
+   * the missed day so the streak continues. Set lastCompletedDate to yesterday
+   * so completing today increments the streak normally. */
   const acceptCarryForward = useCallback(() => {
-    setState((s) => ({ ...s, pendingCarryForward: undefined }));
+    setState((s) => {
+      const carry = s.pendingCarryForward;
+      if (!carry) return { ...s, pendingCarryForward: undefined };
+      const today = todayKey();
+      const yest = yesterdayKey(today);
+      const carryMap = new Map(carry.items.map((i) => [i.routineId, i] as const));
+      return {
+        ...s,
+        routines: s.routines.map((r) => {
+          const item = carryMap.get(r.id);
+          if (!item) return r;
+          return {
+            ...r,
+            streakCount: item.preservedStreak ?? r.streakCount,
+            // Pretend yesterday was completed so today's completion continues the streak.
+            lastCompletedDate: yest,
+          };
+        }),
+        pendingCarryForward: undefined,
+      };
+    });
   }, []);
 
   /** User declined: treat unfinished items as missed → break streaks for those
