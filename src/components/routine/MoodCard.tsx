@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   state: RoutineState;
   onSelectMood: (mood: MoodValue) => void;
+  onResetMood: () => void;
 };
 
 const MOODS: { value: MoodValue; emoji: string; label: string }[] = [
