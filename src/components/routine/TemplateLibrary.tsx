@@ -129,13 +129,25 @@ type Props = {
   onAdd: (template: Template) => void;
 };
 
+const COLLAPSED_KEY = "routine_templates_collapsed";
+
 export const TemplateLibrary = ({ onAdd }: Props) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem(COLLAPSED_KEY) === "true";
+  });
   const [isPermanentlyHidden, setIsPermanentlyHidden] = useState(() => {
     return localStorage.getItem("routine_templates_hidden") === "true";
   });
 
   if (isPermanentlyHidden) return null;
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSED_KEY, next ? "true" : "false");
+      return next;
+    });
+  };
 
   const handleHide = () => {
     localStorage.setItem("routine_templates_hidden", "true");
@@ -149,7 +161,7 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
         layout="position"
         onClick={() => {
           tapHaptic();
-          setIsCollapsed(!isCollapsed);
+          toggleCollapsed();
         }}
         className="flex items-center gap-2 mb-5 group w-full text-left outline-none"
       >
