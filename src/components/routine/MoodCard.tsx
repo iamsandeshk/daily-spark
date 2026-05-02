@@ -61,7 +61,7 @@ const computeMoodInsight = (state: RoutineState): string | null => {
   return `You complete more when you feel ${label}.`;
 };
 
-export const MoodCard = ({ state, onSelectMood }: Props) => {
+export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
   const today = todayKey();
   const todaysMood = state.moods?.[today];
 
@@ -84,18 +84,43 @@ export const MoodCard = ({ state, onSelectMood }: Props) => {
     onSelectMood(mood);
   };
 
-  // If user already logged a mood today, show a compact line with optional insight.
+  const handleResetMood = () => {
+    tapHaptic();
+    // Clear dismissal so the picker reappears
+    sessionStorage.removeItem(SESSION_DISMISS_KEY);
+    setDismissed(false);
+    onResetMood();
+  };
+
+  // If user already logged a mood today, show the selected emoji as a tappable chip.
   if (todaysMood) {
-    if (!insight) return null;
+    const selected = MOODS.find((m) => m.value === todaysMood);
     return (
       <motion.div
         initial={{ opacity: 0, y: -4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mx-5 mb-4 flex items-center gap-2 rounded-xl border border-accent/20 bg-accent/5 px-3 py-2"
+        className="mx-5 mb-4 flex items-center gap-2"
       >
-        <Sparkles size={14} className="text-accent shrink-0" strokeWidth={2.5} />
-        <p className="text-[13px] text-foreground/80 leading-snug">{insight}</p>
+        <button
+          onClick={handleResetMood}
+          aria-label="Change mood"
+          className={cn(
+            "flex items-center gap-2 rounded-full border border-border bg-card pl-2.5 pr-3 py-1.5",
+            "shadow-block hover:border-accent/40 active:scale-95 transition-all",
+          )}
+        >
+          <span className="text-lg leading-none">{selected?.emoji}</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            {selected?.label}
+          </span>
+        </button>
+        {insight && (
+          <div className="flex-1 flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/5 px-2.5 py-1.5 min-w-0">
+            <Sparkles size={12} className="text-accent shrink-0" strokeWidth={2.5} />
+            <p className="text-[12px] text-foreground/80 leading-snug truncate">{insight}</p>
+          </div>
+        )}
       </motion.div>
     );
   }
