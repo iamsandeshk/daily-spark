@@ -161,7 +161,7 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
         layout="position"
         onClick={() => {
           tapHaptic();
-          setIsCollapsed(!isCollapsed);
+          toggleCollapsed();
         }}
         className="flex items-center gap-2 mb-5 group w-full text-left outline-none"
       >
