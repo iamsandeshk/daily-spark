@@ -65,6 +65,13 @@ export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
   const today = todayKey();
   const todaysMood = state.moods?.[today];
 
+  // Last mood ever chosen (any day) — used as fallback after dismissal so the chip stays visible.
+  const lastMood: MoodValue | undefined = useMemo(() => {
+    const moods = state.moods ?? {};
+    const dates = Object.keys(moods).sort();
+    return dates.length ? (moods[dates[dates.length - 1]] as MoodValue) : undefined;
+  }, [state.moods]);
+
   // Dismiss state for the day (persisted in sessionStorage so it doesn't reappear on nav)
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -92,9 +99,14 @@ export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
     onResetMood();
   };
 
-  // If user already logged a mood today, show the selected emoji as a tappable chip.
-  if (todaysMood) {
-    const selected = MOODS.find((m) => m.value === todaysMood);
+  // Decide which mood (if any) to show as a chip:
+  // 1) Today's logged mood, or
+  // 2) The most recent prior mood when the picker was dismissed for today.
+  const chipMood: MoodValue | undefined =
+    todaysMood ?? (dismissed ? lastMood : undefined);
+
+  if (chipMood) {
+    const selected = MOODS.find((m) => m.value === chipMood);
     return (
       <motion.div
         initial={{ opacity: 0, y: -4 }}
