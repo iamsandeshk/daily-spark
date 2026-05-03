@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, yesterdayKey } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { MoodHistoryStrip } from "@/components/routine/MoodHistoryStrip";
 
 const monthLabel = (d: Date) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
