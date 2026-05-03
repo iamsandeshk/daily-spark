@@ -201,6 +201,55 @@ export const SectionBlock = ({
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setNewTaskText("");
+        }}
+      >
+        <DialogContent className="rounded-[28px] p-7 gap-5 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl font-serif font-bold text-left flex items-center gap-2">
+              {routine.emoji && <span>{routine.emoji}</span>}
+              Add task
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-[14px] text-left">
+              Quick-add a new task to "{routine.title}".
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={newTaskText}
+            onChange={(e) => setNewTaskText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleQuickAdd();
+              }
+            }}
+            placeholder="e.g. Drink a glass of water"
+            className="h-12 rounded-xl text-[15px]"
+          />
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setAddOpen(false)}
+              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleQuickAdd}
+              disabled={!newTaskText.trim()}
+              className="flex-1 rounded-2xl h-12 font-bold"
+            >
+              Add task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AnimatePresence initial={false}>
         {!routine.collapsed && (
           <motion.div
