@@ -130,14 +130,10 @@ export const MoodHistoryStrip = ({ state }: Props) => {
         ))}
       </div>
 
-      {insights.length > 0 && (
-        <div className="mt-4 space-y-1.5 border-t border-border pt-3">
-          {insights.map((line) => (
-            <div key={line.mood} className="flex items-start gap-2">
-              <span className="text-sm leading-5 shrink-0">{EMOJI[line.mood]}</span>
-              <p className="text-[12.5px] leading-5 text-foreground/80">{line.text}</p>
-            </div>
-          ))}
+      {insight && (
+        <div className="mt-4 flex items-start gap-2 border-t border-border pt-3">
+          <span className="text-sm leading-5 shrink-0">{EMOJI[insight.mood]}</span>
+          <p className="text-[12.5px] leading-5 text-foreground/80">{insight.text}</p>
         </div>
       )}
     </div>
