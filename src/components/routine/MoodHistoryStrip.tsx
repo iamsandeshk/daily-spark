@@ -11,15 +11,23 @@ const EMOJI: Record<MoodValue, string> = {
   stressed: "😫",
 };
 
+const FEELING: Record<MoodValue, string> = {
+  great: "happy",
+  ok: "normal",
+  tired: "tired",
+  stressed: "stressed",
+};
+
 const dayShort = (k: string) =>
   new Date(k + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1);
 
 type Props = { state: RoutineState };
 
 export const MoodHistoryStrip = ({ state }: Props) => {
+  const today = todayKey();
+
   const days = useMemo(() => {
     const out: { key: string; mood?: MoodValue; isToday: boolean }[] = [];
-    const today = todayKey();
     const base = new Date(today + "T12:00:00");
     for (let i = 6; i >= 0; i--) {
       const d = new Date(base);
@@ -32,7 +40,52 @@ export const MoodHistoryStrip = ({ state }: Props) => {
       });
     }
     return out;
-  }, [state.moods]);
+  }, [state.moods, today]);
+
+  // Per-mood average completion ratio (counts partial completion) over the 7-day window.
+  const insights = useMemo(() => {
+    const buckets: Record<MoodValue, { sum: number; n: number }> = {
+      great: { sum: 0, n: 0 },
+      ok: { sum: 0, n: 0 },
+      tired: { sum: 0, n: 0 },
+      stressed: { sum: 0, n: 0 },
+    };
+
+    let overallSum = 0;
+    let overallN = 0;
+
+    for (const d of days) {
+      if (!d.mood) continue;
+      const h = state.history[d.key];
+      if (!h || h.total === 0) continue;
+      const ratio = Math.min(1, h.completedRoutineIds.length / h.total);
+      buckets[d.mood].sum += ratio;
+      buckets[d.mood].n += 1;
+      overallSum += ratio;
+      overallN += 1;
+    }
+
+    if (overallN < 2) return [];
+    const overallAvg = overallSum / overallN;
+
+    const order: MoodValue[] = ["great", "ok", "tired", "stressed"];
+    const lines: { mood: MoodValue; text: string }[] = [];
+    for (const mood of order) {
+      const b = buckets[mood];
+      if (b.n === 0) continue;
+      const avg = b.sum / b.n;
+      const diff = avg - overallAvg;
+      let phrase: string;
+      if (Math.abs(diff) < 0.08) phrase = "did about the same amount of work";
+      else if (diff > 0) phrase = "did more tasks";
+      else phrase = "did less work";
+      lines.push({
+        mood,
+        text: `You ${phrase} when you felt ${FEELING[mood]}.`,
+      });
+    }
+    return lines;
+  }, [days, state.history]);
 
   const hasAny = days.some((d) => d.mood);
   if (!hasAny) return null;
@@ -71,6 +124,17 @@ export const MoodHistoryStrip = ({ state }: Props) => {
           </motion.div>
         ))}
       </div>
+
+      {insights.length > 0 && (
+        <div className="mt-4 space-y-1.5 border-t border-border pt-3">
+          {insights.map((line) => (
+            <div key={line.mood} className="flex items-start gap-2">
+              <span className="text-sm leading-5 shrink-0">{EMOJI[line.mood]}</span>
+              <p className="text-[12.5px] leading-5 text-foreground/80">{line.text}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
