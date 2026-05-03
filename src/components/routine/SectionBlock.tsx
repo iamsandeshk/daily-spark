@@ -142,9 +142,9 @@ export const SectionBlock = ({
           </div>
         </button>
         <button
-          onClick={() => onAdd(routine.id)}
+          onClick={() => setAddOpen(true)}
           className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-          aria-label="Edit routine"
+          aria-label="Add task"
         >
           <Plus size={16} />
         </button>
