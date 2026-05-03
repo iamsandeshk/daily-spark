@@ -42,8 +42,10 @@ export const MoodHistoryStrip = ({ state }: Props) => {
     return out;
   }, [state.moods, today]);
 
-  // Per-mood average completion ratio (counts partial completion) over the 7-day window.
-  const insights = useMemo(() => {
+  // Single insight: highlight the mood with the highest completion (incl. partial)
+  // versus the 7-day average. Only surfaced when the gap is meaningful AND there's
+  // enough data to compare across at least two distinct moods.
+  const insight = useMemo<{ mood: MoodValue; text: string } | null>(() => {
     const buckets: Record<MoodValue, { sum: number; n: number }> = {
       great: { sum: 0, n: 0 },
       ok: { sum: 0, n: 0 },
@@ -65,27 +67,30 @@ export const MoodHistoryStrip = ({ state }: Props) => {
       overallN += 1;
     }
 
-    if (overallN < 2) return [];
-    const overallAvg = overallSum / overallN;
+    // Need enough data: ≥3 days with both mood + work logged, across ≥2 moods.
+    const distinctMoods = (Object.values(buckets) as { sum: number; n: number }[]).filter(
+      (b) => b.n > 0,
+    ).length;
+    if (overallN < 3 || distinctMoods < 2) return null;
 
-    const order: MoodValue[] = ["great", "ok", "tired", "stressed"];
-    const lines: { mood: MoodValue; text: string }[] = [];
-    for (const mood of order) {
-      const b = buckets[mood];
-      if (b.n === 0) continue;
-      const avg = b.sum / b.n;
-      const diff = avg - overallAvg;
-      let phrase: string;
-      if (Math.abs(diff) < 0.08) phrase = "did about the same amount of work";
-      else if (diff > 0) phrase = "did more tasks";
-      else phrase = "did less work";
-      lines.push({
-        mood,
-        text: `You ${phrase} when you felt ${FEELING[mood]}.`,
-      });
-    }
-    return lines;
+    const overallAvg = overallSum / overallN;
+    const ranked = (Object.entries(buckets) as [MoodValue, { sum: number; n: number }][])
+      .filter(([, b]) => b.n > 0)
+      .map(([mood, b]) => ({ mood, avg: b.sum / b.n }))
+      .sort((a, b) => b.avg - a.avg);
+
+    const top = ranked[0];
+    const diff = top.avg - overallAvg;
+    // Threshold: must beat the overall average by ≥12 percentage points to surface.
+    if (diff < 0.12) return null;
+
+    const intensity = diff >= 0.25 ? "a lot more" : "more";
+    return {
+      mood: top.mood,
+      text: `You did ${intensity} work when you felt ${FEELING[top.mood]}.`,
+    };
   }, [days, state.history]);
+
 
   const hasAny = days.some((d) => d.mood);
   if (!hasAny) return null;
