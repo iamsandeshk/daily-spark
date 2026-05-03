@@ -101,6 +101,17 @@ export const SectionBlock = ({
     setRoutineBlocks(routine.id, updatedBlocks);
   };
 
+  const handleQuickAdd = () => {
+    const text = newTaskText.trim();
+    if (!text) return;
+    const newBlock = { id: uid(), type: "checkbox" as const, text, checked: false };
+    setRoutineBlocks(routine.id, [...(routine.blocks ?? []), newBlock]);
+    successHaptic();
+    setNewTaskText("");
+    setAddOpen(false);
+  };
+
+
   return (
     <section className="flex flex-col">
       <header className="flex items-center gap-2 px-1 group">
