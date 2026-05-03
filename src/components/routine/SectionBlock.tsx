@@ -52,6 +52,8 @@ export const SectionBlock = ({
 }: Props) => {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTaskText, setNewTaskText] = useState("");
   const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
   const allBlocks = (routine.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
