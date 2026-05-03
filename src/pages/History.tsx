@@ -116,6 +116,8 @@ const History = () => {
           </div>
         </div>
 
+        <MoodHistoryStrip state={state} />
+
         {/* Calendar */}
         <div className="rounded-2xl border border-border bg-card p-4 shadow-block">
           <div className="flex items-center justify-between mb-3">
