@@ -30,6 +30,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { uid } from "@/lib/utils";
 
 type Props = {
   routine: Routine;
@@ -50,6 +52,8 @@ export const SectionBlock = ({
 }: Props) => {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTaskText, setNewTaskText] = useState("");
   const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
   const allBlocks = (routine.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
@@ -97,6 +101,17 @@ export const SectionBlock = ({
     setRoutineBlocks(routine.id, updatedBlocks);
   };
 
+  const handleQuickAdd = () => {
+    const text = newTaskText.trim();
+    if (!text) return;
+    const newBlock = { id: uid(), type: "checkbox" as const, text, checked: false };
+    setRoutineBlocks(routine.id, [...(routine.blocks ?? []), newBlock]);
+    successHaptic();
+    setNewTaskText("");
+    setAddOpen(false);
+  };
+
+
   return (
     <section className="flex flex-col">
       <header className="flex items-center gap-2 px-1 group">
@@ -127,9 +142,9 @@ export const SectionBlock = ({
           </div>
         </button>
         <button
-          onClick={() => onAdd(routine.id)}
+          onClick={() => setAddOpen(true)}
           className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-          aria-label="Edit routine"
+          aria-label="Add task"
         >
           <Plus size={16} />
         </button>
@@ -181,6 +196,55 @@ export const SectionBlock = ({
               className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-destructive/20"
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setNewTaskText("");
+        }}
+      >
+        <DialogContent className="rounded-[28px] p-7 gap-5 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl font-serif font-bold text-left flex items-center gap-2">
+              {routine.emoji && <span>{routine.emoji}</span>}
+              Add task
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-[14px] text-left">
+              Quick-add a new task to "{routine.title}".
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={newTaskText}
+            onChange={(e) => setNewTaskText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleQuickAdd();
+              }
+            }}
+            placeholder="e.g. Drink a glass of water"
+            className="h-12 rounded-xl text-[15px]"
+          />
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setAddOpen(false)}
+              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleQuickAdd}
+              disabled={!newTaskText.trim()}
+              className="flex-1 rounded-2xl h-12 font-bold"
+            >
+              Add task
             </Button>
           </DialogFooter>
         </DialogContent>
