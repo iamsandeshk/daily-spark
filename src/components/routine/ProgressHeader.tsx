@@ -1,7 +1,15 @@
 import { motion } from "framer-motion";
-import { GripVertical, Moon, Sun, Flame } from "lucide-react";
+import { GripVertical, Settings, Flame, Sun, Moon, Monitor, Info, Twitter, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { StatusBar, Style } from "@capacitor/status-bar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 type Props = {
   completed: number;
