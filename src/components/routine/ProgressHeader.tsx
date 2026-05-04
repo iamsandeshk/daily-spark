@@ -31,31 +31,39 @@ const greeting = () => {
 const dateLabel = () =>
   new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
+type ThemeMode = "light" | "dark" | "system";
+
+const applyTheme = (mode: ThemeMode) => {
+  const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = mode === "dark" || (mode === "system" && prefers);
+  document.documentElement.classList.toggle("dark", dark);
+  StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
+};
+
 const useTheme = () => {
-  const [isDark, setIsDark] = useState(() =>
-    typeof window !== "undefined" ? document.documentElement.classList.contains("dark") : false,
-  );
-  useEffect(() => {
+  const [mode, setMode] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "system";
     const saved = localStorage.getItem("theme");
-    const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const dark = saved ? saved === "dark" : prefers;
-    document.documentElement.classList.toggle("dark", dark);
-    setIsDark(dark);
+    if (saved === "light" || saved === "dark" || saved === "system") return saved;
+    return "system";
+  });
 
-    // Update system status bar icons
-    StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
-  }, []);
+  useEffect(() => {
+    applyTheme(mode);
+    if (mode === "system") {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => applyTheme("system");
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }
+  }, [mode]);
 
-  const toggle = () => {
-    const next = !isDark;
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-    setIsDark(next);
-
-    // Update system status bar icons
-    StatusBar.setStyle({ style: next ? Style.Dark : Style.Light }).catch(() => {});
+  const setTheme = (m: ThemeMode) => {
+    localStorage.setItem("theme", m);
+    setMode(m);
   };
-  return { isDark, toggle };
+
+  return { mode, setTheme };
 };
 
 export const ProgressHeader = ({ completed, total, onOpenHistory, reorderActive, onToggleReorder, globalStreak = 0 }: Props) => {
