@@ -160,20 +160,20 @@ const Index = () => {
       >
         <button
           onClick={() => navigate("/history")}
-          className="flex items-center justify-center rounded-full bg-card border border-border text-foreground h-12 w-12 shadow-elevated active:scale-95 transition-transform"
+          className="flex items-center justify-center rounded-full bg-card border border-border text-foreground h-14 w-14 shadow-elevated active:scale-95 transition-transform"
           aria-label="History"
         >
-          <CalendarDays size={18} />
+          <CalendarDays size={22} />
         </button>
         <motion.button
           onClick={() => newRoutine()}
           initial={false}
-          animate={{ width: showFullButton ? "auto" : 48 }}
+          animate={{ width: showFullButton ? "auto" : 56 }}
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center justify-center h-12 rounded-full bg-foreground text-background shadow-elevated overflow-hidden px-3.5 hover:opacity-90 active:scale-95"
+          className="flex items-center justify-center h-14 rounded-full bg-foreground text-background shadow-elevated overflow-hidden px-4 hover:opacity-90 active:scale-95"
           aria-label="Add routine"
         >
-          <Plus size={18} strokeWidth={2.5} className="shrink-0" />
+          <Plus size={22} strokeWidth={2.5} className="shrink-0" />
           <AnimatePresence initial={false}>
             {showFullButton && (
               <motion.span
