@@ -20,19 +20,8 @@ const seed = (): RoutineState => {
   return {
     lastResetDate: today,
     history: {},
-    sections: [
-      { id: "s-morning", title: "Morning", emoji: "🌅", collapsed: false, order: 0 },
-      { id: "s-work", title: "Work", emoji: "💼", collapsed: false, order: 1 },
-      { id: "s-night", title: "Night", emoji: "🌙", collapsed: false, order: 2 },
-    ],
-    routines: [
-      { id: "r1", title: "Drink a glass of water", emoji: "💧", isCompleted: false, streakCount: 0, sectionId: "s-morning", order: 0 },
-      { id: "r2", title: "10 minutes meditation", description: "Calm before the storm", emoji: "🧘", isCompleted: false, streakCount: 0, sectionId: "s-morning", order: 1 },
-      { id: "r3", title: "Plan top 3 tasks", emoji: "🎯", isCompleted: false, streakCount: 0, sectionId: "s-work", order: 0 },
-      { id: "r4", title: "Deep work block", description: "90 minutes, no notifications", emoji: "📚", isCompleted: false, streakCount: 0, sectionId: "s-work", order: 1 },
-      { id: "r5", title: "Read 20 pages", emoji: "📖", isCompleted: false, streakCount: 0, sectionId: "s-night", order: 0 },
-      { id: "r6", title: "Reflect on the day", emoji: "✨", isCompleted: false, streakCount: 0, sectionId: "s-night", order: 1 },
-    ],
+    sections: [],
+    routines: [],
   };
 };
 
