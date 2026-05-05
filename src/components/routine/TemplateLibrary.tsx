@@ -261,6 +261,112 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Dialog open={!!previewTemplate} onOpenChange={(o) => !o && setPreviewTemplate(null)}>
+        <DialogContent className="rounded-[28px] p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden">
+          {previewTemplate && (
+            <>
+              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                    {previewTemplate.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <DialogTitle className="text-xl font-serif font-bold leading-tight">
+                      {previewTemplate.title}
+                    </DialogTitle>
+                    <DialogDescription className="text-[12px] text-muted-foreground mt-0.5">
+                      {previewTemplate.description}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="max-h-[55vh] overflow-y-auto px-6 py-4 space-y-1.5">
+                {previewTemplate.blocks.map((b, i) => (
+                  <PreviewBlockRow key={i} block={b} />
+                ))}
+              </div>
+
+              <DialogFooter className="flex flex-row gap-3 sm:justify-end px-6 py-4 border-t border-border bg-muted/20">
+                <Button
+                  variant="outline"
+                  onClick={() => setPreviewTemplate(null)}
+                  className="flex-1 rounded-2xl h-11 font-semibold border-border/60"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    successHaptic();
+                    onAdd(previewTemplate);
+                    setPreviewTemplate(null);
+                  }}
+                  className="flex-1 rounded-2xl h-11 font-bold bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <Plus size={15} strokeWidth={3} className="mr-1" />
+                  Add template
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
+};
+
+const PreviewBlockRow = ({ block }: { block: Omit<RoutineBlockContent, "id"> }) => {
+  switch (block.type) {
+    case "heading":
+      return <div className="text-base font-bold text-foreground pt-2">{block.text}</div>;
+    case "subheading":
+      return (
+        <div className="flex items-center gap-1.5 pt-2">
+          <ListTree size={12} className="text-accent" strokeWidth={2.5} />
+          <div className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+            {block.text}
+          </div>
+        </div>
+      );
+    case "checkbox":
+      return (
+        <div className="flex items-center gap-2 text-[13px] text-foreground/90">
+          <CheckSquare size={14} className="text-muted-foreground/60 shrink-0" strokeWidth={2} />
+          <span className="truncate">{block.text}</span>
+        </div>
+      );
+    case "bullet":
+      return (
+        <div className="flex items-start gap-2 text-[13px] text-foreground/80 pl-1">
+          <span className="text-muted-foreground/60 mt-0.5">•</span>
+          <span>{block.text}</span>
+        </div>
+      );
+    case "quote":
+      return (
+        <div className="flex items-start gap-2 text-[12px] italic text-muted-foreground border-l-2 border-accent/40 pl-2.5 py-1">
+          <Quote size={11} className="text-accent/60 mt-0.5 shrink-0" />
+          <span>{block.text}</span>
+        </div>
+      );
+    case "link":
+      return (
+        <div className="flex items-center gap-2 text-[13px] text-accent">
+          <Link2 size={13} strokeWidth={2.5} className="shrink-0" />
+          <span className="truncate">{block.text}</span>
+        </div>
+      );
+    case "routine":
+      return (
+        <div className="flex items-center gap-2 text-[13px] font-medium text-foreground/90 rounded-lg bg-accent/5 border border-accent/10 px-2 py-1.5">
+          <Sparkles size={12} className="text-accent shrink-0" strokeWidth={2.5} />
+          <span className="truncate">Linked routine: {block.text}</span>
+        </div>
+      );
+    case "divider":
+      return <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-border" /></div>;
+    default:
+      return <div className="text-[13px] text-foreground/80">{block.text}</div>;
+  }
 };
