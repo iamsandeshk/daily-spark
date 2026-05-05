@@ -146,6 +146,7 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
   const [isPermanentlyHidden, setIsPermanentlyHidden] = useState(() => {
     return localStorage.getItem("routine_templates_hidden") === "true";
   });
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
 
   if (isPermanentlyHidden) return null;
 
@@ -206,8 +207,8 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
                 <button
                   key={t.title}
                   onClick={() => {
-                    successHaptic();
-                    onAdd(t);
+                    tapHaptic();
+                    setPreviewTemplate(t);
                   }}
                   className={cn(
                     "w-full flex items-center gap-3.5 p-3 rounded-2xl border border-border bg-card text-left transition-all",
@@ -224,7 +225,7 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
                     </p>
                   </div>
                   <div className="h-8 w-8 shrink-0 rounded-full bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all">
-                    <Plus size={16} strokeWidth={3} />
+                    <Eye size={15} strokeWidth={2.5} />
                   </div>
                 </button>
               ))}
