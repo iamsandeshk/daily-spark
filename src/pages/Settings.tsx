@@ -87,25 +87,27 @@ const Row = ({
   onClick?: () => void;
   destructive?: boolean;
   last?: boolean;
-}) => (
-  <button
-    onClick={onClick}
-    disabled={!onClick}
-    className={cn(
-      "w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors",
-      onClick && "hover:bg-muted/60",
-      !last && "border-b border-border",
-      destructive && "text-destructive"
-    )}
-  >
-    <Icon size={18} className={cn("shrink-0", destructive ? "text-destructive" : "text-muted-foreground")} />
-    <div className="flex-1 min-w-0">
-      <div className="text-[15px] font-medium truncate">{label}</div>
-      {hint && <div className="text-[12px] text-muted-foreground truncate">{hint}</div>}
-    </div>
-    {right}
-  </button>
-);
+}) => {
+  const Wrapper: any = onClick ? "button" : "div";
+  return (
+    <Wrapper
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors",
+        onClick && "hover:bg-muted/60 cursor-pointer",
+        !last && "border-b border-border",
+        destructive && "text-destructive"
+      )}
+    >
+      <Icon size={18} className={cn("shrink-0", destructive ? "text-destructive" : "text-muted-foreground")} />
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] font-medium truncate">{label}</div>
+        {hint && <div className="text-[12px] text-muted-foreground truncate">{hint}</div>}
+      </div>
+      {right}
+    </Wrapper>
+  );
+};
 
 const Settings = () => {
   const navigate = useNavigate();
