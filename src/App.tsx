@@ -7,6 +7,8 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RoutineDetail from "./pages/RoutineDetail.tsx";
 import History from "./pages/History.tsx";
+import Settings from "./pages/Settings.tsx";
+import WeeklyReport from "./pages/WeeklyReport.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
         <Route path="/" element={<Index />} />
           <Route path="/routine/:id" element={<RoutineDetailRoute />} />
           <Route path="/history" element={<History />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/weekly-report" element={<WeeklyReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -134,11 +134,6 @@ export const SectionBlock = ({
                 {done}/{allBlocks.length}
               </span>
             </div>
-            {routine.description && (
-              <p className="text-[11px] text-muted-foreground italic truncate mt-0.5 opacity-60">
-                {routine.description}
-              </p>
-            )}
           </div>
         </button>
         <button

@@ -74,4 +74,14 @@ export type RoutineState = {
   moods?: Record<string, MoodValue>;
   /** Dates when carry-forward popup was shown (limit 2/month). */
   carryForwardShownDates?: string[];
+  settings?: AppSettings;
+};
+
+export type AppSettings = {
+  /** Hour-of-day (0-23) when the daily reset should happen. Default 0 (midnight). */
+  resetHour?: number;
+  /** 0 = Sunday, 1 = Monday. */
+  startOfWeek?: 0 | 1;
+  /** Target consecutive-days streak goal. */
+  streakGoal?: number;
 };
