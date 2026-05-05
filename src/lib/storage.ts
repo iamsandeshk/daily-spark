@@ -78,13 +78,13 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
   }
 
   // Detect unfinished checkbox blocks for carry-forward prompt.
-  // Snapshot the streak BEFORE reset so we can restore it if the user accepts.
+  // Only routines with an active streak worth saving qualify.
   const carryItems: { routineId: string; blockIds: string[]; preservedStreak?: number; preservedLastCompletedDate?: string }[] = [];
   for (const r of state.routines) {
     const unfinished = (r.blocks ?? [])
       .filter((b) => b.type === "checkbox" && b.text?.trim() && !b.checked)
       .map((b) => b.id);
-    if (unfinished.length > 0) {
+    if (unfinished.length > 0 && r.streakCount > 0) {
       carryItems.push({
         routineId: r.id,
         blockIds: unfinished,
@@ -94,8 +94,27 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
     }
   }
 
+  // Throttle: only allow the carry-forward popup at most 2 times per calendar month.
+  const monthKey = today.slice(0, 7); // YYYY-MM
+  const shownDates = state.carryForwardShownDates ?? [];
+  const shownThisMonth = shownDates.filter((d) => d.startsWith(monthKey));
+  const canShowPopup = shownThisMonth.length < 2;
+
+  const carriedIds = new Set(carryItems.map((i) => i.routineId));
+  const willShowPopup = canShowPopup && carryItems.length > 0 && !!endingDate;
+
   const yesterday = yesterdayKey(today);
   const routines = state.routines.map((r) => {
+    // Routines awaiting carry-forward decision keep their streak until user decides.
+    if (willShowPopup && carriedIds.has(r.id)) {
+      return {
+        ...r,
+        isCompleted: false,
+        blocks: (r.blocks ?? []).map((b) =>
+          b.type === "checkbox" ? { ...b, checked: false } : b
+        ),
+      };
+    }
     const keepStreak = r.lastCompletedDate === yesterday || r.lastCompletedDate === today;
     return {
       ...r,
@@ -112,10 +131,12 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
     routines,
     lastResetDate: today,
     history,
-    pendingCarryForward:
-      carryItems.length > 0 && endingDate
-        ? { fromDate: endingDate, items: carryItems }
-        : undefined,
+    pendingCarryForward: willShowPopup
+      ? { fromDate: endingDate as string, items: carryItems }
+      : undefined,
+    carryForwardShownDates: willShowPopup
+      ? [...shownDates, today]
+      : shownDates,
   };
   saveState(next);
   return next;

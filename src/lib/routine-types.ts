@@ -72,4 +72,6 @@ export type RoutineState = {
   };
   /** Daily mood entries keyed by date (YYYY-MM-DD). */
   moods?: Record<string, MoodValue>;
+  /** Dates when carry-forward popup was shown (limit 2/month). */
+  carryForwardShownDates?: string[];
 };
