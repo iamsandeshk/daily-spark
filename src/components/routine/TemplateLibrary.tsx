@@ -1,4 +1,4 @@
-import { Sparkles, Plus, ChevronDown, EyeOff } from "lucide-react";
+import { Sparkles, Plus, ChevronDown, EyeOff, Eye, CheckSquare, Minus, Quote, Link2, ListTree } from "lucide-react";
 import { RoutineBlockContent } from "@/lib/routine-types";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { cn, uid } from "@/lib/utils";
@@ -16,6 +16,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Template = {
   title: string;
