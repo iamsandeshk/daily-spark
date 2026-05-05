@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Flame, ChevronDown } from "lucide-react";
+import { ArrowLeft, Flame, ChevronDown, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, yesterdayKey } from "@/lib/storage";
@@ -59,9 +59,13 @@ const History = () => {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const firstDay = new Date(year, month, 1);
-  const startWeekday = firstDay.getDay(); // 0 = Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayK = todayKey();
+
+  // Respect user's startOfWeek setting (0 = Sun, 1 = Mon)
+  const startOfWeek = (state.settings?.startOfWeek ?? 0) as 0 | 1;
+  // JS getDay(): 0=Sun…6=Sat. Shift so the week starts on startOfWeek.
+  const startWeekday = (firstDay.getDay() - startOfWeek + 7) % 7;
 
   const cells = useMemo(() => {
     const arr: Array<{ key: string | null; day: number | null }> = [];
@@ -71,7 +75,7 @@ const History = () => {
       arr.push({ key, day: d });
     }
     return arr;
-  }, [year, month, daysInMonth, startWeekday]);
+  }, [year, month, daysInMonth, startWeekday, startOfWeek]);
 
   const streak = useMemo(() => computeStreak(state.history), [state.history]);
 
@@ -96,7 +100,13 @@ const History = () => {
             <ArrowLeft size={20} />
           </button>
           <h1 className="text-base font-semibold">History</h1>
-          <div className="w-9" />
+          <button
+            onClick={() => navigate("/settings")}
+            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+            aria-label="Settings"
+          >
+            <Settings size={20} />
+          </button>
         </div>
       </header>
 
@@ -154,11 +164,17 @@ const History = () => {
               className="touch-pan-y"
             >
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-                  <div key={i} className="text-center text-[10px] font-semibold text-muted-foreground">
-                    {d}
-                  </div>
-                ))}
+                {(startOfWeek === 1
+                  ? ["M", "T", "W", "T", "F", "S", "S"]
+                  : ["S", "M", "T", "W", "T", "F", "S"]
+                ).map((d, i) => {
+                  const isSunday = startOfWeek === 1 ? i === 6 : i === 0;
+                  return (
+                    <div key={i} className={cn("text-center text-[10px] font-semibold", isSunday ? "text-destructive" : "text-muted-foreground")}>
+                      {d}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-7 gap-1">

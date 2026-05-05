@@ -21,6 +21,7 @@ import {
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
+import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ const applyTheme = (mode: ThemeMode) => {
   const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const dark = mode === "dark" || (mode === "system" && prefers);
   document.documentElement.classList.toggle("dark", dark);
-  StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
+  StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => { });
 };
 
 const useTheme = () => {
@@ -116,6 +117,7 @@ const Settings = () => {
 
   const settings = r.state.settings ?? {};
   const resetHour = settings.resetHour ?? 0;
+  const resetMinute = (settings as any).resetMinute ?? 0;
   const startOfWeek = settings.startOfWeek ?? 1;
   const streakGoal = settings.streakGoal ?? 7;
 
@@ -130,6 +132,9 @@ const Settings = () => {
   const [tplOpen, setTplOpen] = useState(false);
   const [resetStreaksOpen, setResetStreaksOpen] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [clockOpen, setClockOpen] = useState(false);
+  const [customStreakEditing, setCustomStreakEditing] = useState(false);
+  const [customStreakRaw, setCustomStreakRaw] = useState("");
 
   const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Light", icon: Sun },
@@ -137,10 +142,30 @@ const Settings = () => {
     { value: "system", label: "System", icon: Monitor },
   ];
 
-  const formatHour = (h: number) => {
+  const formatTime = (h: number, m: number = 0) => {
     const am = h < 12;
     const hh = h % 12 === 0 ? 12 : h % 12;
-    return `${hh}:00 ${am ? "AM" : "PM"}`;
+    const mm = m.toString().padStart(2, "0");
+    return `${hh}:${mm} ${am ? "AM" : "PM"}`;
+  };
+
+  // Keep legacy formatHour for any other callers
+  const formatHour = (h: number) => formatTime(h, 0);
+
+  const RESET_PRESETS = [
+    { label: "Midnight", sub: "12:00 AM", hour: 0, minute: 0 },
+    { label: "Early Bird", sub: "5:00 AM", hour: 5, minute: 0 },
+    { label: "Morning", sub: "6:00 AM", hour: 6, minute: 0 },
+    { label: "Late Morning", sub: "9:00 AM", hour: 9, minute: 0 },
+  ];
+
+  const isCustomSelected = !RESET_PRESETS.some(
+    (p) => p.hour === resetHour && p.minute === resetMinute
+  );
+
+  const handleClockConfirm = (h: number, m: number) => {
+    updateSettings({ resetHour: h, resetMinute: m } as any);
+    tapHaptic();
   };
 
   const handleAddTemplate = (t: typeof TEMPLATES[number]) => {
@@ -224,8 +249,8 @@ const Settings = () => {
           <Row
             icon={Clock}
             label="Daily reset time"
-            hint={`Routines reset at ${formatHour(resetHour)}`}
-            right={<span className="text-[13px] text-muted-foreground">{formatHour(resetHour)}</span>}
+            hint={`Routines reset at ${formatTime(resetHour, resetMinute)}`}
+            right={<span className="text-[13px] text-muted-foreground">{formatTime(resetHour, resetMinute)}</span>}
             onClick={() => setResetOpen(true)}
           />
           <Row
@@ -359,29 +384,71 @@ const Settings = () => {
               Choose when each new day begins.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-4 gap-2 mt-2 max-h-[50vh] overflow-y-auto">
-            {Array.from({ length: 24 }).map((_, h) => (
-              <button
-                key={h}
-                onClick={() => {
-                  updateSettings({ resetHour: h });
-                  tapHaptic();
-                  setResetOpen(false);
-                }}
-                className={cn(
-                  "py-2.5 rounded-xl border text-[13px] font-semibold transition-colors",
-                  resetHour === h ? "border-foreground bg-foreground/5" : "border-border hover:bg-muted/60"
-                )}
-              >
-                {formatHour(h)}
-              </button>
-            ))}
+
+          {/* Preset tiles */}
+          <div className="grid grid-cols-2 gap-2.5 mt-3">
+            {RESET_PRESETS.map((p) => {
+              const active = resetHour === p.hour && resetMinute === p.minute && !isCustomSelected;
+              return (
+                <button
+                  key={p.label}
+                  onClick={() => {
+                    updateSettings({ resetHour: p.hour, resetMinute: p.minute } as any);
+                    tapHaptic();
+                    setResetOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-left transition-all",
+                    active
+                      ? "border-foreground bg-foreground/5 shadow-sm"
+                      : "border-border bg-card hover:bg-muted/50"
+                  )}
+                >
+                  <div>
+                    <p className="text-[13px] font-bold leading-tight">{p.label}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{p.sub}</p>
+                  </div>
+                  {active && <Check size={14} className="ml-auto shrink-0" />}
+                </button>
+              );
+            })}
+
+            {/* Custom tile — opens analog clock */}
+            <button
+              onClick={() => {
+                setResetOpen(false);
+                setTimeout(() => setClockOpen(true), 150);
+              }}
+              className={cn(
+                "col-span-2 flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-left transition-all",
+                isCustomSelected
+                  ? "border-foreground bg-foreground/5 shadow-sm"
+                  : "border-border bg-card hover:bg-muted/50"
+              )}
+            >
+              <div className="flex-1">
+                <p className="text-[13px] font-bold leading-tight">Custom time</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {isCustomSelected ? formatTime(resetHour, resetMinute) : "Set your own time"}
+                </p>
+              </div>
+              {isCustomSelected && <Check size={14} className="shrink-0" />}
+            </button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Analog clock picker */}
+      <ClockPickerDialog
+        open={clockOpen}
+        onOpenChange={setClockOpen}
+        initialHour={resetHour}
+        initialMinute={resetMinute}
+        onConfirm={handleClockConfirm}
+      />
+
       {/* Streak goal */}
-      <Dialog open={streakOpen} onOpenChange={setStreakOpen}>
+      <Dialog open={streakOpen} onOpenChange={(o) => { setStreakOpen(o); if (!o) setCustomStreakEditing(false); }}>
         <DialogContent className="rounded-[28px] p-6 max-w-[90vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif font-bold text-left">Streak goal</DialogTitle>
@@ -390,29 +457,82 @@ const Settings = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-3 gap-2 mt-2">
-            {[3, 7, 14, 21, 30, 60, 90, 100, 365].map((d) => (
+            {[3, 7, 14, 21, 30, 60, 90, 365].map((d) => (
               <button
                 key={d}
                 onClick={() => {
                   updateSettings({ streakGoal: d });
                   tapHaptic();
+                  setCustomStreakEditing(false);
                   setStreakOpen(false);
                 }}
                 className={cn(
                   "py-3 rounded-xl border text-[14px] font-bold transition-colors",
-                  streakGoal === d ? "border-foreground bg-foreground/5" : "border-border hover:bg-muted/60"
+                  streakGoal === d && !customStreakEditing ? "border-foreground bg-foreground/5" : "border-border hover:bg-muted/60"
                 )}
               >
                 {d} days
               </button>
             ))}
+
+            {/* Custom streak tile */}
+            {customStreakEditing ? (
+              <div className={cn(
+                "relative py-2 px-2 rounded-xl border flex items-center",
+                "border-foreground bg-foreground/5"
+              )}>
+                <input
+                  autoFocus
+                  value={customStreakRaw}
+                  onChange={(e) => setCustomStreakRaw(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const n = parseInt(customStreakRaw, 10);
+                      if (!isNaN(n) && n > 0) {
+                        updateSettings({ streakGoal: n });
+                        tapHaptic();
+                        setCustomStreakEditing(false);
+                        setStreakOpen(false);
+                      }
+                    }
+                    if (e.key === "Escape") setCustomStreakEditing(false);
+                  }}
+                  onBlur={() => {
+                    const n = parseInt(customStreakRaw, 10);
+                    if (!isNaN(n) && n > 0) {
+                      updateSettings({ streakGoal: n });
+                      tapHaptic();
+                    }
+                    setCustomStreakEditing(false);
+                  }}
+                  placeholder="days"
+                  inputMode="numeric"
+                  className="w-full bg-transparent text-center text-[14px] font-bold outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setCustomStreakRaw("");
+                  setCustomStreakEditing(true);
+                }}
+                className={cn(
+                  "py-3 rounded-xl border text-[14px] font-bold transition-colors",
+                  ![3, 7, 14, 21, 30, 60, 90, 365].includes(streakGoal)
+                    ? "border-foreground bg-foreground/5"
+                    : "border-border hover:bg-muted/60"
+                )}
+              >
+                {![3, 7, 14, 21, 30, 60, 90, 365].includes(streakGoal) ? `${streakGoal}d` : "Custom"}
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Templates */}
       <Dialog open={tplOpen} onOpenChange={setTplOpen}>
-        <DialogContent className="rounded-[28px] p-6 max-w-[90vw] sm:max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogContent className="rounded-[28px] p-6 max-w-[90vw] sm:max-w-md max-h-[80vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif font-bold text-left">Templates</DialogTitle>
             <DialogDescription className="text-left text-[14px]">
@@ -423,17 +543,22 @@ const Settings = () => {
             {TEMPLATES.map((t) => (
               <button
                 key={t.title}
-                onClick={() => handleAddTemplate(t)}
-                className="w-full flex items-start gap-3 rounded-2xl border border-border bg-card hover:bg-muted/60 p-3.5 text-left transition-colors"
+                onClick={() => {
+                  handleAddTemplate(t);
+                  setTplOpen(false);
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3.5 p-3 rounded-2xl border border-border bg-card text-left transition-all",
+                  "hover:border-accent/40 hover:shadow-block active:scale-[0.98] group",
+                )}
               >
-                <span className="text-2xl leading-none mt-0.5">{t.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[15px] font-semibold">{t.title}</p>
-                  <p className="text-[12px] text-muted-foreground truncate">{t.description}</p>
+                <div className="h-11 w-11 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  {t.emoji}
                 </div>
-                <span className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground shrink-0 mt-1">
-                  Add
-                </span>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-[15px] text-foreground leading-tight">{t.title}</h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{t.description}</p>
+                </div>
               </button>
             ))}
           </div>
