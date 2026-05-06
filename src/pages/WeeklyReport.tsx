@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, TrendingDown, Smile, Download } from "lucide-react";
+import { ArrowLeft, CheckCircle2, TrendingDown, Smile, Download, FileJson, FileText } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, todayLiveHistory } from "@/lib/storage";
 import { Flame, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MoodValue } from "@/lib/routine-types";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
 
 const MOOD_EMOJI: Record<MoodValue, string> = {
   great: "🙂",
