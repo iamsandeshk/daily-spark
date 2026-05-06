@@ -144,6 +144,7 @@ const Settings = () => {
   const [resetStreaksOpen, setResetStreaksOpen] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [clockOpen, setClockOpen] = useState(false);
+  const [reminderClockOpen, setReminderClockOpen] = useState(false);
   const [customStreakEditing, setCustomStreakEditing] = useState(false);
   const [customStreakRaw, setCustomStreakRaw] = useState("");
   const [importConfirm, setImportConfirm] = useState<{ data: any; routines: number; sections: number } | null>(null);
