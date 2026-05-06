@@ -299,11 +299,11 @@ const WeeklyReport = () => {
         const ratio = d.total > 0 ? d.done / d.total : 0;
         const h = ratio > 0 ? Math.max(8, ratio * (chartH - 10)) : 0;
         doc.setDrawColor(220);
-        doc.setFillColor(245);
+        doc.setFillColor(245, 245, 245);
         doc.roundedRect(cx - barW / 2, y, barW, chartH, barW / 2, barW / 2, "FD");
         if (h > 0) {
-          if (d.done >= d.total && d.total > 0) doc.setFillColor(20);
-          else doc.setFillColor(120);
+          if (d.done >= d.total && d.total > 0) doc.setFillColor(20, 20, 20);
+          else doc.setFillColor(120, 120, 120);
           doc.roundedRect(cx - barW / 2, baseY - h, barW, h, barW / 2, barW / 2, "F");
         }
         doc.setFont("helvetica", "bold");
