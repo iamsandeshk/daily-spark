@@ -491,6 +491,60 @@ const Settings = () => {
           />
         </Card>
 
+        <SectionLabel>Notifications</SectionLabel>
+        <Card>
+          <Row
+            icon={Bell}
+            label="Daily reminder"
+            hint="Push notification each morning"
+            right={
+              <Switch
+                checked={dailyReminder}
+                onCheckedChange={(v) => {
+                  updateSettings({ dailyReminder: v } as any);
+                  tapHaptic();
+                }}
+              />
+            }
+          />
+          <Row
+            icon={Clock}
+            label="Reminder time"
+            hint="When to remind you"
+            right={<span className="text-[13px] text-muted-foreground tabular-nums">{formatTime(reminderHour, reminderMinute)}</span>}
+            onClick={() => setReminderClockOpen(true)}
+          />
+          <Row
+            icon={InfoIcon}
+            label="Streak reminders"
+            hint="Alert before streak breaks"
+            right={
+              <Switch
+                checked={streakReminder}
+                onCheckedChange={(v) => {
+                  updateSettings({ streakReminder: v } as any);
+                  tapHaptic();
+                }}
+              />
+            }
+          />
+          <Row
+            icon={TrendingUp}
+            label="Completion celebration"
+            hint="Animation on 100% done"
+            right={
+              <Switch
+                checked={completionCelebration}
+                onCheckedChange={(v) => {
+                  updateSettings({ completionCelebration: v } as any);
+                  tapHaptic();
+                }}
+              />
+            }
+            last
+          />
+        </Card>
+
         <SectionLabel>Insights</SectionLabel>
         <Card>
           <Row
