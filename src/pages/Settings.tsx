@@ -710,6 +710,17 @@ const Settings = () => {
         onConfirm={handleClockConfirm}
       />
 
+      <ClockPickerDialog
+        open={reminderClockOpen}
+        onOpenChange={setReminderClockOpen}
+        initialHour={reminderHour}
+        initialMinute={reminderMinute}
+        onConfirm={(h, m) => {
+          updateSettings({ reminderHour: h, reminderMinute: m } as any);
+          tapHaptic();
+        }}
+      />
+
       {/* Streak goal */}
       <Dialog open={streakOpen} onOpenChange={(o) => { setStreakOpen(o); if (!o) setCustomStreakEditing(false); }}>
         <DialogContent className="rounded-[28px] p-6 max-w-[90vw] sm:max-w-md">
