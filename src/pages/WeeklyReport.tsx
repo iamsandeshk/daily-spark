@@ -65,6 +65,8 @@ const WeeklyReport = () => {
         total,
         done,
         titles,
+        isToday,
+        isFuture,
       });
     }
 
