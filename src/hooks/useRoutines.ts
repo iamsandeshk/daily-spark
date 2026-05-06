@@ -56,9 +56,16 @@ export const useRoutines = () => {
     document.addEventListener("visibilitychange", onVisibility);
 
     const scheduleMidnight = () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      const settings = stateRef.current.settings ?? {};
+      const resetHour = settings.resetHour ?? 0;
+      const resetMinute = (settings as any).resetMinute ?? 0;
       const now = new Date();
       const next = new Date(now);
-      next.setHours(24, 0, 5, 0);
+      next.setHours(resetHour, resetMinute, 5, 0);
+      if (next.getTime() <= now.getTime()) {
+        next.setDate(next.getDate() + 1);
+      }
       const ms = next.getTime() - now.getTime();
       timerRef.current = window.setTimeout(() => {
         recheck();
@@ -66,6 +73,9 @@ export const useRoutines = () => {
       }, ms);
     };
     scheduleMidnight();
+    // Reschedule when settings change (e.g. user updates reset hour).
+    const onSettingsChange = () => scheduleMidnight();
+    window.addEventListener("routines:updated", onSettingsChange);
 
     return () => {
       window.removeEventListener("focus", onFocus);
