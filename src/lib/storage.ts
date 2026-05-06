@@ -73,7 +73,7 @@ const snapshotForDate = (state: RoutineState): DayHistory["snapshot"] => {
  * so the user can decide (Smart Carry Forward).
  */
 export const applyDailyReset = (state: RoutineState): RoutineState => {
-  const today = todayKey();
+  const today = effectiveTodayKey(state);
   if (state.lastResetDate === today) return state;
 
   // Save snapshot of the day that's ending (state.lastResetDate)
