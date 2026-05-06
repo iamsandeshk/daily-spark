@@ -546,8 +546,8 @@ const Settings = () => {
               <button
                 key={t.title}
                 onClick={() => {
-                  handleAddTemplate(t);
-                  setTplOpen(false);
+                  tapHaptic();
+                  setPreviewTpl(t);
                 }}
                 className={cn(
                   "w-full flex items-center gap-3.5 p-3 rounded-2xl border border-border bg-card text-left transition-all",
@@ -561,9 +561,64 @@ const Settings = () => {
                   <h4 className="font-bold text-[15px] text-foreground leading-tight">{t.title}</h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{t.description}</p>
                 </div>
+                <div className="h-8 w-8 shrink-0 rounded-full bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all">
+                  <Eye size={15} strokeWidth={2.5} />
+                </div>
               </button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Preview */}
+      <Dialog open={!!previewTpl} onOpenChange={(o) => !o && setPreviewTpl(null)}>
+        <DialogContent className="rounded-[28px] p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden">
+          {previewTpl && (
+            <>
+              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                    {previewTpl.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <DialogTitle className="text-xl font-serif font-bold leading-tight">
+                      {previewTpl.title}
+                    </DialogTitle>
+                    <DialogDescription className="text-[12px] text-muted-foreground mt-0.5">
+                      {previewTpl.description}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="max-h-[55vh] overflow-y-auto px-6 py-4 space-y-1.5">
+                {previewTpl.blocks.map((b, i) => (
+                  <PreviewBlockRow key={i} block={b} />
+                ))}
+              </div>
+
+              <DialogFooter className="flex flex-row gap-3 sm:justify-end px-6 py-4 border-t border-border bg-muted/20">
+                <Button
+                  variant="outline"
+                  onClick={() => setPreviewTpl(null)}
+                  className="flex-1 rounded-2xl h-11 font-semibold border-border/60"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const tpl = previewTpl;
+                    setPreviewTpl(null);
+                    handleAddTemplate(tpl);
+                  }}
+                  className="flex-1 rounded-2xl h-11 font-bold bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <Plus size={15} strokeWidth={3} className="mr-1" />
+                  Add template
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
