@@ -587,7 +587,7 @@ const Settings = () => {
               Tap to add a ready-made routine to your day.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 mt-2">
+          <div className="space-y-2 mt-2 mx-auto w-full max-w-sm">
             {TEMPLATES.map((t) => (
               <button
                 key={t.title}
