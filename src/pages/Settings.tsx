@@ -321,9 +321,22 @@ const Settings = () => {
             label="Export data"
             hint="Download a JSON backup"
             onClick={handleExport}
+          />
+          <Row
+            icon={Upload}
+            label="Import data"
+            hint="Restore from a JSON backup"
+            onClick={() => fileInputRef.current?.click()}
             last
           />
         </Card>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
 
         <SectionLabel>
           <span className="inline-flex items-center gap-1.5 text-destructive">
