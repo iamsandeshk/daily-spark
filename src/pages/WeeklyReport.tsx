@@ -24,6 +24,7 @@ const WeeklyReport = () => {
   const navigate = useNavigate();
   const r = useRoutines();
   const startOfWeek = r.state.settings?.startOfWeek ?? 1;
+  const [mode, setMode] = useState<"week" | "weeks7">("week");
 
   const { days, completedTasks, moodStats, skipDay } = useMemo(() => {
     const today = todayKey();
