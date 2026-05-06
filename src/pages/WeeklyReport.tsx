@@ -120,7 +120,7 @@ const WeeklyReport = () => {
       }
     }
 
-    const totalCompleted = out.reduce((a, d) => a + d.done, 0);
+    const totalCompleted = out.reduce((a, d) => a + (d.isFromLastWeek ? 0 : d.done), 0);
 
     return {
       days: out,
