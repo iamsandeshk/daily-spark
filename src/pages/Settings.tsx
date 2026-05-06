@@ -707,6 +707,40 @@ const Settings = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import confirm */}
+      <Dialog open={!!importConfirm} onOpenChange={(o) => !o && setImportConfirm(null)}>
+        <DialogContent className="rounded-[28px] p-7 max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif font-bold text-left">Restore from backup?</DialogTitle>
+            <DialogDescription className="text-left text-[14px]">
+              This replaces all current data with the backup file
+              {importConfirm ? ` (${importConfirm.routines} routines, ${importConfirm.sections} sections)` : ""}. Current data will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3">
+            <Button variant="outline" onClick={() => setImportConfirm(null)} className="flex-1 rounded-2xl h-12 font-bold">
+              Cancel
+            </Button>
+            <Button onClick={confirmImport} className="flex-1 rounded-2xl h-12 font-bold bg-foreground text-background hover:bg-foreground/90">
+              Restore
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import error */}
+      <Dialog open={!!importError} onOpenChange={(o) => !o && setImportError(null)}>
+        <DialogContent className="rounded-[28px] p-7 max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif font-bold text-left">Couldn't import</DialogTitle>
+            <DialogDescription className="text-left text-[14px]">{importError}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setImportError(null)} className="rounded-2xl h-12 font-bold w-full">OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
