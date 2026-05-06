@@ -18,6 +18,7 @@ import {
   Trash2,
   RefreshCcw,
   BarChart3,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
@@ -222,6 +223,51 @@ const Settings = () => {
     successHaptic();
   };
 
+  const handleExportCSV = () => {
+    const esc = (v: any) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows: string[][] = [[
+      "date", "weekday", "routine", "task", "type", "completed", "mood",
+    ]];
+    const history = r.state.history ?? {};
+    const moods = r.state.moods ?? {};
+    const dates = Object.keys(history).sort();
+    for (const date of dates) {
+      const h: any = history[date];
+      const weekday = new Date(date + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" });
+      const mood = moods[date] ?? "";
+      const snap = h.snapshot ?? {};
+      const ids = Object.keys(snap);
+      if (ids.length === 0) {
+        rows.push([date, weekday, "", "", "", "", mood]);
+        continue;
+      }
+      for (const rid of ids) {
+        const s: any = snap[rid];
+        const blocks = (s.blocks ?? []).filter((b: any) => b.type === "checkbox" && b.text?.trim());
+        if (blocks.length === 0) {
+          const completed = (h.completedRoutineIds ?? []).includes(rid) ? "yes" : "no";
+          rows.push([date, weekday, s.title ?? "", "", "routine", completed, mood]);
+        } else {
+          for (const b of blocks) {
+            rows.push([date, weekday, s.title ?? "", b.text ?? "", "task", b.checked ? "yes" : "no", mood]);
+          }
+        }
+      }
+    }
+    const csv = rows.map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `daily-routines-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    successHaptic();
+  };
+
   const handleResetStreaks = () => {
     const next = {
       ...r.state,
@@ -359,9 +405,15 @@ const Settings = () => {
         <Card>
           <Row
             icon={Download}
-            label="Export data"
-            hint="Download a JSON backup"
+            label="Export data (JSON)"
+            hint="Download a full JSON backup"
             onClick={handleExport}
+          />
+          <Row
+            icon={FileSpreadsheet}
+            label="Export tasks (CSV)"
+            hint="Per-day tasks for Excel or Sheets"
+            onClick={handleExportCSV}
           />
           <Row
             icon={Upload}
