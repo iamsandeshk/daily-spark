@@ -206,29 +206,36 @@ const WeeklyReport = () => {
             </div>
           </div>
 
-          <div className="mt-5 flex items-end justify-between gap-2 h-36">
+          <div className="mt-5 flex items-stretch justify-between gap-2 h-36">
             {orderedDays.map((d) => {
               const ratio = d.total > 0 ? d.done / d.total : 0;
               const pct = Math.round(ratio * 100);
               const isFull = d.total > 0 && d.done >= d.total;
               const isPartial = d.done > 0 && !isFull;
-              const isZero = !d.isFuture && d.done === 0;
+              const isZero = d.total > 0 && d.done === 0;
+              const noData = d.total === 0;
               const fillClass = isFull
                 ? "bg-primary"
                 : isPartial
                 ? "bg-primary/55"
                 : "bg-transparent";
               return (
-                <div key={d.key} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="relative flex-1 w-full max-w-[22px] mx-auto rounded-full bg-muted/40 border border-border/50 overflow-hidden">
-                    {!d.isFuture && d.done > 0 && (
+                <div key={d.key} className="flex-1 flex flex-col items-center gap-2 h-full">
+                  <div className={cn(
+                    "relative flex-1 w-full max-w-[22px] mx-auto rounded-full overflow-hidden border",
+                    d.isFromLastWeek ? "bg-muted/20 border-dashed border-border/40" : "bg-muted/40 border-border/50"
+                  )}>
+                    {d.done > 0 && (
                       <div
                         className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
-                        style={{ height: `${Math.max(6, pct)}%` }}
+                        style={{ height: `${Math.max(8, pct)}%` }}
                       />
                     )}
                     {isZero && (
                       <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
+                    )}
+                    {noData && !d.isFromLastWeek && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-muted-foreground/30" />
                     )}
                   </div>
                   <span
