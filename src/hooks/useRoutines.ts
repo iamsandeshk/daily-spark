@@ -82,6 +82,7 @@ export const useRoutines = () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("routines:updated", onLocal);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("routines:updated", onSettingsChange);
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, [recheck, syncFromStorage]);
