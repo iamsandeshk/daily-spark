@@ -518,7 +518,7 @@ const Settings = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="application/json,.json"
+          accept="application/json,.json,text/csv,.csv"
           className="hidden"
           onChange={handleImportFile}
         />
