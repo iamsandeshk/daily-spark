@@ -164,6 +164,83 @@ const WeeklyReport = () => {
     return { currentStreak: cur, bestStreak: best };
   }, [orderedDays]);
 
+  // Last 7 weeks aggregation (each bar = 1 week)
+  const weeks7 = useMemo(() => {
+    const today = todayKey();
+    const base = new Date(today + "T12:00:00");
+    const dow = base.getDay();
+    const offsetToStart = (dow - startOfWeek + 7) % 7;
+    const thisWeekStart = new Date(base);
+    thisWeekStart.setDate(base.getDate() - offsetToStart);
+
+    const out: { label: string; key: string; done: number; total: number; isCurrent: boolean }[] = [];
+    for (let w = 6; w >= 0; w--) {
+      const start = new Date(thisWeekStart);
+      start.setDate(thisWeekStart.getDate() - w * 7);
+      let done = 0;
+      let total = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const k = todayKey(d);
+        if (k > today) continue;
+        const h = k === today ? todayLiveHistory(r.state) : r.state.history[k];
+        if (!h) continue;
+        for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
+          const blocks = (snap as any).blocks ?? [];
+          const checks = blocks.filter((b: any) => b.type === "checkbox" && b.text?.trim());
+          total += checks.length;
+          done += checks.filter((b: any) => b.checked).length;
+          if (h.completedRoutineIds.includes(rid) && checks.length === 0) {
+            done += 1;
+            total += 1;
+          }
+        }
+      }
+      out.push({
+        label: `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
+        key: todayKey(start),
+        done,
+        total,
+        isCurrent: w === 0,
+      });
+    }
+    return out;
+  }, [r.state, startOfWeek]);
+
+  const handleExport = () => {
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      weekStartsOn: startOfWeek === 0 ? "Sunday" : "Monday",
+      currentStreak,
+      bestStreak,
+      completedTasks,
+      thisWeek: orderedDays.map((d) => ({
+        date: d.displayKey,
+        weekday: new Date(d.displayKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" }),
+        done: d.done,
+        total: d.total,
+        completion: d.total > 0 ? Math.round((d.done / d.total) * 100) : 0,
+        fromLastWeek: d.isFromLastWeek,
+        titles: d.titles,
+        mood: d.mood ?? null,
+      })),
+      last7Weeks: weeks7.map((w) => ({
+        weekStart: w.key,
+        done: w.done,
+        total: w.total,
+        completion: w.total > 0 ? Math.round((w.done / w.total) * 100) : 0,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `weekly-report-${todayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-full bg-background pb-20">
       <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
