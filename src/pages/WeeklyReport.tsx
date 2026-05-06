@@ -251,15 +251,49 @@ const WeeklyReport = () => {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-serif font-bold">Weekly Report</h1>
+        <h1 className="text-2xl font-serif font-bold flex-1">Weekly Report</h1>
+        <button
+          onClick={handleExport}
+          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          aria-label="Export report"
+          title="Export as JSON"
+        >
+          <Download size={18} />
+        </button>
       </header>
 
       <main className="px-5 space-y-5">
+        {/* Mode toggle */}
+        <div className="inline-flex rounded-full border border-border bg-muted/40 p-0.5 text-[12px] font-bold">
+          <button
+            onClick={() => setMode("week")}
+            className={cn(
+              "px-3 py-1.5 rounded-full transition-smooth",
+              mode === "week" ? "bg-foreground text-background" : "text-muted-foreground"
+            )}
+          >
+            This week
+          </button>
+          <button
+            onClick={() => setMode("weeks7")}
+            className={cn(
+              "px-3 py-1.5 rounded-full transition-smooth",
+              mode === "weeks7" ? "bg-foreground text-background" : "text-muted-foreground"
+            )}
+          >
+            Last 7 weeks
+          </button>
+        </div>
+
         {/* Hero */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-block">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-bold">This week</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-bold">
+            {mode === "week" ? "This week" : "Last 7 weeks"}
+          </p>
           <div className="flex items-end gap-2 mt-1">
-            <p className="text-4xl font-semibold tabular-nums">{completedTasks}</p>
+            <p className="text-4xl font-semibold tabular-nums">
+              {mode === "week" ? completedTasks : weeks7.reduce((a, w) => a + w.done, 0)}
+            </p>
             <p className="text-sm text-muted-foreground mb-1.5">tasks completed</p>
           </div>
 
