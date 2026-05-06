@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, TrendingDown, Smile } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
-import { todayKey } from "@/lib/storage";
+import { todayKey, todayLiveHistory } from "@/lib/storage";
+import { Flame, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MoodValue } from "@/lib/routine-types";
 
@@ -39,20 +40,20 @@ const WeeklyReport = () => {
       const k = todayKey(d);
       const isFuture = k > today;
       const isToday = k === today;
-      const h = r.state.history[k];
+      const h = isToday ? todayLiveHistory(r.state) : r.state.history[k];
       const titles: string[] = [];
       let done = 0;
       let total = 0;
       if (h) {
         for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
-          const blocks = snap.blocks ?? [];
+          const blocks = (snap as any).blocks ?? [];
           const checks = blocks.filter((b: any) => b.type === "checkbox" && b.text?.trim());
           const doneChecks = checks.filter((b: any) => b.checked);
           total += checks.length;
           done += doneChecks.length;
           for (const b of doneChecks) titles.push(b.text!);
           if (h.completedRoutineIds.includes(rid) && checks.length === 0) {
-            titles.push(snap.title);
+            titles.push((snap as any).title);
             done += 1;
             total += 1;
           }
@@ -120,7 +121,29 @@ const WeeklyReport = () => {
     return [...days].sort((a, b) => a.key.localeCompare(b.key));
   }, [days]);
 
-  const maxDone = Math.max(1, ...orderedDays.map((d) => d.done));
+  // Streak calculations within the week
+  const { currentStreak, bestStreak } = useMemo(() => {
+    const isFull = (d: typeof orderedDays[number]) => d.total > 0 && d.done >= d.total;
+    let best = 0;
+    let run = 0;
+    for (const d of orderedDays) {
+      if (d.isFuture) continue;
+      if (isFull(d)) {
+        run += 1;
+        best = Math.max(best, run);
+      } else {
+        run = 0;
+      }
+    }
+    // current streak: consecutive full days ending at today (or last past day)
+    let cur = 0;
+    const past = orderedDays.filter((d) => !d.isFuture);
+    for (let i = past.length - 1; i >= 0; i--) {
+      if (isFull(past[i])) cur += 1;
+      else break;
+    }
+    return { currentStreak: cur, bestStreak: best };
+  }, [orderedDays]);
 
   return (
     <div className="min-h-full bg-background pb-20">
@@ -144,17 +167,51 @@ const WeeklyReport = () => {
             <p className="text-sm text-muted-foreground mb-1.5">tasks completed</p>
           </div>
 
+          {/* Streak summary */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
+              <Flame size={16} className="text-primary" />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Current</p>
+                <p className="text-[15px] font-bold tabular-nums leading-tight">
+                  {currentStreak} <span className="text-[11px] font-medium text-muted-foreground">day{currentStreak === 1 ? "" : "s"}</span>
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
+              <Trophy size={16} className="text-accent-foreground" />
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Best</p>
+                <p className="text-[15px] font-bold tabular-nums leading-tight">
+                  {bestStreak} <span className="text-[11px] font-medium text-muted-foreground">day{bestStreak === 1 ? "" : "s"}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-5 flex items-end justify-between gap-2 h-36">
             {orderedDays.map((d) => {
-              const h = d.total > 0 ? (d.done / Math.max(maxDone, 1)) * 100 : 0;
+              const ratio = d.total > 0 ? d.done / d.total : 0;
+              const pct = Math.round(ratio * 100);
+              const isFull = d.total > 0 && d.done >= d.total;
+              const isPartial = d.done > 0 && !isFull;
+              const isZero = !d.isFuture && d.done === 0;
+              const fillClass = isFull
+                ? "bg-primary"
+                : isPartial
+                ? "bg-primary/55"
+                : "bg-transparent";
               return (
                 <div key={d.key} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="relative flex-1 w-full max-w-[26px] mx-auto rounded-full bg-muted/50 overflow-hidden">
+                  <div className="relative flex-1 w-full max-w-[22px] mx-auto rounded-full bg-muted/40 border border-border/50 overflow-hidden">
                     {!d.isFuture && d.done > 0 && (
                       <div
-                        className="absolute bottom-0 left-0 right-0 rounded-full bg-primary transition-all"
-                        style={{ height: `${Math.max(8, h)}%` }}
+                        className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
+                        style={{ height: `${Math.max(6, pct)}%` }}
                       />
+                    )}
+                    {isZero && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
                     )}
                   </div>
                   <span
