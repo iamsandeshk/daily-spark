@@ -278,6 +278,15 @@ const Settings = () => {
           })}
         </div>
 
+        <div className="mt-2.5 rounded-2xl border border-border bg-card px-4 py-3.5 flex items-center gap-3">
+          <Moon size={18} className="text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-medium">AMOLED black</div>
+            <div className="text-[12px] text-muted-foreground">Pure black in dark mode to save battery on OLED screens</div>
+          </div>
+          <Switch checked={amoled} onCheckedChange={setAmoled} aria-label="AMOLED black theme" />
+        </div>
+
         <SectionLabel>Routines</SectionLabel>
         <Card>
           <Row
