@@ -19,6 +19,9 @@ import {
   RefreshCcw,
   BarChart3,
   FileSpreadsheet,
+  Bell,
+  Info as InfoIcon,
+  TrendingUp,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
