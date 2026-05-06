@@ -59,7 +59,6 @@ const WeeklyReport = () => {
           }
         }
       }
-      }
       out.push({
         key: k,
         weekday: d.getDay(),
