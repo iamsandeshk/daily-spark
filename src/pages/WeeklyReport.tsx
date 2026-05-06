@@ -26,12 +26,19 @@ const WeeklyReport = () => {
 
   const { days, completedTasks, moodStats, skipDay } = useMemo(() => {
     const today = todayKey();
-    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[] }[] = [];
+    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[]; isToday: boolean; isFuture: boolean }[] = [];
     const base = new Date(today + "T12:00:00");
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(base);
-      d.setDate(base.getDate() - i);
+    // Start of the current week based on user's startOfWeek setting
+    const dow = base.getDay(); // 0=Sun..6=Sat
+    const offsetToStart = (dow - startOfWeek + 7) % 7;
+    const weekStart = new Date(base);
+    weekStart.setDate(base.getDate() - offsetToStart);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
       const k = todayKey(d);
+      const isFuture = k > today;
+      const isToday = k === today;
       const h = r.state.history[k];
       const titles: string[] = [];
       let done = 0;
@@ -58,6 +65,8 @@ const WeeklyReport = () => {
         total,
         done,
         titles,
+        isToday,
+        isFuture,
       });
     }
 
@@ -129,27 +138,33 @@ const WeeklyReport = () => {
       <main className="px-5 space-y-5">
         {/* Hero */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-block">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-bold">Last 7 days</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-bold">This week</p>
           <div className="flex items-end gap-2 mt-1">
             <p className="text-4xl font-semibold tabular-nums">{completedTasks}</p>
             <p className="text-sm text-muted-foreground mb-1.5">tasks completed</p>
           </div>
 
-          <div className="mt-4 flex items-end justify-between gap-1.5 h-24">
+          <div className="mt-5 flex items-end justify-between gap-2 h-36">
             {orderedDays.map((d) => {
-              const h = (d.done / maxDone) * 100;
+              const h = d.total > 0 ? (d.done / Math.max(maxDone, 1)) * 100 : 0;
               return (
-                <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="flex-1 w-full flex items-end">
-                    <div
-                      className={cn(
-                        "w-full rounded-md transition-colors",
-                        d.done === 0 ? "bg-muted" : "bg-foreground"
-                      )}
-                      style={{ height: `${Math.max(4, h)}%` }}
-                    />
+                <div key={d.key} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="relative flex-1 w-full max-w-[26px] mx-auto rounded-full bg-muted/50 overflow-hidden">
+                    {!d.isFuture && d.done > 0 && (
+                      <div
+                        className="absolute bottom-0 left-0 right-0 rounded-full bg-primary transition-all"
+                        style={{ height: `${Math.max(8, h)}%` }}
+                      />
+                    )}
                   </div>
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold uppercase grid place-items-center w-5 h-5 rounded-full",
+                      d.isToday
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground"
+                    )}
+                  >
                     {new Date(d.key + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1)}
                   </span>
                 </div>
