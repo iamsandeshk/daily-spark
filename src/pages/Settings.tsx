@@ -131,6 +131,7 @@ const Settings = () => {
   const [resetOpen, setResetOpen] = useState(false);
   const [streakOpen, setStreakOpen] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
+  const [previewTpl, setPreviewTpl] = useState<typeof TEMPLATES[number] | null>(null);
   const [resetStreaksOpen, setResetStreaksOpen] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [clockOpen, setClockOpen] = useState(false);
