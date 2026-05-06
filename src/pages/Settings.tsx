@@ -114,7 +114,7 @@ const Row = ({
 const Settings = () => {
   const navigate = useNavigate();
   const r = useRoutines();
-  const { mode, setTheme } = useTheme();
+  const { mode, setTheme, amoled, setAmoled } = useTheme();
 
   const settings = r.state.settings ?? {};
   const resetHour = settings.resetHour ?? 0;
