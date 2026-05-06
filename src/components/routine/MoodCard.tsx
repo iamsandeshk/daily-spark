@@ -82,6 +82,7 @@ export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
   }, [today]);
 
   const insight = useMemo(() => computeMoodInsight(state), [state]);
+  const [insightExpanded, setInsightExpanded] = useState(false);
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, today);
@@ -141,10 +142,26 @@ export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
                 </span>
               </button>
               {insight && (
-                <div className="flex-1 flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/5 px-2.5 py-1.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInsightExpanded((v) => !v);
+                    tapHaptic();
+                  }}
+                  className="flex-1 flex items-center gap-1.5 rounded-2xl border border-accent/20 bg-accent/5 px-2.5 py-1.5 min-w-0 text-left active:scale-[0.98] transition-transform"
+                  aria-expanded={insightExpanded}
+                >
                   <Sparkles size={12} className="text-accent shrink-0" strokeWidth={2.5} />
-                  <p className="text-[12px] text-foreground/80 leading-snug truncate">{insight}</p>
-                </div>
+                  <p
+                    className={cn(
+                      "text-[12px] text-foreground/80 leading-snug",
+                      insightExpanded ? "whitespace-normal" : "truncate",
+                    )}
+                  >
+                    {insight}
+                  </p>
+                </button>
               )}
             </motion.div>
           );
