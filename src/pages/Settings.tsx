@@ -18,6 +18,7 @@ import {
   Trash2,
   RefreshCcw,
   BarChart3,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
