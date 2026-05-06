@@ -101,6 +101,31 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  .dark.amoled {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 96%;
+
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 96%;
+
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 0 0% 96%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 7%;
+    --secondary-foreground: 0 0% 96%;
+
+    --muted: 0 0% 7%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent-soft: 25 40% 12%;
+
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+  }
 }
 
 @layer base {
