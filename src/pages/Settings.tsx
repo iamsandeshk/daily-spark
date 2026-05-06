@@ -510,7 +510,7 @@ const Settings = () => {
           <Row
             icon={Upload}
             label="Import data"
-            hint="Restore from a JSON backup"
+            hint="Restore from a JSON or CSV file"
             onClick={() => fileInputRef.current?.click()}
             last
           />
