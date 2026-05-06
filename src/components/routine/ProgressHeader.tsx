@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { GripVertical, Settings, Flame } from "lucide-react";
-import { useEffect, useState } from "react";
-import { StatusBar, Style } from "@capacitor/status-bar";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { applyTheme, getThemeMode, getAmoled } from "@/lib/theme";
 
 type Props = {
   completed: number;
@@ -24,29 +24,16 @@ const greeting = () => {
 const dateLabel = () =>
   new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 
-type ThemeMode = "light" | "dark" | "system";
-
-const applyTheme = (mode: ThemeMode) => {
-  const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = mode === "dark" || (mode === "system" && prefers);
-  document.documentElement.classList.toggle("dark", dark);
-  StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
-};
-
 // Apply persisted theme on mount and watch system changes when mode === system.
 const useThemeBootstrap = () => {
   useEffect(() => {
-    const get = (): ThemeMode => {
-      const saved = localStorage.getItem("theme");
-      return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
-    };
-    applyTheme(get());
+    applyTheme(getThemeMode(), getAmoled());
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
-      if (get() === "system") applyTheme("system");
+      if (getThemeMode() === "system") applyTheme("system", getAmoled());
     };
     mq.addEventListener("change", handler);
-    const onStorage = () => applyTheme(get());
+    const onStorage = () => applyTheme(getThemeMode(), getAmoled());
     window.addEventListener("storage", onStorage);
     return () => {
       mq.removeEventListener("change", handler);
