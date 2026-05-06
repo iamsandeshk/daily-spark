@@ -405,9 +405,15 @@ const Settings = () => {
         <Card>
           <Row
             icon={Download}
-            label="Export data"
-            hint="Download a JSON backup"
+            label="Export data (JSON)"
+            hint="Download a full JSON backup"
             onClick={handleExport}
+          />
+          <Row
+            icon={FileSpreadsheet}
+            label="Export tasks (CSV)"
+            hint="Per-day tasks for Excel or Sheets"
+            onClick={handleExportCSV}
           />
           <Row
             icon={Upload}
