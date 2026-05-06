@@ -19,6 +19,9 @@ import {
   RefreshCcw,
   BarChart3,
   FileSpreadsheet,
+  Bell,
+  Info as InfoIcon,
+  TrendingUp,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
@@ -122,6 +125,11 @@ const Settings = () => {
   const resetMinute = (settings as any).resetMinute ?? 0;
   const startOfWeek = settings.startOfWeek ?? 1;
   const streakGoal = settings.streakGoal ?? 7;
+  const dailyReminder = (settings as any).dailyReminder ?? false;
+  const reminderHour = (settings as any).reminderHour ?? 7;
+  const reminderMinute = (settings as any).reminderMinute ?? 0;
+  const streakReminder = (settings as any).streakReminder ?? true;
+  const completionCelebration = (settings as any).completionCelebration ?? true;
 
   const updateSettings = (patch: Partial<NonNullable<typeof r.state.settings>>) => {
     const next = { ...r.state, settings: { ...settings, ...patch } };
@@ -136,6 +144,7 @@ const Settings = () => {
   const [resetStreaksOpen, setResetStreaksOpen] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [clockOpen, setClockOpen] = useState(false);
+  const [reminderClockOpen, setReminderClockOpen] = useState(false);
   const [customStreakEditing, setCustomStreakEditing] = useState(false);
   const [customStreakRaw, setCustomStreakRaw] = useState("");
   const [importConfirm, setImportConfirm] = useState<{ data: any; routines: number; sections: number } | null>(null);
@@ -482,6 +491,60 @@ const Settings = () => {
           />
         </Card>
 
+        <SectionLabel>Notifications</SectionLabel>
+        <Card>
+          <Row
+            icon={Bell}
+            label="Daily reminder"
+            hint="Push notification each morning"
+            right={
+              <Switch
+                checked={dailyReminder}
+                onCheckedChange={(v) => {
+                  updateSettings({ dailyReminder: v } as any);
+                  tapHaptic();
+                }}
+              />
+            }
+          />
+          <Row
+            icon={Clock}
+            label="Reminder time"
+            hint="When to remind you"
+            right={<span className="text-[13px] text-muted-foreground tabular-nums">{formatTime(reminderHour, reminderMinute)}</span>}
+            onClick={() => setReminderClockOpen(true)}
+          />
+          <Row
+            icon={InfoIcon}
+            label="Streak reminders"
+            hint="Alert before streak breaks"
+            right={
+              <Switch
+                checked={streakReminder}
+                onCheckedChange={(v) => {
+                  updateSettings({ streakReminder: v } as any);
+                  tapHaptic();
+                }}
+              />
+            }
+          />
+          <Row
+            icon={TrendingUp}
+            label="Completion celebration"
+            hint="Animation on 100% done"
+            right={
+              <Switch
+                checked={completionCelebration}
+                onCheckedChange={(v) => {
+                  updateSettings({ completionCelebration: v } as any);
+                  tapHaptic();
+                }}
+              />
+            }
+            last
+          />
+        </Card>
+
         <SectionLabel>Insights</SectionLabel>
         <Card>
           <Row
@@ -645,6 +708,17 @@ const Settings = () => {
         initialHour={resetHour}
         initialMinute={resetMinute}
         onConfirm={handleClockConfirm}
+      />
+
+      <ClockPickerDialog
+        open={reminderClockOpen}
+        onOpenChange={setReminderClockOpen}
+        initialHour={reminderHour}
+        initialMinute={reminderMinute}
+        onConfirm={(h, m) => {
+          updateSettings({ reminderHour: h, reminderMinute: m } as any);
+          tapHaptic();
+        }}
       />
 
       {/* Streak goal */}
