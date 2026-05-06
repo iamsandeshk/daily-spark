@@ -19,13 +19,13 @@ import {
   RefreshCcw,
   BarChart3,
 } from "lucide-react";
-import { StatusBar, Style } from "@capacitor/status-bar";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree } from "lucide-react";
 import {
   Dialog,
@@ -36,29 +36,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-
-type ThemeMode = "light" | "dark" | "system";
-
-const applyTheme = (mode: ThemeMode) => {
-  const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = mode === "dark" || (mode === "system" && prefers);
-  document.documentElement.classList.toggle("dark", dark);
-  StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => { });
-};
+import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 
 const useTheme = () => {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem("theme");
     return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
   });
+  const [amoled, setAmoledState] = useState<boolean>(() => getAmoled());
   useEffect(() => {
-    applyTheme(mode);
-  }, [mode]);
+    applyTheme(mode, amoled);
+  }, [mode, amoled]);
   return {
     mode,
+    amoled,
     setTheme: (m: ThemeMode) => {
       localStorage.setItem("theme", m);
       setMode(m);
+      tapHaptic();
+    },
+    setAmoled: (v: boolean) => {
+      localStorage.setItem("amoled", v ? "1" : "0");
+      setAmoledState(v);
       tapHaptic();
     },
   };
