@@ -297,74 +297,115 @@ const WeeklyReport = () => {
             <p className="text-sm text-muted-foreground mb-1.5">tasks completed</p>
           </div>
 
-          {/* Streak summary */}
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
-              <Flame size={16} className="text-primary" />
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Current</p>
-                <p className="text-[15px] font-bold tabular-nums leading-tight">
-                  {currentStreak} <span className="text-[11px] font-medium text-muted-foreground">day{currentStreak === 1 ? "" : "s"}</span>
-                </p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
-              <Trophy size={16} className="text-accent-foreground" />
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Best</p>
-                <p className="text-[15px] font-bold tabular-nums leading-tight">
-                  {bestStreak} <span className="text-[11px] font-medium text-muted-foreground">day{bestStreak === 1 ? "" : "s"}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-stretch justify-between gap-2 h-36">
-            {orderedDays.map((d) => {
-              const ratio = d.total > 0 ? d.done / d.total : 0;
-              const pct = Math.round(ratio * 100);
-              const isFull = d.total > 0 && d.done >= d.total;
-              const isPartial = d.done > 0 && !isFull;
-              const isZero = d.total > 0 && d.done === 0;
-              const noData = d.total === 0;
-              const fillClass = isFull
-                ? "bg-primary"
-                : isPartial
-                ? "bg-primary/55"
-                : "bg-transparent";
-              return (
-                <div key={d.key} className="flex-1 flex flex-col items-center gap-2 h-full">
-                  <div className={cn(
-                    "relative flex-1 w-full max-w-[22px] mx-auto rounded-full overflow-hidden border",
-                    d.isFromLastWeek ? "bg-muted/20 border-dashed border-border/40" : "bg-muted/40 border-border/50"
-                  )}>
-                    {d.done > 0 && (
-                      <div
-                        className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
-                        style={{ height: `${Math.max(8, pct)}%` }}
-                      />
-                    )}
-                    {isZero && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
-                    )}
-                    {noData && !d.isFromLastWeek && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-muted-foreground/30" />
-                    )}
+          {mode === "week" ? (
+            <>
+              {/* Streak summary */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
+                  <Flame size={16} className="text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Current</p>
+                    <p className="text-[15px] font-bold tabular-nums leading-tight">
+                      {currentStreak} <span className="text-[11px] font-medium text-muted-foreground">day{currentStreak === 1 ? "" : "s"}</span>
+                    </p>
                   </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold uppercase grid place-items-center w-5 h-5 rounded-full",
-                      d.isToday
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {new Date(d.key + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1)}
-                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
+                  <Trophy size={16} className="text-accent-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Best</p>
+                    <p className="text-[15px] font-bold tabular-nums leading-tight">
+                      {bestStreak} <span className="text-[11px] font-medium text-muted-foreground">day{bestStreak === 1 ? "" : "s"}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex items-stretch justify-between gap-2 h-36">
+                {orderedDays.map((d) => {
+                  const ratio = d.total > 0 ? d.done / d.total : 0;
+                  const pct = Math.round(ratio * 100);
+                  const isFull = d.total > 0 && d.done >= d.total;
+                  const isPartial = d.done > 0 && !isFull;
+                  const isZero = d.total > 0 && d.done === 0;
+                  const noData = d.total === 0;
+                  const fillClass = isFull
+                    ? "bg-primary"
+                    : isPartial
+                    ? "bg-primary/55"
+                    : "bg-transparent";
+                  return (
+                    <div key={d.key} className="flex-1 flex flex-col items-center gap-2 h-full">
+                      <div className={cn(
+                        "relative flex-1 w-full max-w-[22px] mx-auto rounded-full overflow-hidden border",
+                        d.isFromLastWeek ? "bg-muted/20 border-dashed border-border/40" : "bg-muted/40 border-border/50"
+                      )}>
+                        {d.done > 0 && (
+                          <div
+                            className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
+                            style={{ height: `${Math.max(8, pct)}%` }}
+                          />
+                        )}
+                        {isZero && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
+                        )}
+                        {noData && !d.isFromLastWeek && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-muted-foreground/30" />
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase grid place-items-center w-5 h-5 rounded-full",
+                          d.isToday
+                            ? "bg-foreground text-background"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {new Date(d.key + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="mt-5 flex items-stretch justify-between gap-2 h-36">
+              {weeks7.map((w, idx) => {
+                const ratio = w.total > 0 ? w.done / w.total : 0;
+                const pct = Math.round(ratio * 100);
+                const isFull = w.total > 0 && w.done >= w.total;
+                const isPartial = w.done > 0 && !isFull;
+                const fillClass = isFull
+                  ? "bg-primary"
+                  : isPartial
+                  ? "bg-primary/55"
+                  : "bg-transparent";
+                return (
+                  <div key={w.key} className="flex-1 flex flex-col items-center gap-2 h-full">
+                    <div className="relative flex-1 w-full max-w-[22px] mx-auto rounded-full overflow-hidden border bg-muted/40 border-border/50">
+                      {w.done > 0 && (
+                        <div
+                          className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
+                          style={{ height: `${Math.max(8, pct)}%` }}
+                        />
+                      )}
+                      {w.total > 0 && w.done === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
+                      )}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold tabular-nums",
+                        w.isCurrent ? "text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {idx === 6 ? "Now" : `-${6 - idx}w`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Mood breakdown */}
