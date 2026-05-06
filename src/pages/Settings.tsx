@@ -142,21 +142,113 @@ const Settings = () => {
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const parseCSV = (text: string): string[][] => {
+    const rows: string[][] = [];
+    let cur: string[] = [];
+    let cell = "";
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i++; }
+          else inQuotes = false;
+        } else cell += ch;
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ",") { cur.push(cell); cell = ""; }
+        else if (ch === "\n" || ch === "\r") {
+          if (ch === "\r" && text[i + 1] === "\n") i++;
+          cur.push(cell); cell = "";
+          if (cur.some((c) => c.length)) rows.push(cur);
+          cur = [];
+        } else cell += ch;
+      }
+    }
+    if (cell.length || cur.length) { cur.push(cell); rows.push(cur); }
+    return rows;
+  };
+
+  const buildStateFromCSV = (text: string) => {
+    // Strip BOM
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+    const rows = parseCSV(text);
+    if (rows.length < 2) throw new Error("CSV is empty");
+    const header = rows[0].map((h) => h.trim().toLowerCase());
+    const idx = (name: string) => header.indexOf(name);
+    const iDate = idx("date");
+    const iRoutine = idx("routine");
+    const iTask = idx("task");
+    const iType = idx("type");
+    const iDone = idx("completed");
+    const iMood = idx("mood");
+    if (iDate < 0 || iRoutine < 0) {
+      throw new Error("CSV must include 'date' and 'routine' columns");
+    }
+    // Start from current state to preserve routines/sections
+    const base = JSON.parse(localStorage.getItem("daily-routine-os/v1") ?? "{}") || {};
+    const history: Record<string, any> = { ...(base.history ?? {}) };
+    const moods: Record<string, string> = { ...(base.moods ?? {}) };
+    // Map routine title → id (existing or generated)
+    const titleToId: Record<string, string> = {};
+    for (const rt of base.routines ?? []) titleToId[rt.title] = rt.id;
+    const genId = () => "r-" + Math.random().toString(36).slice(2, 10);
+
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      const date = (row[iDate] || "").trim();
+      if (!date) continue;
+      const routineTitle = (row[iRoutine] || "").trim();
+      const taskText = iTask >= 0 ? (row[iTask] || "").trim() : "";
+      const type = iType >= 0 ? (row[iType] || "").trim().toLowerCase() : (taskText ? "task" : "routine");
+      const done = iDone >= 0 ? /^(yes|true|1|y)$/i.test((row[iDone] || "").trim()) : false;
+      const mood = iMood >= 0 ? (row[iMood] || "").trim() : "";
+      if (mood) moods[date] = mood;
+      if (!routineTitle) continue;
+      const rid = titleToId[routineTitle] || (titleToId[routineTitle] = genId());
+      if (!history[date]) history[date] = { date, completedRoutineIds: [], snapshot: {}, total: 0 };
+      const day = history[date];
+      if (!day.snapshot[rid]) day.snapshot[rid] = { title: routineTitle, blocks: [] };
+      const snap = day.snapshot[rid];
+      if (type === "task" && taskText) {
+        snap.blocks.push({ id: "b-" + Math.random().toString(36).slice(2, 8), type: "checkbox", text: taskText, checked: done });
+      } else if (type === "routine") {
+        if (done && !day.completedRoutineIds.includes(rid)) day.completedRoutineIds.push(rid);
+      }
+    }
+    // Recompute totals
+    for (const k of Object.keys(history)) {
+      const ids = Object.keys(history[k].snapshot ?? {});
+      history[k].total = ids.length;
+    }
+    return { ...base, history, moods, routines: base.routines ?? [], sections: base.sections ?? [{ id: "s-default", name: "Routines" }] };
+  };
+
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     const reader = new FileReader();
+    const isCSV = /\.csv$/i.test(file.name) || file.type === "text/csv";
     reader.onload = () => {
       try {
         const text = String(reader.result ?? "");
-        const data = JSON.parse(text);
-        if (!data || typeof data !== "object" || !Array.isArray(data.routines) || !Array.isArray(data.sections)) {
-          throw new Error("Invalid backup file");
+        let data: any;
+        if (isCSV) {
+          data = buildStateFromCSV(text);
+        } else {
+          data = JSON.parse(text);
+          if (!data || typeof data !== "object" || !Array.isArray(data.routines) || !Array.isArray(data.sections)) {
+            throw new Error("Invalid backup file");
+          }
         }
-        setImportConfirm({ data, routines: data.routines.length, sections: data.sections.length });
+        setImportConfirm({
+          data,
+          routines: (data.routines ?? []).length,
+          sections: (data.sections ?? []).length,
+        });
       } catch (err: any) {
-        setImportError(err?.message || "Couldn't read this file. Make sure it's a valid backup JSON.");
+        setImportError(err?.message || "Couldn't read this file. Make sure it's a valid backup JSON or CSV.");
       }
     };
     reader.readAsText(file);
