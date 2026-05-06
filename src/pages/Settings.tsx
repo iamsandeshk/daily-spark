@@ -25,6 +25,7 @@ import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
+import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree } from "lucide-react";
 import {
   Dialog,
   DialogContent,
