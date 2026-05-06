@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, TrendingDown, Smile, Download } from "lucide-react";
+import { ArrowLeft, CheckCircle2, TrendingDown, Smile, Download, FileJson, FileText } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, todayLiveHistory } from "@/lib/storage";
 import { Flame, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MoodValue } from "@/lib/routine-types";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
 
 const MOOD_EMOJI: Record<MoodValue, string> = {
   great: "🙂",
@@ -208,37 +210,229 @@ const WeeklyReport = () => {
     return out;
   }, [r.state, startOfWeek]);
 
-  const handleExport = () => {
-    const payload = {
-      generatedAt: new Date().toISOString(),
-      weekStartsOn: startOfWeek === 0 ? "Sunday" : "Monday",
-      currentStreak,
-      bestStreak,
-      completedTasks,
-      thisWeek: orderedDays.map((d) => ({
-        date: d.displayKey,
-        weekday: new Date(d.displayKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" }),
-        done: d.done,
-        total: d.total,
-        completion: d.total > 0 ? Math.round((d.done / d.total) * 100) : 0,
-        fromLastWeek: d.isFromLastWeek,
-        titles: d.titles,
-        mood: d.mood ?? null,
-      })),
-      last7Weeks: weeks7.map((w) => ({
-        weekStart: w.key,
-        done: w.done,
-        total: w.total,
-        completion: w.total > 0 ? Math.round((w.done / w.total) * 100) : 0,
-      })),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const buildPayload = () => ({
+    generatedAt: new Date().toISOString(),
+    weekStartsOn: startOfWeek === 0 ? "Sunday" : "Monday",
+    currentStreak,
+    bestStreak,
+    completedTasks,
+    thisWeek: orderedDays.map((d) => ({
+      date: d.displayKey,
+      weekday: new Date(d.displayKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" }),
+      done: d.done,
+      total: d.total,
+      completion: d.total > 0 ? Math.round((d.done / d.total) * 100) : 0,
+      fromLastWeek: d.isFromLastWeek,
+      titles: d.titles,
+      mood: d.mood ?? null,
+    })),
+    last7Weeks: weeks7.map((w) => ({
+      weekStart: w.key,
+      done: w.done,
+      total: w.total,
+      completion: w.total > 0 ? Math.round((w.done / w.total) * 100) : 0,
+    })),
+  });
+
+  const downloadBlob = (content: string, name: string, type: string) => {
+    const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `weekly-report-${todayKey()}.json`;
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportJSON = () => downloadBlob(JSON.stringify(buildPayload(), null, 2), `weekly-report-${todayKey()}.json`, "application/json");
+  const exportAppDataJSON = () => downloadBlob(JSON.stringify(r.state, null, 2), `app-data-${todayKey()}.json`, "application/json");
+
+  const exportPDF = () => {
+    const data = buildPayload();
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    let y = margin;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("Weekly Report", margin, y);
+    y += 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(110);
+    doc.text(`Generated ${new Date().toLocaleString()}`, margin, y);
+    doc.setTextColor(0);
+    y += 24;
+
+    const cardW = (W - margin * 2 - 16) / 3;
+    const cards = [
+      { label: "TASKS DONE", value: String(data.completedTasks) },
+      { label: "CURRENT STREAK", value: `${data.currentStreak}d` },
+      { label: "BEST STREAK", value: `${data.bestStreak}d` },
+    ];
+    cards.forEach((c, i) => {
+      const x = margin + i * (cardW + 8);
+      doc.setDrawColor(220);
+      doc.roundedRect(x, y, cardW, 56, 6, 6);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(120);
+      doc.text(c.label, x + 10, y + 16);
+      doc.setFontSize(20);
+      doc.setTextColor(0);
+      doc.text(c.value, x + 10, y + 42);
+    });
+    y += 56 + 24;
+
+    const drawBars = (items: { label: string; done: number; total: number }[]) => {
+      const chartH = 110;
+      const chartW = W - margin * 2;
+      const slot = chartW / items.length;
+      const barW = Math.min(22, slot - 8);
+      const baseY = y + chartH;
+      doc.setDrawColor(230);
+      doc.line(margin, baseY, margin + chartW, baseY);
+      items.forEach((d, i) => {
+        const cx = margin + slot * i + slot / 2;
+        const ratio = d.total > 0 ? d.done / d.total : 0;
+        const h = ratio > 0 ? Math.max(8, ratio * (chartH - 10)) : 0;
+        doc.setDrawColor(220);
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(cx - barW / 2, y, barW, chartH, barW / 2, barW / 2, "FD");
+        if (h > 0) {
+          if (d.done >= d.total && d.total > 0) doc.setFillColor(20, 20, 20);
+          else doc.setFillColor(120, 120, 120);
+          doc.roundedRect(cx - barW / 2, baseY - h, barW, h, barW / 2, barW / 2, "F");
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(110);
+        doc.text(d.label, cx, baseY + 14, { align: "center" });
+        doc.setTextColor(0);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.text(`${d.done}/${d.total}`, cx, baseY + 26, { align: "center" });
+      });
+      y = baseY + 40;
+    };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("This week", margin, y);
+    y += 14;
+    drawBars(data.thisWeek.map((d) => ({ label: d.weekday.slice(0, 3), done: d.done, total: d.total })));
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Last 7 weeks", margin, y);
+    y += 14;
+    drawBars(data.last7Weeks.map((w, i, a) => ({
+      label: i === a.length - 1 ? "Now" : `-${a.length - 1 - i}w`,
+      done: w.done,
+      total: w.total,
+    })));
+
+    if (y > H - 120) { doc.addPage(); y = margin; }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Daily breakdown", margin, y);
+    y += 16;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    data.thisWeek.forEach((d) => {
+      if (y > H - margin) { doc.addPage(); y = margin; }
+      doc.text(`${d.weekday} — ${d.done}/${d.total} (${d.completion}%)${d.mood ? "  · " + d.mood : ""}`, margin, y);
+      y += 14;
+      doc.setTextColor(110);
+      d.titles.slice(0, 8).forEach((t) => {
+        if (y > H - margin) { doc.addPage(); y = margin; }
+        const lines = doc.splitTextToSize(`• ${t}`, W - margin * 2 - 14);
+        doc.text(lines, margin + 14, y);
+        y += 12 * lines.length;
+      });
+      if (d.titles.length > 8) {
+        doc.text(`+ ${d.titles.length - 8} more`, margin + 14, y);
+        y += 12;
+      }
+      doc.setTextColor(0);
+      y += 4;
+    });
+
+    doc.save(`weekly-report-${todayKey()}.pdf`);
+  };
+
+  const exportAppDataPDF = () => {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+    const margin = 40;
+    let y = margin;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("App Data Export", margin, y);
+    y += 22;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(110);
+    doc.text(`Generated ${new Date().toLocaleString()}`, margin, y);
+    y += 18;
+    doc.setTextColor(0);
+
+    const routines = r.state.routines ?? [];
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(`Routines (${routines.length})`, margin, y);
+    y += 16;
+
+    routines.forEach((rt: any) => {
+      if (y > H - 60) { doc.addPage(); y = margin; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(rt.title || "Untitled", margin, y);
+      y += 13;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.text(
+        `Streak: ${rt.streakCount ?? 0} · Best: ${rt.bestStreak ?? 0} · Last: ${rt.lastCompletedDate ?? "—"}`,
+        margin, y
+      );
+      y += 12;
+      doc.setTextColor(0);
+      const blocks = (rt.blocks ?? []).filter((b: any) => b.text?.trim());
+      blocks.forEach((b: any) => {
+        if (y > H - margin) { doc.addPage(); y = margin; }
+        const mark = b.type === "checkbox" ? (b.checked ? "[x]" : "[ ]") : "—";
+        const lines = doc.splitTextToSize(`${mark} ${b.text}`, W - margin * 2 - 14);
+        doc.text(lines, margin + 14, y);
+        y += 12 * lines.length;
+      });
+      y += 8;
+    });
+
+    const history = r.state.history ?? {};
+    const dates = Object.keys(history).sort();
+    if (dates.length) {
+      if (y > H - 80) { doc.addPage(); y = margin; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(`History (${dates.length} day${dates.length === 1 ? "" : "s"})`, margin, y);
+      y += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      dates.forEach((d) => {
+        if (y > H - margin) { doc.addPage(); y = margin; }
+        const h: any = history[d];
+        const completed = h.completedRoutineIds?.length ?? 0;
+        doc.text(`${d}  —  ${completed}/${h.total ?? 0} routines completed`, margin, y);
+        y += 12;
+      });
+    }
+
+    doc.save(`app-data-${todayKey()}.pdf`);
   };
 
   return (
@@ -252,14 +446,30 @@ const WeeklyReport = () => {
           <ArrowLeft size={18} />
         </button>
         <h1 className="text-2xl font-serif font-bold flex-1">Weekly Report</h1>
-        <button
-          onClick={handleExport}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
-          aria-label="Export report"
-          title="Export as JSON"
-        >
-          <Download size={18} />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+              aria-label="Export report"
+            >
+              <Download size={18} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={exportPDF}>
+              <FileText size={14} className="mr-2" /> Weekly report (PDF)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportJSON}>
+              <FileJson size={14} className="mr-2" /> Weekly report (JSON)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportAppDataPDF}>
+              <FileText size={14} className="mr-2" /> App data (PDF)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportAppDataJSON}>
+              <FileJson size={14} className="mr-2" /> App data (JSON)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       <main className="px-5 space-y-5">
