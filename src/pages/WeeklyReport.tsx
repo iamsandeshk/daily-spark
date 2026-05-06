@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, TrendingDown, Smile } from "lucide-react";
+import { ArrowLeft, CheckCircle2, TrendingDown, Smile, Download } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, todayLiveHistory } from "@/lib/storage";
 import { Flame, Trophy } from "lucide-react";
@@ -24,23 +24,19 @@ const WeeklyReport = () => {
   const navigate = useNavigate();
   const r = useRoutines();
   const startOfWeek = r.state.settings?.startOfWeek ?? 1;
+  const [mode, setMode] = useState<"week" | "weeks7">("week");
 
   const { days, completedTasks, moodStats, skipDay } = useMemo(() => {
     const today = todayKey();
-    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[]; isToday: boolean; isFuture: boolean }[] = [];
+    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[]; isToday: boolean; isFuture: boolean; displayKey: string; isFromLastWeek: boolean }[] = [];
     const base = new Date(today + "T12:00:00");
-    // Start of the current week based on user's startOfWeek setting
-    const dow = base.getDay(); // 0=Sun..6=Sat
+    const dow = base.getDay();
     const offsetToStart = (dow - startOfWeek + 7) % 7;
     const weekStart = new Date(base);
     weekStart.setDate(base.getDate() - offsetToStart);
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart);
-      d.setDate(weekStart.getDate() + i);
-      const k = todayKey(d);
-      const isFuture = k > today;
-      const isToday = k === today;
-      const h = isToday ? todayLiveHistory(r.state) : r.state.history[k];
+
+    const readDay = (k: string, live: boolean) => {
+      const h = live ? todayLiveHistory(r.state) : r.state.history[k];
       const titles: string[] = [];
       let done = 0;
       let total = 0;
@@ -59,13 +55,34 @@ const WeeklyReport = () => {
           }
         }
       }
+      return { titles, done, total };
+    };
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const k = todayKey(d);
+      const isFuture = k > today;
+      const isToday = k === today;
+      // For future days in current week, show last week's same weekday data instead
+      let displayKey = k;
+      let isFromLastWeek = false;
+      if (isFuture) {
+        const prev = new Date(d);
+        prev.setDate(d.getDate() - 7);
+        displayKey = todayKey(prev);
+        isFromLastWeek = true;
+      }
+      const data = readDay(displayKey, !isFuture && isToday);
       out.push({
         key: k,
+        displayKey,
+        isFromLastWeek,
         weekday: d.getDay(),
-        mood: r.state.moods?.[k],
-        total,
-        done,
-        titles,
+        mood: r.state.moods?.[displayKey],
+        total: data.total,
+        done: data.done,
+        titles: data.titles,
         isToday,
         isFuture,
       });
@@ -79,6 +96,7 @@ const WeeklyReport = () => {
       stressed: { sum: 0, n: 0, tasks: 0 },
     };
     for (const d of out) {
+      if (d.isFromLastWeek) continue;
       if (!d.mood || d.total === 0) continue;
       buckets[d.mood].sum += d.done / d.total;
       buckets[d.mood].n += 1;
@@ -88,6 +106,7 @@ const WeeklyReport = () => {
     // Skip day
     const dayMisses: Record<number, { miss: number; total: number }> = {};
     for (const d of out) {
+      if (d.isFromLastWeek) continue;
       if (d.total === 0) continue;
       if (!dayMisses[d.weekday]) dayMisses[d.weekday] = { miss: 0, total: 0 };
       dayMisses[d.weekday].miss += d.total - d.done;
@@ -103,7 +122,7 @@ const WeeklyReport = () => {
       }
     }
 
-    const totalCompleted = out.reduce((a, d) => a + d.done, 0);
+    const totalCompleted = out.reduce((a, d) => a + (d.isFromLastWeek ? 0 : d.done), 0);
 
     return {
       days: out,
@@ -145,6 +164,83 @@ const WeeklyReport = () => {
     return { currentStreak: cur, bestStreak: best };
   }, [orderedDays]);
 
+  // Last 7 weeks aggregation (each bar = 1 week)
+  const weeks7 = useMemo(() => {
+    const today = todayKey();
+    const base = new Date(today + "T12:00:00");
+    const dow = base.getDay();
+    const offsetToStart = (dow - startOfWeek + 7) % 7;
+    const thisWeekStart = new Date(base);
+    thisWeekStart.setDate(base.getDate() - offsetToStart);
+
+    const out: { label: string; key: string; done: number; total: number; isCurrent: boolean }[] = [];
+    for (let w = 6; w >= 0; w--) {
+      const start = new Date(thisWeekStart);
+      start.setDate(thisWeekStart.getDate() - w * 7);
+      let done = 0;
+      let total = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const k = todayKey(d);
+        if (k > today) continue;
+        const h = k === today ? todayLiveHistory(r.state) : r.state.history[k];
+        if (!h) continue;
+        for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
+          const blocks = (snap as any).blocks ?? [];
+          const checks = blocks.filter((b: any) => b.type === "checkbox" && b.text?.trim());
+          total += checks.length;
+          done += checks.filter((b: any) => b.checked).length;
+          if (h.completedRoutineIds.includes(rid) && checks.length === 0) {
+            done += 1;
+            total += 1;
+          }
+        }
+      }
+      out.push({
+        label: `${start.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
+        key: todayKey(start),
+        done,
+        total,
+        isCurrent: w === 0,
+      });
+    }
+    return out;
+  }, [r.state, startOfWeek]);
+
+  const handleExport = () => {
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      weekStartsOn: startOfWeek === 0 ? "Sunday" : "Monday",
+      currentStreak,
+      bestStreak,
+      completedTasks,
+      thisWeek: orderedDays.map((d) => ({
+        date: d.displayKey,
+        weekday: new Date(d.displayKey + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" }),
+        done: d.done,
+        total: d.total,
+        completion: d.total > 0 ? Math.round((d.done / d.total) * 100) : 0,
+        fromLastWeek: d.isFromLastWeek,
+        titles: d.titles,
+        mood: d.mood ?? null,
+      })),
+      last7Weeks: weeks7.map((w) => ({
+        weekStart: w.key,
+        done: w.done,
+        total: w.total,
+        completion: w.total > 0 ? Math.round((w.done / w.total) * 100) : 0,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `weekly-report-${todayKey()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-full bg-background pb-20">
       <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
@@ -155,79 +251,161 @@ const WeeklyReport = () => {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-serif font-bold">Weekly Report</h1>
+        <h1 className="text-2xl font-serif font-bold flex-1">Weekly Report</h1>
+        <button
+          onClick={handleExport}
+          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          aria-label="Export report"
+          title="Export as JSON"
+        >
+          <Download size={18} />
+        </button>
       </header>
 
       <main className="px-5 space-y-5">
+        {/* Mode toggle */}
+        <div className="inline-flex rounded-full border border-border bg-muted/40 p-0.5 text-[12px] font-bold">
+          <button
+            onClick={() => setMode("week")}
+            className={cn(
+              "px-3 py-1.5 rounded-full transition-smooth",
+              mode === "week" ? "bg-foreground text-background" : "text-muted-foreground"
+            )}
+          >
+            This week
+          </button>
+          <button
+            onClick={() => setMode("weeks7")}
+            className={cn(
+              "px-3 py-1.5 rounded-full transition-smooth",
+              mode === "weeks7" ? "bg-foreground text-background" : "text-muted-foreground"
+            )}
+          >
+            Last 7 weeks
+          </button>
+        </div>
+
         {/* Hero */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-block">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-bold">This week</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-bold">
+            {mode === "week" ? "This week" : "Last 7 weeks"}
+          </p>
           <div className="flex items-end gap-2 mt-1">
-            <p className="text-4xl font-semibold tabular-nums">{completedTasks}</p>
+            <p className="text-4xl font-semibold tabular-nums">
+              {mode === "week" ? completedTasks : weeks7.reduce((a, w) => a + w.done, 0)}
+            </p>
             <p className="text-sm text-muted-foreground mb-1.5">tasks completed</p>
           </div>
 
-          {/* Streak summary */}
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
-              <Flame size={16} className="text-primary" />
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Current</p>
-                <p className="text-[15px] font-bold tabular-nums leading-tight">
-                  {currentStreak} <span className="text-[11px] font-medium text-muted-foreground">day{currentStreak === 1 ? "" : "s"}</span>
-                </p>
-              </div>
-            </div>
-            <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
-              <Trophy size={16} className="text-accent-foreground" />
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Best</p>
-                <p className="text-[15px] font-bold tabular-nums leading-tight">
-                  {bestStreak} <span className="text-[11px] font-medium text-muted-foreground">day{bestStreak === 1 ? "" : "s"}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-end justify-between gap-2 h-36">
-            {orderedDays.map((d) => {
-              const ratio = d.total > 0 ? d.done / d.total : 0;
-              const pct = Math.round(ratio * 100);
-              const isFull = d.total > 0 && d.done >= d.total;
-              const isPartial = d.done > 0 && !isFull;
-              const isZero = !d.isFuture && d.done === 0;
-              const fillClass = isFull
-                ? "bg-primary"
-                : isPartial
-                ? "bg-primary/55"
-                : "bg-transparent";
-              return (
-                <div key={d.key} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="relative flex-1 w-full max-w-[22px] mx-auto rounded-full bg-muted/40 border border-border/50 overflow-hidden">
-                    {!d.isFuture && d.done > 0 && (
-                      <div
-                        className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
-                        style={{ height: `${Math.max(6, pct)}%` }}
-                      />
-                    )}
-                    {isZero && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
-                    )}
+          {mode === "week" ? (
+            <>
+              {/* Streak summary */}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
+                  <Flame size={16} className="text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Current</p>
+                    <p className="text-[15px] font-bold tabular-nums leading-tight">
+                      {currentStreak} <span className="text-[11px] font-medium text-muted-foreground">day{currentStreak === 1 ? "" : "s"}</span>
+                    </p>
                   </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold uppercase grid place-items-center w-5 h-5 rounded-full",
-                      d.isToday
-                        ? "bg-foreground text-background"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {new Date(d.key + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1)}
-                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-2.5">
+                  <Trophy size={16} className="text-accent-foreground" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Best</p>
+                    <p className="text-[15px] font-bold tabular-nums leading-tight">
+                      {bestStreak} <span className="text-[11px] font-medium text-muted-foreground">day{bestStreak === 1 ? "" : "s"}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex items-stretch justify-between gap-2 h-36">
+                {orderedDays.map((d) => {
+                  const ratio = d.total > 0 ? d.done / d.total : 0;
+                  const pct = Math.round(ratio * 100);
+                  const isFull = d.total > 0 && d.done >= d.total;
+                  const isPartial = d.done > 0 && !isFull;
+                  const isZero = d.total > 0 && d.done === 0;
+                  const noData = d.total === 0;
+                  const fillClass = isFull
+                    ? "bg-primary"
+                    : isPartial
+                    ? "bg-primary/55"
+                    : "bg-transparent";
+                  return (
+                    <div key={d.key} className="flex-1 flex flex-col items-center gap-2 h-full">
+                      <div className={cn(
+                        "relative flex-1 w-full max-w-[22px] mx-auto rounded-full overflow-hidden border",
+                        d.isFromLastWeek ? "bg-muted/20 border-dashed border-border/40" : "bg-muted/40 border-border/50"
+                      )}>
+                        {d.done > 0 && (
+                          <div
+                            className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
+                            style={{ height: `${Math.max(8, pct)}%` }}
+                          />
+                        )}
+                        {isZero && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
+                        )}
+                        {noData && !d.isFromLastWeek && (
+                          <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-muted-foreground/30" />
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase grid place-items-center w-5 h-5 rounded-full",
+                          d.isToday
+                            ? "bg-foreground text-background"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {new Date(d.key + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="mt-5 flex items-stretch justify-between gap-2 h-36">
+              {weeks7.map((w, idx) => {
+                const ratio = w.total > 0 ? w.done / w.total : 0;
+                const pct = Math.round(ratio * 100);
+                const isFull = w.total > 0 && w.done >= w.total;
+                const isPartial = w.done > 0 && !isFull;
+                const fillClass = isFull
+                  ? "bg-primary"
+                  : isPartial
+                  ? "bg-primary/55"
+                  : "bg-transparent";
+                return (
+                  <div key={w.key} className="flex-1 flex flex-col items-center gap-2 h-full">
+                    <div className="relative flex-1 w-full max-w-[22px] mx-auto rounded-full overflow-hidden border bg-muted/40 border-border/50">
+                      {w.done > 0 && (
+                        <div
+                          className={cn("absolute bottom-0 left-0 right-0 rounded-full transition-all", fillClass)}
+                          style={{ height: `${Math.max(8, pct)}%` }}
+                        />
+                      )}
+                      {w.total > 0 && w.done === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-[3px] rounded-full bg-destructive/40" />
+                      )}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold tabular-nums",
+                        w.isCurrent ? "text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {idx === 6 ? "Now" : `-${6 - idx}w`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Mood breakdown */}
