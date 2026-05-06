@@ -8,6 +8,7 @@ import { SectionBlock } from "@/components/routine/SectionBlock";
 import { CarryForwardDialog } from "@/components/routine/CarryForwardDialog";
 import { MoodCard } from "@/components/routine/MoodCard";
 import { TemplateLibrary } from "@/components/routine/TemplateLibrary";
+import { CompletionCelebration } from "@/components/routine/CompletionCelebration";
 import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
 import { uid } from "@/lib/utils";
 import { tapHaptic } from "@/lib/haptics";
@@ -21,6 +22,22 @@ const Index = () => {
   const navigate = useNavigate();
   const [reorderMode, setReorderMode] = useState(false);
   const [showFullButton, setShowFullButton] = useState(() => !fabIntroPlayed);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [prevCompleted, setPrevCompleted] = useState(r.completed);
+
+  useEffect(() => {
+    if (
+      r.total > 0 &&
+      r.completed === r.total &&
+      prevCompleted < r.total &&
+      (r.state.settings as any)?.completionCelebration !== false
+    ) {
+      setShowCelebration(true);
+      tapHaptic();
+    }
+    setPrevCompleted(r.completed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r.completed, r.total]);
 
   useEffect(() => {
     if (fabIntroPlayed) return;
@@ -111,6 +128,10 @@ const Index = () => {
 
   return (
     <div className="min-h-full bg-background pb-32">
+      <CompletionCelebration
+        show={showCelebration}
+        onDone={() => setShowCelebration(false)}
+      />
       <ProgressHeader
         completed={r.completed}
         total={r.total}
