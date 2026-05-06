@@ -25,6 +25,7 @@ import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
+import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -130,6 +131,7 @@ const Settings = () => {
   const [resetOpen, setResetOpen] = useState(false);
   const [streakOpen, setStreakOpen] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
+  const [previewTpl, setPreviewTpl] = useState<typeof TEMPLATES[number] | null>(null);
   const [resetStreaksOpen, setResetStreaksOpen] = useState(false);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [clockOpen, setClockOpen] = useState(false);
@@ -544,8 +546,8 @@ const Settings = () => {
               <button
                 key={t.title}
                 onClick={() => {
-                  handleAddTemplate(t);
-                  setTplOpen(false);
+                  tapHaptic();
+                  setPreviewTpl(t);
                 }}
                 className={cn(
                   "w-full flex items-center gap-3.5 p-3 rounded-2xl border border-border bg-card text-left transition-all",
@@ -559,9 +561,64 @@ const Settings = () => {
                   <h4 className="font-bold text-[15px] text-foreground leading-tight">{t.title}</h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{t.description}</p>
                 </div>
+                <div className="h-8 w-8 shrink-0 rounded-full bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all">
+                  <Eye size={15} strokeWidth={2.5} />
+                </div>
               </button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Preview */}
+      <Dialog open={!!previewTpl} onOpenChange={(o) => !o && setPreviewTpl(null)}>
+        <DialogContent className="rounded-[28px] p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden">
+          {previewTpl && (
+            <>
+              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                    {previewTpl.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <DialogTitle className="text-xl font-serif font-bold leading-tight">
+                      {previewTpl.title}
+                    </DialogTitle>
+                    <DialogDescription className="text-[12px] text-muted-foreground mt-0.5">
+                      {previewTpl.description}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="max-h-[55vh] overflow-y-auto px-6 py-4 space-y-1.5">
+                {previewTpl.blocks.map((b, i) => (
+                  <PreviewBlockRow key={i} block={b} />
+                ))}
+              </div>
+
+              <DialogFooter className="flex flex-row gap-3 sm:justify-end px-6 py-4 border-t border-border bg-muted/20">
+                <Button
+                  variant="outline"
+                  onClick={() => setPreviewTpl(null)}
+                  className="flex-1 rounded-2xl h-11 font-semibold border-border/60"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const tpl = previewTpl;
+                    setPreviewTpl(null);
+                    handleAddTemplate(tpl);
+                  }}
+                  className="flex-1 rounded-2xl h-11 font-bold bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <Plus size={15} strokeWidth={3} className="mr-1" />
+                  Add template
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -606,6 +663,61 @@ const Settings = () => {
       </Dialog>
     </div>
   );
+};
+
+const PreviewBlockRow = ({ block }: { block: Omit<RoutineBlockContent, "id"> }) => {
+  switch (block.type) {
+    case "heading":
+      return <div className="text-base font-bold text-foreground pt-2">{block.text}</div>;
+    case "subheading":
+      return (
+        <div className="flex items-center gap-1.5 pt-2">
+          <ListTree size={12} className="text-accent" strokeWidth={2.5} />
+          <div className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+            {block.text}
+          </div>
+        </div>
+      );
+    case "checkbox":
+      return (
+        <div className="flex items-center gap-2 text-[13px] text-foreground/90">
+          <CheckSquare size={14} className="text-muted-foreground/60 shrink-0" strokeWidth={2} />
+          <span className="truncate">{block.text}</span>
+        </div>
+      );
+    case "bullet":
+      return (
+        <div className="flex items-start gap-2 text-[13px] text-foreground/80 pl-1">
+          <span className="text-muted-foreground/60 mt-0.5">•</span>
+          <span>{block.text}</span>
+        </div>
+      );
+    case "quote":
+      return (
+        <div className="flex items-start gap-2 text-[12px] italic text-muted-foreground border-l-2 border-accent/40 pl-2.5 py-1">
+          <Quote size={11} className="text-accent/60 mt-0.5 shrink-0" />
+          <span>{block.text}</span>
+        </div>
+      );
+    case "link":
+      return (
+        <div className="flex items-center gap-2 text-[13px] text-accent">
+          <Link2 size={13} strokeWidth={2.5} className="shrink-0" />
+          <span className="truncate">{block.text}</span>
+        </div>
+      );
+    case "routine":
+      return (
+        <div className="flex items-center gap-2 text-[13px] font-medium text-foreground/90 rounded-lg bg-accent/5 border border-accent/10 px-2 py-1.5">
+          <Sparkles size={12} className="text-accent shrink-0" strokeWidth={2.5} />
+          <span className="truncate">Linked routine: {block.text}</span>
+        </div>
+      );
+    case "divider":
+      return <div className="flex items-center gap-2 py-1"><div className="flex-1 h-px bg-border" /></div>;
+    default:
+      return <div className="text-[13px] text-foreground/80">{block.text}</div>;
+  }
 };
 
 export default Settings;
