@@ -26,12 +26,19 @@ const WeeklyReport = () => {
 
   const { days, completedTasks, moodStats, skipDay } = useMemo(() => {
     const today = todayKey();
-    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[] }[] = [];
+    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[]; isToday: boolean; isFuture: boolean }[] = [];
     const base = new Date(today + "T12:00:00");
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(base);
-      d.setDate(base.getDate() - i);
+    // Start of the current week based on user's startOfWeek setting
+    const dow = base.getDay(); // 0=Sun..6=Sat
+    const offsetToStart = (dow - startOfWeek + 7) % 7;
+    const weekStart = new Date(base);
+    weekStart.setDate(base.getDate() - offsetToStart);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
       const k = todayKey(d);
+      const isFuture = k > today;
+      const isToday = k === today;
       const h = r.state.history[k];
       const titles: string[] = [];
       let done = 0;
