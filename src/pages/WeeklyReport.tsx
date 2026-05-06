@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, TrendingDown, Smile } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
-import { todayKey } from "@/lib/storage";
+import { todayKey, todayLiveHistory } from "@/lib/storage";
+import { Flame, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MoodValue } from "@/lib/routine-types";
 
