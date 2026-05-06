@@ -125,6 +125,11 @@ const Settings = () => {
   const resetMinute = (settings as any).resetMinute ?? 0;
   const startOfWeek = settings.startOfWeek ?? 1;
   const streakGoal = settings.streakGoal ?? 7;
+  const dailyReminder = (settings as any).dailyReminder ?? false;
+  const reminderHour = (settings as any).reminderHour ?? 7;
+  const reminderMinute = (settings as any).reminderMinute ?? 0;
+  const streakReminder = (settings as any).streakReminder ?? true;
+  const completionCelebration = (settings as any).completionCelebration ?? true;
 
   const updateSettings = (patch: Partial<NonNullable<typeof r.state.settings>>) => {
     const next = { ...r.state, settings: { ...settings, ...patch } };
