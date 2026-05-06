@@ -9,6 +9,18 @@ export const todayKey = (d = new Date()) => {
   return `${y}-${m}-${day}`;
 };
 
+/** Logical "today" honoring the user's daily reset hour/minute.
+ *  If the current wall-clock time is before the reset moment, the routine
+ *  day is still the previous calendar date. */
+export const effectiveTodayKey = (state?: RoutineState, now = new Date()) => {
+  const hour = state?.settings?.resetHour ?? 0;
+  const minute = (state?.settings as any)?.resetMinute ?? 0;
+  const shifted = new Date(now);
+  // Subtract the reset offset so the boundary aligns with the user's chosen hour.
+  shifted.setMinutes(shifted.getMinutes() - (hour * 60 + minute));
+  return todayKey(shifted);
+};
+
 export const yesterdayKey = (today = todayKey()) => {
   const d = new Date(today + "T12:00:00");
   d.setDate(d.getDate() - 1);
@@ -61,7 +73,7 @@ const snapshotForDate = (state: RoutineState): DayHistory["snapshot"] => {
  * so the user can decide (Smart Carry Forward).
  */
 export const applyDailyReset = (state: RoutineState): RoutineState => {
-  const today = todayKey();
+  const today = effectiveTodayKey(state);
   if (state.lastResetDate === today) return state;
 
   // Save snapshot of the day that's ending (state.lastResetDate)

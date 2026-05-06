@@ -13,6 +13,7 @@ import {
   Flame,
   LayoutTemplate,
   Download,
+  Upload,
   AlertTriangle,
   Trash2,
   RefreshCcw,
@@ -137,6 +138,38 @@ const Settings = () => {
   const [clockOpen, setClockOpen] = useState(false);
   const [customStreakEditing, setCustomStreakEditing] = useState(false);
   const [customStreakRaw, setCustomStreakRaw] = useState("");
+  const [importConfirm, setImportConfirm] = useState<{ data: any; routines: number; sections: number } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? "");
+        const data = JSON.parse(text);
+        if (!data || typeof data !== "object" || !Array.isArray(data.routines) || !Array.isArray(data.sections)) {
+          throw new Error("Invalid backup file");
+        }
+        setImportConfirm({ data, routines: data.routines.length, sections: data.sections.length });
+      } catch (err: any) {
+        setImportError(err?.message || "Couldn't read this file. Make sure it's a valid backup JSON.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmImport = () => {
+    if (!importConfirm) return;
+    localStorage.setItem("daily-routine-os/v1", JSON.stringify(importConfirm.data));
+    window.dispatchEvent(new Event("routines:updated"));
+    successHaptic();
+    setImportConfirm(null);
+    window.location.href = "/";
+  };
 
   const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Light", icon: Sun },
@@ -321,9 +354,22 @@ const Settings = () => {
             label="Export data"
             hint="Download a JSON backup"
             onClick={handleExport}
+          />
+          <Row
+            icon={Upload}
+            label="Import data"
+            hint="Restore from a JSON backup"
+            onClick={() => fileInputRef.current?.click()}
             last
           />
         </Card>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleImportFile}
+        />
 
         <SectionLabel>
           <span className="inline-flex items-center gap-1.5 text-destructive">
@@ -541,7 +587,7 @@ const Settings = () => {
               Tap to add a ready-made routine to your day.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 mt-2">
+          <div className="space-y-2 mt-2 mx-auto w-full max-w-sm">
             {TEMPLATES.map((t) => (
               <button
                 key={t.title}
@@ -658,6 +704,40 @@ const Settings = () => {
             <Button variant="destructive" onClick={handleDeleteAll} className="flex-1 rounded-2xl h-12 font-bold">
               Delete
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import confirm */}
+      <Dialog open={!!importConfirm} onOpenChange={(o) => !o && setImportConfirm(null)}>
+        <DialogContent className="rounded-[28px] p-7 max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif font-bold text-left">Restore from backup?</DialogTitle>
+            <DialogDescription className="text-left text-[14px]">
+              This replaces all current data with the backup file
+              {importConfirm ? ` (${importConfirm.routines} routines, ${importConfirm.sections} sections)` : ""}. Current data will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3">
+            <Button variant="outline" onClick={() => setImportConfirm(null)} className="flex-1 rounded-2xl h-12 font-bold">
+              Cancel
+            </Button>
+            <Button onClick={confirmImport} className="flex-1 rounded-2xl h-12 font-bold bg-foreground text-background hover:bg-foreground/90">
+              Restore
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import error */}
+      <Dialog open={!!importError} onOpenChange={(o) => !o && setImportError(null)}>
+        <DialogContent className="rounded-[28px] p-7 max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-serif font-bold text-left">Couldn't import</DialogTitle>
+            <DialogDescription className="text-left text-[14px]">{importError}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setImportError(null)} className="rounded-2xl h-12 font-bold w-full">OK</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
