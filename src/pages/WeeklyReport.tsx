@@ -40,24 +40,25 @@ const WeeklyReport = () => {
       const k = todayKey(d);
       const isFuture = k > today;
       const isToday = k === today;
-      const h = r.state.history[k];
+      const h = isToday ? todayLiveHistory(r.state) : r.state.history[k];
       const titles: string[] = [];
       let done = 0;
       let total = 0;
       if (h) {
         for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
-          const blocks = snap.blocks ?? [];
+          const blocks = (snap as any).blocks ?? [];
           const checks = blocks.filter((b: any) => b.type === "checkbox" && b.text?.trim());
           const doneChecks = checks.filter((b: any) => b.checked);
           total += checks.length;
           done += doneChecks.length;
           for (const b of doneChecks) titles.push(b.text!);
           if (h.completedRoutineIds.includes(rid) && checks.length === 0) {
-            titles.push(snap.title);
+            titles.push((snap as any).title);
             done += 1;
             total += 1;
           }
         }
+      }
       }
       out.push({
         key: k,
