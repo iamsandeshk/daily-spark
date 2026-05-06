@@ -28,20 +28,15 @@ const WeeklyReport = () => {
 
   const { days, completedTasks, moodStats, skipDay } = useMemo(() => {
     const today = todayKey();
-    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[]; isToday: boolean; isFuture: boolean }[] = [];
+    const out: { key: string; weekday: number; mood?: MoodValue; total: number; done: number; titles: string[]; isToday: boolean; isFuture: boolean; displayKey: string; isFromLastWeek: boolean }[] = [];
     const base = new Date(today + "T12:00:00");
-    // Start of the current week based on user's startOfWeek setting
-    const dow = base.getDay(); // 0=Sun..6=Sat
+    const dow = base.getDay();
     const offsetToStart = (dow - startOfWeek + 7) % 7;
     const weekStart = new Date(base);
     weekStart.setDate(base.getDate() - offsetToStart);
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart);
-      d.setDate(weekStart.getDate() + i);
-      const k = todayKey(d);
-      const isFuture = k > today;
-      const isToday = k === today;
-      const h = isToday ? todayLiveHistory(r.state) : r.state.history[k];
+
+    const readDay = (k: string, live: boolean) => {
+      const h = live ? todayLiveHistory(r.state) : r.state.history[k];
       const titles: string[] = [];
       let done = 0;
       let total = 0;
@@ -60,13 +55,34 @@ const WeeklyReport = () => {
           }
         }
       }
+      return { titles, done, total };
+    };
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const k = todayKey(d);
+      const isFuture = k > today;
+      const isToday = k === today;
+      // For future days in current week, show last week's same weekday data instead
+      let displayKey = k;
+      let isFromLastWeek = false;
+      if (isFuture) {
+        const prev = new Date(d);
+        prev.setDate(d.getDate() - 7);
+        displayKey = todayKey(prev);
+        isFromLastWeek = true;
+      }
+      const data = readDay(displayKey, !isFuture && isToday);
       out.push({
         key: k,
+        displayKey,
+        isFromLastWeek,
         weekday: d.getDay(),
-        mood: r.state.moods?.[k],
-        total,
-        done,
-        titles,
+        mood: r.state.moods?.[displayKey],
+        total: data.total,
+        done: data.done,
+        titles: data.titles,
         isToday,
         isFuture,
       });
