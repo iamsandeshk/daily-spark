@@ -19,13 +19,13 @@ import {
   RefreshCcw,
   BarChart3,
 } from "lucide-react";
-import { StatusBar, Style } from "@capacitor/status-bar";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree } from "lucide-react";
 import {
   Dialog,
@@ -36,29 +36,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-
-type ThemeMode = "light" | "dark" | "system";
-
-const applyTheme = (mode: ThemeMode) => {
-  const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const dark = mode === "dark" || (mode === "system" && prefers);
-  document.documentElement.classList.toggle("dark", dark);
-  StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => { });
-};
+import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 
 const useTheme = () => {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem("theme");
     return saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
   });
+  const [amoled, setAmoledState] = useState<boolean>(() => getAmoled());
   useEffect(() => {
-    applyTheme(mode);
-  }, [mode]);
+    applyTheme(mode, amoled);
+  }, [mode, amoled]);
   return {
     mode,
+    amoled,
     setTheme: (m: ThemeMode) => {
       localStorage.setItem("theme", m);
       setMode(m);
+      tapHaptic();
+    },
+    setAmoled: (v: boolean) => {
+      localStorage.setItem("amoled", v ? "1" : "0");
+      setAmoledState(v);
       tapHaptic();
     },
   };
@@ -115,7 +114,7 @@ const Row = ({
 const Settings = () => {
   const navigate = useNavigate();
   const r = useRoutines();
-  const { mode, setTheme } = useTheme();
+  const { mode, setTheme, amoled, setAmoled } = useTheme();
 
   const settings = r.state.settings ?? {};
   const resetHour = settings.resetHour ?? 0;
@@ -277,6 +276,15 @@ const Settings = () => {
               </button>
             );
           })}
+        </div>
+
+        <div className="mt-2.5 rounded-2xl border border-border bg-card px-4 py-3.5 flex items-center gap-3">
+          <Moon size={18} className="text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-medium">AMOLED black</div>
+            <div className="text-[12px] text-muted-foreground">Pure black in dark mode to save battery on OLED screens</div>
+          </div>
+          <Switch checked={amoled} onCheckedChange={setAmoled} aria-label="AMOLED black theme" />
         </div>
 
         <SectionLabel>Routines</SectionLabel>
