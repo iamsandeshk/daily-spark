@@ -96,6 +96,7 @@ const WeeklyReport = () => {
       stressed: { sum: 0, n: 0, tasks: 0 },
     };
     for (const d of out) {
+      if (d.isFromLastWeek) continue;
       if (!d.mood || d.total === 0) continue;
       buckets[d.mood].sum += d.done / d.total;
       buckets[d.mood].n += 1;
@@ -105,6 +106,7 @@ const WeeklyReport = () => {
     // Skip day
     const dayMisses: Record<number, { miss: number; total: number }> = {};
     for (const d of out) {
+      if (d.isFromLastWeek) continue;
       if (d.total === 0) continue;
       if (!dayMisses[d.weekday]) dayMisses[d.weekday] = { miss: 0, total: 0 };
       dayMisses[d.weekday].miss += d.total - d.done;
