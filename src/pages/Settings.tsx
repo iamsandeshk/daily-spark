@@ -13,6 +13,7 @@ import {
   Flame,
   LayoutTemplate,
   Download,
+  Upload,
   AlertTriangle,
   Trash2,
   RefreshCcw,
