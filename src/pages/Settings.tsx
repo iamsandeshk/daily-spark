@@ -138,6 +138,38 @@ const Settings = () => {
   const [clockOpen, setClockOpen] = useState(false);
   const [customStreakEditing, setCustomStreakEditing] = useState(false);
   const [customStreakRaw, setCustomStreakRaw] = useState("");
+  const [importConfirm, setImportConfirm] = useState<{ data: any; routines: number; sections: number } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? "");
+        const data = JSON.parse(text);
+        if (!data || typeof data !== "object" || !Array.isArray(data.routines) || !Array.isArray(data.sections)) {
+          throw new Error("Invalid backup file");
+        }
+        setImportConfirm({ data, routines: data.routines.length, sections: data.sections.length });
+      } catch (err: any) {
+        setImportError(err?.message || "Couldn't read this file. Make sure it's a valid backup JSON.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmImport = () => {
+    if (!importConfirm) return;
+    localStorage.setItem("daily-routine-os/v1", JSON.stringify(importConfirm.data));
+    window.dispatchEvent(new Event("routines:updated"));
+    successHaptic();
+    setImportConfirm(null);
+    window.location.href = "/";
+  };
 
   const themeOptions: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
     { value: "light", label: "Light", icon: Sun },
