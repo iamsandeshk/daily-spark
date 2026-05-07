@@ -232,13 +232,14 @@ type RowProps = {
   isFocused?: boolean;
   cursorPos?: number | null;
   currentRoutineId?: string;
+  prevTasksComplete?: boolean;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
   onRemove: () => void;
   onEnter: () => void;
   onMergeWithPrevious: () => void;
 };
 
-const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
+const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, prevTasksComplete = true, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [localIsEditing, setLocalIsEditing] = useState(false);
   const [showUnlink, setShowUnlink] = useState(false);
