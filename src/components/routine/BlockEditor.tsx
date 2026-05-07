@@ -408,6 +408,13 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
               </AnimatePresence>
             </div>
           </div>
+        ) : block.type === "timer" ? (
+          <TimerBlock
+            block={block}
+            editable={editable}
+            prevTasksComplete={prevTasksComplete}
+            onUpdate={onUpdate}
+          />
         ) : block.type === "bullet" ? (
           <div className="flex items-start gap-3 py-1">
             <span className="mt-2.5 h-1.5 w-1.5 rounded-full bg-accent/60 shrink-0" />
