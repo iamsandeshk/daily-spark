@@ -60,7 +60,13 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
   const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
 
   const addBlock = (type: BlockType, afterIndex?: number) => {
-    const nb: RoutineBlockContent = { id: uid(), type, text: "", checked: type === "checkbox" ? false : undefined };
+    const nb: RoutineBlockContent = {
+      id: uid(),
+      type,
+      text: "",
+      checked: (type === "checkbox" || type === "timer") ? false : undefined,
+      durationSeconds: type === "timer" ? 60 : undefined,
+    };
     const next = [...blocks];
     const at = afterIndex === undefined ? next.length : afterIndex + 1;
     next.splice(at, 0, nb);
