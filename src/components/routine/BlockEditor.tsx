@@ -111,8 +111,8 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
     const next = blocks.map((b) => (b.id === id ? { ...b, ...patch } : b));
     // Detect "all checkboxes just became complete" → stronger haptic
     if ("checked" in patch) {
-      const prevChecks = blocks.filter((b) => b.type === "checkbox" && b.text?.trim());
-      const nextChecks = next.filter((b) => b.type === "checkbox" && b.text?.trim());
+      const prevChecks = blocks.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
+      const nextChecks = next.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
       const wasAll = prevChecks.length > 0 && prevChecks.every((b) => b.checked);
       const isAll = nextChecks.length > 0 && nextChecks.every((b) => b.checked);
       if (!wasAll && isAll) completionHaptic();
