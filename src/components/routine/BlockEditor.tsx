@@ -983,6 +983,23 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
               <p className={cn("text-[15px] leading-snug", b.checked && "line-through text-muted-foreground")}>{b.text}</p>
             </div>
           );
+        if (b.type === "timer")
+          return (
+            <div key={b.id} className="flex items-center gap-2.5 py-0.5">
+              <span
+                className={cn(
+                  "mt-1 h-4 w-4 rounded-sm border flex items-center justify-center text-[10px] shrink-0",
+                  b.checked ? "bg-success border-success text-success-foreground" : "border-input",
+                )}
+              >
+                {b.checked && "✓"}
+              </span>
+              <p className={cn("text-[15px] leading-snug flex-1", b.checked && "line-through text-muted-foreground")}>{b.text || "Timer"}</p>
+              <span className="text-[12px] tabular-nums font-semibold text-muted-foreground flex items-center gap-1">
+                <TimerIcon size={12} /> {formatTime(b.durationSeconds ?? 60)}
+              </span>
+            </div>
+          );
         if (b.type === "quote")
           return (
             <p key={b.id} className="border-l-[3px] border-accent/40 pl-4 py-1 my-1 italic text-muted-foreground text-[15px] leading-relaxed">
