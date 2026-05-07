@@ -305,8 +305,24 @@ export const useRoutines = () => {
       const today = todayKey();
       const yest = yesterdayKey(today);
       const carryMap = new Map(carry.items.map((i) => [i.routineId, i] as const));
+
+      // Retroactively mark the missed day as complete in history so the
+      // global streak walk doesn't break on it. We mark every routine that
+      // existed that day as completed (carried-forward routines included).
+      const history = { ...s.history };
+      const missed = history[carry.fromDate];
+      if (missed) {
+        const allIds = Object.keys(missed.snapshot ?? {});
+        history[carry.fromDate] = {
+          ...missed,
+          completedRoutineIds: allIds,
+          total: allIds.length || missed.total,
+        };
+      }
+
       return {
         ...s,
+        history,
         routines: s.routines.map((r) => {
           const item = carryMap.get(r.id);
           if (!item) return r;
