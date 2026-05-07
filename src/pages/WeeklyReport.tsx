@@ -45,7 +45,7 @@ const WeeklyReport = () => {
       if (h) {
         for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
           const blocks = (snap as any).blocks ?? [];
-          const checks = blocks.filter((b: any) => b.type === "checkbox" && b.text?.trim());
+          const checks = blocks.filter((b: any) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
           const doneChecks = checks.filter((b: any) => b.checked);
           total += checks.length;
           done += doneChecks.length;
@@ -190,7 +190,7 @@ const WeeklyReport = () => {
         if (!h) continue;
         for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
           const blocks = (snap as any).blocks ?? [];
-          const checks = blocks.filter((b: any) => b.type === "checkbox" && b.text?.trim());
+          const checks = blocks.filter((b: any) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
           total += checks.length;
           done += checks.filter((b: any) => b.checked).length;
           if (h.completedRoutineIds.includes(rid) && checks.length === 0) {

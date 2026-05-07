@@ -55,7 +55,7 @@ export const SectionBlock = ({
   const [addOpen, setAddOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
   const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
-  const allBlocks = (routine.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+  const allBlocks = (routine.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
   
   // Priority: show unchecked tasks first, then cap at 4.
@@ -94,7 +94,7 @@ export const SectionBlock = ({
       return b;
     });
     // Detect "just completed everything" transition → stronger haptic
-    const checks = updatedBlocks.filter((b) => b.type === "checkbox" && b.text?.trim());
+    const checks = updatedBlocks.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
     const wasAllDone = allBlocks.length > 0 && allBlocks.every((b) => b.checked);
     const isAllDone = checks.length > 0 && checks.every((b) => b.checked);
     if (!wasAllDone && isAllDone) completionHaptic();

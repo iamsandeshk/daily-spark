@@ -137,7 +137,7 @@ export const useRoutines = () => {
         ...s,
         routines: s.routines.map((r) => {
           if (r.id !== id) return r;
-          const checks = (blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+          const checks = (blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
           let isCompleted = r.isCompleted;
           let lastCompletedDate = r.lastCompletedDate;
           let streakCount = r.streakCount;
@@ -264,12 +264,12 @@ export const useRoutines = () => {
   }, []);
 
   const completed = state.routines.reduce((acc, r) => {
-    const checks = (r.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+    const checks = (r.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
     return acc + checks.filter((b) => !!b.checked).length;
   }, 0);
 
   const total = state.routines.reduce((acc, r) => {
-    const checks = (r.blocks ?? []).filter((b) => b.type === "checkbox" && b.text?.trim());
+    const checks = (r.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
     return acc + checks.length;
   }, 0);
 

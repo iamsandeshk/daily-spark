@@ -347,7 +347,7 @@ const Settings = () => {
       }
       for (const rid of ids) {
         const s: any = snap[rid];
-        const blocks = (s.blocks ?? []).filter((b: any) => b.type === "checkbox" && b.text?.trim());
+        const blocks = (s.blocks ?? []).filter((b: any) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
         if (blocks.length === 0) {
           const completed = (h.completedRoutineIds ?? []).includes(rid) ? "yes" : "no";
           rows.push([date, weekday, s.title ?? "", "", "routine", completed, mood]);
