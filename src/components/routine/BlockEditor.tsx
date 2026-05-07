@@ -39,6 +39,7 @@ const blockMenu: { type: BlockType; label: string; icon: typeof Type }[] = [
   { type: "heading", label: "Heading", icon: Heading1 },
   { type: "subheading", label: "Subheading", icon: Heading2 },
   { type: "checkbox", label: "To-do", icon: CheckSquare },
+  { type: "timer", label: "Timer", icon: TimerIcon },
   { type: "bullet", label: "Bullet list", icon: List },
   { type: "routine", label: "Routine", icon: Layers },
   { type: "link", label: "Link", icon: LinkIcon },
