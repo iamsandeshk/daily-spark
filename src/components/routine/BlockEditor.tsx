@@ -18,7 +18,13 @@ import {
   Settings2,
   Link2Off,
   Flame,
+  Timer as TimerIcon,
+  Play,
+  Pause,
+  RotateCcw,
+  Lock,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
@@ -33,6 +39,7 @@ const blockMenu: { type: BlockType; label: string; icon: typeof Type }[] = [
   { type: "heading", label: "Heading", icon: Heading1 },
   { type: "subheading", label: "Subheading", icon: Heading2 },
   { type: "checkbox", label: "To-do", icon: CheckSquare },
+  { type: "timer", label: "Timer", icon: TimerIcon },
   { type: "bullet", label: "Bullet list", icon: List },
   { type: "routine", label: "Routine", icon: Layers },
   { type: "link", label: "Link", icon: LinkIcon },
@@ -53,7 +60,13 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
   const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
 
   const addBlock = (type: BlockType, afterIndex?: number) => {
-    const nb: RoutineBlockContent = { id: uid(), type, text: "", checked: type === "checkbox" ? false : undefined };
+    const nb: RoutineBlockContent = {
+      id: uid(),
+      type,
+      text: "",
+      checked: (type === "checkbox" || type === "timer") ? false : undefined,
+      durationSeconds: type === "timer" ? 60 : undefined,
+    };
     const next = [...blocks];
     const at = afterIndex === undefined ? next.length : afterIndex + 1;
     next.splice(at, 0, nb);
@@ -111,8 +124,8 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
     const next = blocks.map((b) => (b.id === id ? { ...b, ...patch } : b));
     // Detect "all checkboxes just became complete" → stronger haptic
     if ("checked" in patch) {
-      const prevChecks = blocks.filter((b) => b.type === "checkbox" && b.text?.trim());
-      const nextChecks = next.filter((b) => b.type === "checkbox" && b.text?.trim());
+      const prevChecks = blocks.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
+      const nextChecks = next.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
       const wasAll = prevChecks.length > 0 && prevChecks.every((b) => b.checked);
       const isAll = nextChecks.length > 0 && nextChecks.every((b) => b.checked);
       if (!wasAll && isAll) completionHaptic();
@@ -138,20 +151,27 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
         </div>
       )}
 
-      {blocks.map((b, i) => (
-        <BlockRow
-          key={b.id}
-          block={b}
-          editable={editable}
-          isFocused={b.id === focusedBlockId}
-          cursorPos={b.id === focusedBlockId ? focusedCursorPos : undefined}
-          currentRoutineId={currentRoutineId}
-          onUpdate={(patch) => updateBlock(b.id, patch)}
-          onRemove={() => removeBlock(b.id)}
-          onEnter={() => handleEnter(i)}
-          onMergeWithPrevious={() => mergeWithPrevious(i)}
-        />
-      ))}
+      {blocks.map((b, i) => {
+        const prevTasksComplete = blocks
+          .slice(0, i)
+          .filter((x) => (x.type === "checkbox" || x.type === "timer") && x.text?.trim())
+          .every((x) => !!x.checked);
+        return (
+          <BlockRow
+            key={b.id}
+            block={b}
+            editable={editable}
+            isFocused={b.id === focusedBlockId}
+            cursorPos={b.id === focusedBlockId ? focusedCursorPos : undefined}
+            currentRoutineId={currentRoutineId}
+            prevTasksComplete={prevTasksComplete}
+            onUpdate={(patch) => updateBlock(b.id, patch)}
+            onRemove={() => removeBlock(b.id)}
+            onEnter={() => handleEnter(i)}
+            onMergeWithPrevious={() => mergeWithPrevious(i)}
+          />
+        );
+      })}
 
       {/* Add-block toolbox — only in edit mode */}
       {editable && (
@@ -212,13 +232,14 @@ type RowProps = {
   isFocused?: boolean;
   cursorPos?: number | null;
   currentRoutineId?: string;
+  prevTasksComplete?: boolean;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
   onRemove: () => void;
   onEnter: () => void;
   onMergeWithPrevious: () => void;
 };
 
-const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
+const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, prevTasksComplete = true, onUpdate, onRemove, onEnter, onMergeWithPrevious }: RowProps) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [localIsEditing, setLocalIsEditing] = useState(false);
   const [showUnlink, setShowUnlink] = useState(false);
@@ -334,6 +355,13 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, onU
               <RoutineCheckbox
                 checked={!!block.checked}
                 onChange={() => {
+                  if (!block.checked && !prevTasksComplete && !ro) {
+                    tapHaptic();
+                    toast("Complete previous tasks first", {
+                      description: "Finish the tasks above before checking this one.",
+                    });
+                    return;
+                  }
                   if (!block.checked) successHaptic();
                   else tapHaptic();
                   onUpdate({ checked: !block.checked });
@@ -380,6 +408,13 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, onU
               </AnimatePresence>
             </div>
           </div>
+        ) : block.type === "timer" ? (
+          <TimerBlock
+            block={block}
+            editable={editable}
+            prevTasksComplete={prevTasksComplete}
+            onUpdate={onUpdate}
+          />
         ) : block.type === "bullet" ? (
           <div className="flex items-start gap-3 py-1">
             <span className="mt-2.5 h-1.5 w-1.5 rounded-full bg-accent/60 shrink-0" />
@@ -690,6 +725,205 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, onU
   );
 };
 
+type TimerBlockProps = {
+  block: RoutineBlockContent;
+  editable: boolean;
+  prevTasksComplete: boolean;
+  onUpdate: (patch: Partial<RoutineBlockContent>) => void;
+};
+
+const formatTime = (s: number) => {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+};
+
+const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlockProps) => {
+  const duration = block.durationSeconds ?? 60;
+  const [remaining, setRemaining] = useState(duration);
+  const [running, setRunning] = useState(false);
+  const [editingDuration, setEditingDuration] = useState(false);
+  const intervalRef = useRef<number | null>(null);
+
+  // Reset remaining when duration changes (and not running)
+  useEffect(() => {
+    if (!running) setRemaining(duration);
+  }, [duration, running]);
+
+  // Auto-stop & complete when reaches 0
+  useEffect(() => {
+    if (running && remaining <= 0) {
+      setRunning(false);
+      if (!block.checked) {
+        successHaptic();
+        onUpdate({ checked: true });
+      }
+    }
+  }, [remaining, running]);
+
+  // Tick
+  useEffect(() => {
+    if (!running) {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = window.setInterval(() => {
+      setRemaining((r) => Math.max(0, r - 1));
+    }, 1000);
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+    };
+  }, [running]);
+
+  // If prev tasks become incomplete (e.g. unchecked), pause
+  useEffect(() => {
+    if (!prevTasksComplete && running) setRunning(false);
+  }, [prevTasksComplete, running]);
+
+  const handlePlayPause = () => {
+    if (block.checked) return;
+    if (!prevTasksComplete) {
+      tapHaptic();
+      toast("Complete previous tasks first", {
+        description: "Finish the tasks above before starting this timer.",
+      });
+      return;
+    }
+    tapHaptic();
+    setRunning((r) => !r);
+  };
+
+  const handleReset = () => {
+    tapHaptic();
+    setRunning(false);
+    setRemaining(duration);
+    if (block.checked) onUpdate({ checked: false });
+  };
+
+  const handleCheckboxClick = () => {
+    if (!block.checked) {
+      if (!prevTasksComplete) {
+        tapHaptic();
+        toast("Complete previous tasks first", {
+          description: "Finish the tasks above before completing this timer.",
+        });
+        return;
+      }
+      successHaptic();
+      setRunning(false);
+      setRemaining(0);
+      onUpdate({ checked: true });
+    } else {
+      tapHaptic();
+      setRemaining(duration);
+      onUpdate({ checked: false });
+    }
+  };
+
+  const progress = duration > 0 ? 1 - remaining / duration : 0;
+  const locked = !prevTasksComplete && !block.checked;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 py-2 px-3 rounded-xl border bg-card transition-colors",
+        block.checked ? "border-success/30 bg-success-soft/30" : "border-border",
+        locked && "opacity-60",
+      )}
+    >
+      <div className="mt-0.5">
+        <RoutineCheckbox checked={!!block.checked} onChange={handleCheckboxClick} size={20} />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <input
+          readOnly={!editable}
+          value={block.text ?? ""}
+          onChange={(e) => onUpdate({ text: e.target.value })}
+          placeholder="Timer task"
+          className={cn(
+            "w-full bg-transparent border-0 outline-none text-[15px] font-medium leading-snug",
+            block.checked && "line-through text-muted-foreground",
+          )}
+        />
+        <div className="mt-1 flex items-center gap-2">
+          {editingDuration && editable ? (
+            <input
+              type="number"
+              min={1}
+              autoFocus
+              defaultValue={Math.round(duration / 60)}
+              onBlur={(e) => {
+                const mins = Math.max(1, parseInt(e.target.value || "1", 10));
+                onUpdate({ durationSeconds: mins * 60 });
+                setEditingDuration(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              className="w-14 bg-muted/40 rounded-md px-1.5 py-0.5 text-[12px] tabular-nums outline-none border border-border"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => editable && !running && !block.checked && setEditingDuration(true)}
+              className="flex items-center gap-1 text-[12px] tabular-nums font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <TimerIcon size={12} strokeWidth={2.5} />
+              {formatTime(running || remaining !== duration ? remaining : duration)}
+            </button>
+          )}
+          {locked && (
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+              <Lock size={10} /> Locked
+            </span>
+          )}
+        </div>
+        {(running || (remaining !== duration && !block.checked)) && (
+          <div className="mt-1.5 h-1 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-accent transition-all"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      {!block.checked && (
+        <div className="flex items-center gap-1 shrink-0">
+          {(running || remaining !== duration) && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+              aria-label="Reset timer"
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handlePlayPause}
+            disabled={locked}
+            className={cn(
+              "h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-95",
+              locked
+                ? "bg-muted text-muted-foreground/50 cursor-not-allowed"
+                : running
+                ? "bg-accent/20 text-accent"
+                : "bg-accent text-accent-foreground shadow-sm",
+            )}
+            aria-label={running ? "Pause" : "Start"}
+          >
+            {running ? <Pause size={16} strokeWidth={2.5} /> : <Play size={16} strokeWidth={2.5} className="ml-0.5" />}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 /** Read-only block renderer */
 export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
   const navigate = useNavigate();
@@ -747,6 +981,23 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
                 {b.checked && "✓"}
               </span>
               <p className={cn("text-[15px] leading-snug", b.checked && "line-through text-muted-foreground")}>{b.text}</p>
+            </div>
+          );
+        if (b.type === "timer")
+          return (
+            <div key={b.id} className="flex items-center gap-2.5 py-0.5">
+              <span
+                className={cn(
+                  "mt-1 h-4 w-4 rounded-sm border flex items-center justify-center text-[10px] shrink-0",
+                  b.checked ? "bg-success border-success text-success-foreground" : "border-input",
+                )}
+              >
+                {b.checked && "✓"}
+              </span>
+              <p className={cn("text-[15px] leading-snug flex-1", b.checked && "line-through text-muted-foreground")}>{b.text || "Timer"}</p>
+              <span className="text-[12px] tabular-nums font-semibold text-muted-foreground flex items-center gap-1">
+                <TimerIcon size={12} /> {formatTime(b.durationSeconds ?? 60)}
+              </span>
             </div>
           );
         if (b.type === "quote")

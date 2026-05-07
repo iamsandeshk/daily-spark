@@ -94,7 +94,7 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
   const carryItems: { routineId: string; blockIds: string[]; preservedStreak?: number; preservedLastCompletedDate?: string }[] = [];
   for (const r of state.routines) {
     const unfinished = (r.blocks ?? [])
-      .filter((b) => b.type === "checkbox" && b.text?.trim() && !b.checked)
+      .filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim() && !b.checked)
       .map((b) => b.id);
     if (unfinished.length > 0 && r.streakCount > 0) {
       carryItems.push({
@@ -123,7 +123,7 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
         ...r,
         isCompleted: false,
         blocks: (r.blocks ?? []).map((b) =>
-          b.type === "checkbox" ? { ...b, checked: false } : b
+          (b.type === "checkbox" || b.type === "timer") ? { ...b, checked: false } : b
         ),
       };
     }
@@ -133,7 +133,7 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
       isCompleted: false,
       streakCount: keepStreak ? r.streakCount : 0,
       blocks: (r.blocks ?? []).map((b) =>
-        b.type === "checkbox" ? { ...b, checked: false } : b
+        (b.type === "checkbox" || b.type === "timer") ? { ...b, checked: false } : b
       ),
     };
   });

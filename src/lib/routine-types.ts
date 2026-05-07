@@ -7,7 +7,8 @@ export type BlockType =
   | "divider"
   | "quote"
   | "link"
-  | "routine";
+  | "routine"
+  | "timer";
 
 export type RoutineBlockContent = {
   id: string;
@@ -16,6 +17,8 @@ export type RoutineBlockContent = {
   checked?: boolean;
   url?: string;
   linkedRoutineId?: string;
+  /** For timer blocks: duration in seconds. */
+  durationSeconds?: number;
 };
 
 export type Routine = {
