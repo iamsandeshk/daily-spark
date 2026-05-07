@@ -151,20 +151,27 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
         </div>
       )}
 
-      {blocks.map((b, i) => (
-        <BlockRow
-          key={b.id}
-          block={b}
-          editable={editable}
-          isFocused={b.id === focusedBlockId}
-          cursorPos={b.id === focusedBlockId ? focusedCursorPos : undefined}
-          currentRoutineId={currentRoutineId}
-          onUpdate={(patch) => updateBlock(b.id, patch)}
-          onRemove={() => removeBlock(b.id)}
-          onEnter={() => handleEnter(i)}
-          onMergeWithPrevious={() => mergeWithPrevious(i)}
-        />
-      ))}
+      {blocks.map((b, i) => {
+        const prevTasksComplete = blocks
+          .slice(0, i)
+          .filter((x) => (x.type === "checkbox" || x.type === "timer") && x.text?.trim())
+          .every((x) => !!x.checked);
+        return (
+          <BlockRow
+            key={b.id}
+            block={b}
+            editable={editable}
+            isFocused={b.id === focusedBlockId}
+            cursorPos={b.id === focusedBlockId ? focusedCursorPos : undefined}
+            currentRoutineId={currentRoutineId}
+            prevTasksComplete={prevTasksComplete}
+            onUpdate={(patch) => updateBlock(b.id, patch)}
+            onRemove={() => removeBlock(b.id)}
+            onEnter={() => handleEnter(i)}
+            onMergeWithPrevious={() => mergeWithPrevious(i)}
+          />
+        );
+      })}
 
       {/* Add-block toolbox — only in edit mode */}
       {editable && (
