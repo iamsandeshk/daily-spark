@@ -18,7 +18,13 @@ import {
   Settings2,
   Link2Off,
   Flame,
+  Timer as TimerIcon,
+  Play,
+  Pause,
+  RotateCcw,
+  Lock,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
