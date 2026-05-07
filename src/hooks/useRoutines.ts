@@ -98,7 +98,7 @@ export const useRoutines = () => {
           const willComplete = !r.isCompleted;
           // Sync all checkbox blocks inside this routine to the new state
           const syncedBlocks = r.blocks
-            ? r.blocks.map((b) => (b.type === "checkbox" ? { ...b, checked: willComplete } : b))
+            ? r.blocks.map((b) => ((b.type === "checkbox" || b.type === "timer") ? { ...b, checked: willComplete } : b))
             : r.blocks;
           if (willComplete) {
             const continuing = r.lastCompletedDate === yest || r.lastCompletedDate === today;
