@@ -295,32 +295,44 @@ export const SectionBlock = ({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className={cn(
-                      "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
-                      b.checked && "bg-success-soft/40 border-success/20",
-                    )}
                   >
-                    <div className="shrink-0">
-                      <RoutineCheckbox
-                        checked={!!b.checked}
-                        onChange={() => handleToggleCheckbox(b.id)}
+                    {b.type === "timer" ? (
+                      <TimerRow
+                        block={b}
+                        prevTasksComplete={prevDoneById.get(b.id) ?? true}
+                        variant="home"
+                        onUpdate={(patch) => updateBlock(b.id, patch)}
                       />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/routine/${routine.id}`)}
-                      className="flex-1 min-w-0 text-left select-none"
-                    >
-                      <span
+                    ) : (
+                      <div
                         className={cn(
-                          "font-medium text-[15px] leading-snug truncate transition-colors",
-                          b.checked && "line-through text-muted-foreground",
+                          "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
+                          b.checked && "bg-success-soft/40 border-success/20",
                         )}
                       >
-                        {b.text || "Untitled Task"}
-                      </span>
-                    </button>
+                        <div className="shrink-0">
+                          <RoutineCheckbox
+                            checked={!!b.checked}
+                            onChange={() => handleToggleCheckbox(b.id)}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/routine/${routine.id}`)}
+                          className="flex-1 min-w-0 text-left select-none"
+                        >
+                          <span
+                            className={cn(
+                              "font-medium text-[15px] leading-snug truncate transition-colors",
+                              b.checked && "line-through text-muted-foreground",
+                            )}
+                          >
+                            {b.text || "Untitled Task"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
