@@ -10,6 +10,7 @@ const CARD_DURATION = 0.28;
 const STAGGER = 0.04;
 const STAGGER_DELAY = 0.04;
 import { RoutineCheckbox } from "./RoutineCheckbox";
+import { TimerRow } from "./TimerRow";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
@@ -58,18 +59,32 @@ export const SectionBlock = ({
   const allBlocks = (routine.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
   
-  // Priority: show unchecked tasks first, then cap at 4.
-  // Items in recentlyCheckedIds stay visible as "unchecked" for 0.7s to avoid jarring jumps.
-  const visibleBlocks = [...allBlocks]
-    .sort((a, b) => {
-      const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
-      const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
-      if (aIsDone === bIsDone) return 0;
-      return aIsDone ? 1 : -1;
-    })
-    .slice(0, 4);
-    
+  // Priority: timers first, then unchecked tasks, then checked. Cap at 4 (excluding timers from cap).
+  const sorted = [...allBlocks].sort((a, b) => {
+    const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
+    const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
+    // Timers always first (regardless of checked, so user sees countdown)
+    const aIsTimer = a.type === "timer";
+    const bIsTimer = b.type === "timer";
+    if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
+    if (aIsDone === bIsDone) return 0;
+    return aIsDone ? 1 : -1;
+  });
+  const visibleBlocks = sorted.slice(0, 4);
   const remainingCount = allBlocks.length - visibleBlocks.length;
+
+  // Compute, for each block, whether all preceding (in original order) checkbox/timer tasks are complete.
+  const prevDoneById = new Map<string, boolean>();
+  let runningAllDone = true;
+  for (const b of allBlocks) {
+    prevDoneById.set(b.id, runningAllDone);
+    if (!b.checked) runningAllDone = false;
+  }
+
+  const updateBlock = (blockId: string, patch: Partial<typeof allBlocks[number]>) => {
+    const next = (routine.blocks ?? []).map((b) => (b.id === blockId ? { ...b, ...patch } : b));
+    setRoutineBlocks(routine.id, next);
+  };
 
   const handleToggleCheckbox = (blockId: string) => {
     const isChecking = !(routine.blocks ?? []).find(b => b.id === blockId)?.checked;
@@ -280,32 +295,44 @@ export const SectionBlock = ({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className={cn(
-                      "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
-                      b.checked && "bg-success-soft/40 border-success/20",
-                    )}
                   >
-                    <div className="shrink-0">
-                      <RoutineCheckbox
-                        checked={!!b.checked}
-                        onChange={() => handleToggleCheckbox(b.id)}
+                    {b.type === "timer" ? (
+                      <TimerRow
+                        block={b}
+                        prevTasksComplete={prevDoneById.get(b.id) ?? true}
+                        variant="home"
+                        onUpdate={(patch) => updateBlock(b.id, patch)}
                       />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/routine/${routine.id}`)}
-                      className="flex-1 min-w-0 text-left select-none"
-                    >
-                      <span
+                    ) : (
+                      <div
                         className={cn(
-                          "font-medium text-[15px] leading-snug truncate transition-colors",
-                          b.checked && "line-through text-muted-foreground",
+                          "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
+                          b.checked && "bg-success-soft/40 border-success/20",
                         )}
                       >
-                        {b.text || "Untitled Task"}
-                      </span>
-                    </button>
+                        <div className="shrink-0">
+                          <RoutineCheckbox
+                            checked={!!b.checked}
+                            onChange={() => handleToggleCheckbox(b.id)}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/routine/${routine.id}`)}
+                          className="flex-1 min-w-0 text-left select-none"
+                        >
+                          <span
+                            className={cn(
+                              "font-medium text-[15px] leading-snug truncate transition-colors",
+                              b.checked && "line-through text-muted-foreground",
+                            )}
+                          >
+                            {b.text || "Untitled Task"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
