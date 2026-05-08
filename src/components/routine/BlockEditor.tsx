@@ -29,6 +29,7 @@ import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
 import { cn } from "@/lib/utils";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 import { RoutineCheckbox } from "./RoutineCheckbox";
+import { TimerRow, formatTime } from "./TimerRow";
 import { useRoutines } from "@/hooks/useRoutines";
 import { useNavigate } from "react-router-dom";
 
