@@ -409,10 +409,11 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
             </div>
           </div>
         ) : block.type === "timer" ? (
-          <TimerBlock
+          <TimerRow
             block={block}
-            editable={editable}
             prevTasksComplete={prevTasksComplete}
+            variant="editor"
+            editable={editable}
             onUpdate={onUpdate}
           />
         ) : block.type === "bullet" ? (
