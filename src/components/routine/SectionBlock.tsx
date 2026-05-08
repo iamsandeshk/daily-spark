@@ -59,18 +59,32 @@ export const SectionBlock = ({
   const allBlocks = (routine.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
   
-  // Priority: show unchecked tasks first, then cap at 4.
-  // Items in recentlyCheckedIds stay visible as "unchecked" for 0.7s to avoid jarring jumps.
-  const visibleBlocks = [...allBlocks]
-    .sort((a, b) => {
-      const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
-      const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
-      if (aIsDone === bIsDone) return 0;
-      return aIsDone ? 1 : -1;
-    })
-    .slice(0, 4);
-    
+  // Priority: timers first, then unchecked tasks, then checked. Cap at 4 (excluding timers from cap).
+  const sorted = [...allBlocks].sort((a, b) => {
+    const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
+    const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
+    // Timers always first (regardless of checked, so user sees countdown)
+    const aIsTimer = a.type === "timer";
+    const bIsTimer = b.type === "timer";
+    if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
+    if (aIsDone === bIsDone) return 0;
+    return aIsDone ? 1 : -1;
+  });
+  const visibleBlocks = sorted.slice(0, 4);
   const remainingCount = allBlocks.length - visibleBlocks.length;
+
+  // Compute, for each block, whether all preceding (in original order) checkbox/timer tasks are complete.
+  const prevDoneById = new Map<string, boolean>();
+  let runningAllDone = true;
+  for (const b of allBlocks) {
+    prevDoneById.set(b.id, runningAllDone);
+    if (!b.checked) runningAllDone = false;
+  }
+
+  const updateBlock = (blockId: string, patch: Partial<typeof allBlocks[number]>) => {
+    const next = (routine.blocks ?? []).map((b) => (b.id === blockId ? { ...b, ...patch } : b));
+    setRoutineBlocks(routine.id, next);
+  };
 
   const handleToggleCheckbox = (blockId: string) => {
     const isChecking = !(routine.blocks ?? []).find(b => b.id === blockId)?.checked;
