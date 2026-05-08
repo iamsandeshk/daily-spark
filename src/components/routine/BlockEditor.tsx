@@ -19,10 +19,6 @@ import {
   Link2Off,
   Flame,
   Timer as TimerIcon,
-  Play,
-  Pause,
-  RotateCcw,
-  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
