@@ -135,7 +135,9 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
       isCompleted: false,
       streakCount: keepStreak ? r.streakCount : 0,
       blocks: (r.blocks ?? []).map((b) =>
-        (b.type === "checkbox" || b.type === "timer") ? { ...b, checked: false } : b
+        (b.type === "checkbox" || b.type === "timer")
+          ? { ...b, checked: false, timerEndAt: undefined, timerPausedRemaining: undefined }
+          : b
       ),
     };
   });
