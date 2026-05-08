@@ -19,6 +19,10 @@ export type RoutineBlockContent = {
   linkedRoutineId?: string;
   /** For timer blocks: duration in seconds. */
   durationSeconds?: number;
+  /** Timer: epoch ms when the timer is scheduled to hit 0. Set only while running. */
+  timerEndAt?: number;
+  /** Timer: seconds remaining when paused. Undefined = idle (full duration). */
+  timerPausedRemaining?: number;
 };
 
 export type Routine = {
