@@ -10,6 +10,7 @@ const CARD_DURATION = 0.28;
 const STAGGER = 0.04;
 const STAGGER_DELAY = 0.04;
 import { RoutineCheckbox } from "./RoutineCheckbox";
+import { TimerRow } from "./TimerRow";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
