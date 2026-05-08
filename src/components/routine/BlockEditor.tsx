@@ -740,45 +740,71 @@ const formatTime = (s: number) => {
 
 const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlockProps) => {
   const duration = block.durationSeconds ?? 60;
-  const [remaining, setRemaining] = useState(duration);
-  const [running, setRunning] = useState(false);
   const [editingDuration, setEditingDuration] = useState(false);
-  const intervalRef = useRef<number | null>(null);
+  const [, force] = useState(0);
+  const completedRef = useRef(false);
 
-  // Reset remaining when duration changes (and not running)
-  useEffect(() => {
-    if (!running) setRemaining(duration);
-  }, [duration, running]);
+  const running = !!block.timerEndAt && !block.checked;
+  const paused = block.timerPausedRemaining !== undefined && !running;
 
-  // Auto-stop & complete when reaches 0
-  useEffect(() => {
-    if (running && remaining <= 0) {
-      setRunning(false);
-      if (!block.checked) {
-        successHaptic();
-        onUpdate({ checked: true });
-      }
+  // Compute live remaining from wall-clock for accuracy across app close/restart.
+  const computeRemaining = () => {
+    if (block.checked) return 0;
+    if (running && block.timerEndAt) {
+      return Math.max(0, Math.ceil((block.timerEndAt - Date.now()) / 1000));
     }
-  }, [remaining, running]);
-
-  // Tick
-  useEffect(() => {
-    if (!running) {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-      return;
+    if (paused && typeof block.timerPausedRemaining === "number") {
+      return block.timerPausedRemaining;
     }
-    intervalRef.current = window.setInterval(() => {
-      setRemaining((r) => Math.max(0, r - 1));
-    }, 1000);
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
+    return duration;
+  };
+  const remaining = computeRemaining();
+
+  // Tick UI while running
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => force((n) => n + 1), 500);
+    return () => window.clearInterval(id);
   }, [running]);
 
-  // If prev tasks become incomplete (e.g. unchecked), pause
+  // Auto-complete when remaining hits 0 (works even if app re-opens past end)
   useEffect(() => {
-    if (!prevTasksComplete && running) setRunning(false);
-  }, [prevTasksComplete, running]);
+    if (block.checked) {
+      completedRef.current = false;
+      return;
+    }
+    if (running && remaining <= 0 && !completedRef.current) {
+      completedRef.current = true;
+      successHaptic();
+      onUpdate({ checked: true, timerEndAt: undefined, timerPausedRemaining: undefined });
+      toast.success(`${block.text || "Timer"} complete!`, {
+        description: "Task auto-completed.",
+      });
+    }
+  }, [running, remaining, block.checked]);
+
+  // Auto-start when previous tasks just became complete (and timer is idle, not checked, not paused)
+  useEffect(() => {
+    if (
+      prevTasksComplete &&
+      !block.checked &&
+      !running &&
+      !paused &&
+      editable !== undefined // any mode
+    ) {
+      // idle → start
+      onUpdate({ timerEndAt: Date.now() + duration * 1000, timerPausedRemaining: undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevTasksComplete, block.checked]);
+
+  // If prev becomes incomplete while running, pause
+  useEffect(() => {
+    if (!prevTasksComplete && running) {
+      onUpdate({ timerEndAt: undefined, timerPausedRemaining: remaining });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevTasksComplete]);
 
   const handlePlayPause = () => {
     if (block.checked) return;
@@ -790,14 +816,21 @@ const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlock
       return;
     }
     tapHaptic();
-    setRunning((r) => !r);
+    if (running) {
+      onUpdate({ timerEndAt: undefined, timerPausedRemaining: remaining });
+    } else {
+      const start = paused ? remaining : duration;
+      onUpdate({ timerEndAt: Date.now() + start * 1000, timerPausedRemaining: undefined });
+    }
   };
 
   const handleReset = () => {
     tapHaptic();
-    setRunning(false);
-    setRemaining(duration);
-    if (block.checked) onUpdate({ checked: false });
+    onUpdate({
+      timerEndAt: undefined,
+      timerPausedRemaining: undefined,
+      checked: false,
+    });
   };
 
   const handleCheckboxClick = () => {
@@ -810,18 +843,16 @@ const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlock
         return;
       }
       successHaptic();
-      setRunning(false);
-      setRemaining(0);
-      onUpdate({ checked: true });
+      onUpdate({ checked: true, timerEndAt: undefined, timerPausedRemaining: undefined });
     } else {
       tapHaptic();
-      setRemaining(duration);
-      onUpdate({ checked: false });
+      onUpdate({ checked: false, timerEndAt: undefined, timerPausedRemaining: undefined });
     }
   };
 
   const progress = duration > 0 ? 1 - remaining / duration : 0;
   const locked = !prevTasksComplete && !block.checked;
+  const showProgress = running || paused;
 
   return (
     <div
@@ -866,11 +897,11 @@ const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlock
           ) : (
             <button
               type="button"
-              onClick={() => editable && !running && !block.checked && setEditingDuration(true)}
+              onClick={() => editable && !running && !paused && !block.checked && setEditingDuration(true)}
               className="flex items-center gap-1 text-[12px] tabular-nums font-semibold text-muted-foreground hover:text-foreground transition-colors"
             >
               <TimerIcon size={12} strokeWidth={2.5} />
-              {formatTime(running || remaining !== duration ? remaining : duration)}
+              {formatTime(showProgress ? remaining : duration)}
             </button>
           )}
           {locked && (
@@ -879,7 +910,7 @@ const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlock
             </span>
           )}
         </div>
-        {(running || (remaining !== duration && !block.checked)) && (
+        {showProgress && !block.checked && (
           <div className="mt-1.5 h-1 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-accent transition-all"
@@ -891,7 +922,7 @@ const TimerBlock = ({ block, editable, prevTasksComplete, onUpdate }: TimerBlock
 
       {!block.checked && (
         <div className="flex items-center gap-1 shrink-0">
-          {(running || remaining !== duration) && (
+          {(running || paused) && (
             <button
               type="button"
               onClick={handleReset}
