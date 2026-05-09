@@ -235,6 +235,7 @@ type ItemProps = {
   onDeleteSection: (id: string) => void;
   onToggleRoutine: (id: string) => void;
   onDeleteRoutine: (id: string) => void;
+  onArchive: (id: string) => void;
   setRoutineBlocks: ReturnType<typeof useRoutines>["setRoutineBlocks"];
 };
 
