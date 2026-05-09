@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import type { Routine } from "@/lib/routine-types";
 
 // Shared animation config — used by all section open/close transitions
