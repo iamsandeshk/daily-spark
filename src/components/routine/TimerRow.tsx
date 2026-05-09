@@ -239,6 +239,40 @@ export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, 
             {running ? <Pause size={16} strokeWidth={2.5} /> : <Play size={16} strokeWidth={2.5} className="ml-0.5" />}
           </button>
         )}
+
+        <AnimatePresence>
+          {showDelete && onDelete && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 flex items-center justify-end gap-2 pr-2 bg-background/85 backdrop-blur-sm rounded-xl"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  tapHaptic();
+                  onDelete();
+                  setShowDelete(false);
+                }}
+                className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-destructive text-destructive-foreground text-[13px] font-bold shadow-md active:scale-95 transition-transform"
+              >
+                <Trash2 size={14} strokeWidth={2.5} /> Delete
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDelete(false);
+                }}
+                className="h-9 w-9 rounded-lg bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
+                aria-label="Cancel"
+              >
+                <X size={15} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {variant === "editor" && (
