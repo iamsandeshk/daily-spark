@@ -198,7 +198,7 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
       : shownDates,
   };
   saveState(next);
-  return next;
+  return applyPerRoutineReset(next);
 };
 
 /** Live snapshot of today's history (for showing today in calendar before reset). */
