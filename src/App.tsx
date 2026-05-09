@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RoutineDetail from "./pages/RoutineDetail.tsx";
+import RoutineSettings from "./pages/RoutineSettings.tsx";
 import History from "./pages/History.tsx";
 import Settings from "./pages/Settings.tsx";
 import WeeklyReport from "./pages/WeeklyReport.tsx";
