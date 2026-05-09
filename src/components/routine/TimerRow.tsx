@@ -131,14 +131,33 @@ export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, 
   const showProgress = running || paused;
   const displaySeconds = showProgress ? remaining : duration;
 
+  const startLongPress = () => {
+    if (!onDelete) return;
+    longPressTimer.current = window.setTimeout(() => {
+      tapHaptic();
+      setShowDelete(true);
+    }, 550);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   return (
     <>
       <div
+        onPointerDown={startLongPress}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
+        onPointerCancel={cancelLongPress}
         className={cn(
           "relative overflow-hidden flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3 shadow-block transition-colors",
           block.checked ? "border-success/30 bg-success-soft/30" : "border-border",
           locked && "opacity-70",
           running && "border-accent/40",
+          showDelete && "border-destructive/40",
         )}
       >
         {/* Progress fill background */}
