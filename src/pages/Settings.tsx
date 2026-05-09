@@ -492,6 +492,23 @@ const Settings = () => {
             label="Templates"
             hint="Browse and add ready-made routines"
             onClick={() => setTplOpen(true)}
+          />
+          <Row
+            icon={Archive}
+            label="Archived routines"
+            hint={
+              archivedRoutines.length === 0
+                ? "Nothing archived yet"
+                : `${archivedRoutines.length} routine${archivedRoutines.length === 1 ? "" : "s"} hidden from home`
+            }
+            right={
+              archivedRoutines.length > 0 ? (
+                <span className="text-[12px] tabular-nums font-bold text-muted-foreground">
+                  {archivedRoutines.length}
+                </span>
+              ) : undefined
+            }
+            onClick={() => setArchivedOpen(true)}
             last
           />
         </Card>
