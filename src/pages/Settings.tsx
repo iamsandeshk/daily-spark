@@ -151,6 +151,10 @@ const Settings = () => {
   const [importConfirm, setImportConfirm] = useState<{ data: any; routines: number; sections: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [archivedPreview, setArchivedPreview] = useState<typeof r.state.routines[number] | null>(null);
+
+  const archivedRoutines = r.state.routines.filter((x) => x.archived);
 
   const parseCSV = (text: string): string[][] => {
     const rows: string[][] = [];
