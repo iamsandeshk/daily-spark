@@ -412,6 +412,7 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
             variant="editor"
             editable={editable}
             onUpdate={onUpdate}
+            onDelete={editable ? onRemove : undefined}
           />
         ) : block.type === "bullet" ? (
           <div className="flex items-start gap-3 py-1">
