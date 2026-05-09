@@ -26,11 +26,15 @@ type Props = {
   /** Whether the title input is editable (only for editor variant). */
   editable?: boolean;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
+  /** Optional: enables long-press to reveal a delete control. */
+  onDelete?: () => void;
 };
 
-export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, onUpdate }: Props) => {
+export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, onUpdate, onDelete }: Props) => {
   const duration = block.durationSeconds ?? 60;
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const longPressTimer = useRef<number | null>(null);
   const [, force] = useState(0);
   const completedRef = useRef(false);
 
