@@ -40,6 +40,7 @@ type Props = {
   onAdd: (id: string) => void;
   onDeleteSection: (id: string) => void;
   onToggleReorder: () => void;
+  onArchive: (id: string) => void;
   setRoutineBlocks: (id: string, blocks: Routine["blocks"]) => void;
 };
 
@@ -49,6 +50,7 @@ export const SectionBlock = ({
   onAdd,
   onDeleteSection,
   onToggleReorder,
+  onArchive,
   setRoutineBlocks,
 }: Props) => {
   const navigate = useNavigate();
