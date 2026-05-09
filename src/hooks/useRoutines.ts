@@ -263,12 +263,21 @@ export const useRoutines = () => {
     });
   }, []);
 
+  const todayStr = todayKey();
+  const isActive = (r: Routine) => {
+    if (r.archived) return false;
+    if (r.startDate && todayStr < r.startDate) return false;
+    if (r.endDate && todayStr > r.endDate) return false;
+    return true;
+  };
   const completed = state.routines.reduce((acc, r) => {
+    if (!isActive(r)) return acc;
     const checks = (r.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
     return acc + checks.filter((b) => !!b.checked).length;
   }, 0);
 
   const total = state.routines.reduce((acc, r) => {
+    if (!isActive(r)) return acc;
     const checks = (r.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
     return acc + checks.length;
   }, 0);
