@@ -314,6 +314,12 @@ export const SectionBlock = ({
                         prevTasksComplete={prevDoneById.get(b.id) ?? true}
                         variant="home"
                         onUpdate={(patch) => updateBlock(b.id, patch)}
+                        onDelete={() =>
+                          setRoutineBlocks(
+                            routine.id,
+                            (routine.blocks ?? []).filter((x) => x.id !== b.id),
+                          )
+                        }
                       />
                     ) : (
                       <div
