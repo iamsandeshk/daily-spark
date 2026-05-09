@@ -38,6 +38,16 @@ export type Routine = {
   /** Notion-style rich content blocks (optional for legacy routines). */
   blocks?: RoutineBlockContent[];
   collapsed?: boolean;
+  /** User-archived: hidden from home, kept for unarchive. */
+  archived?: boolean;
+  /** Schedule (YYYY-MM-DD). Routine is hidden before startDate / after endDate. */
+  startDate?: string;
+  endDate?: string;
+  /** Per-routine override for daily reset time. */
+  resetHour?: number;
+  resetMinute?: number;
+  /** Tracks last per-routine reset (YYYY-MM-DD using its own offset). */
+  routineLastResetDate?: string;
 };
 
 export type Section = {
