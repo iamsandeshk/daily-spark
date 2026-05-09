@@ -60,12 +60,19 @@ export const SectionBlock = ({
   const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
   const allBlocks = (routine.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
-  
-  // Priority: timers first, then unchecked tasks, then checked. Cap at 4 (excluding timers from cap).
-  const sorted = [...allBlocks].sort((a, b) => {
+
+  // Timers are only displayed on home while they're started (running or paused) and not yet checked.
+  const homeBlocks = allBlocks.filter((b) => {
+    if (b.type !== "timer") return true;
+    if (b.checked && !recentlyCheckedIds.has(b.id)) return false;
+    const active = !!b.timerEndAt || typeof b.timerPausedRemaining === "number";
+    return active || recentlyCheckedIds.has(b.id);
+  });
+
+  // Priority: timers first, then unchecked tasks, then checked. Cap at 4.
+  const sorted = [...homeBlocks].sort((a, b) => {
     const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
     const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
-    // Timers always first (regardless of checked, so user sees countdown)
     const aIsTimer = a.type === "timer";
     const bIsTimer = b.type === "timer";
     if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
