@@ -167,6 +167,10 @@ const Index = () => {
               onDeleteSection={r.deleteRoutine}
               onToggleRoutine={r.toggleRoutine}
               onDeleteRoutine={r.deleteRoutine}
+              onArchive={(id) => {
+                r.updateRoutine(id, { archived: true });
+                tapHaptic();
+              }}
               setRoutineBlocks={r.setRoutineBlocks}
             />
           ))}
