@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play, Lock, Timer as TimerIcon } from "lucide-react";
+import { Pause, Play, Lock, Timer as TimerIcon, Trash2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { successHaptic, tapHaptic } from "@/lib/haptics";
