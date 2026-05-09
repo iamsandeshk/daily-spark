@@ -177,14 +177,17 @@ export const SectionBlock = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => onArchive(routine.id)}>
+              <Archive size={14} className="mr-2" /> Archive
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onToggleReorder}>
+              <GripVertical size={14} className="mr-2" /> Reorder sections
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onSelect={() => setDeleteOpen(true)}
             >
               <Trash2 size={14} className="mr-2" /> Delete section
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onToggleReorder}>
-              <GripVertical size={14} className="mr-2" /> Reorder sections
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
