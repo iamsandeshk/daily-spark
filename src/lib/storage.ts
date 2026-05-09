@@ -21,6 +21,19 @@ export const effectiveTodayKey = (state?: RoutineState, now = new Date()) => {
   return todayKey(shifted);
 };
 
+/** Effective today key for a single routine (uses its override if set). */
+export const effectiveTodayKeyForRoutine = (
+  r: { resetHour?: number; resetMinute?: number },
+  state?: RoutineState,
+  now = new Date(),
+) => {
+  const hour = r.resetHour ?? state?.settings?.resetHour ?? 0;
+  const minute = r.resetMinute ?? (state?.settings as any)?.resetMinute ?? 0;
+  const shifted = new Date(now);
+  shifted.setMinutes(shifted.getMinutes() - (hour * 60 + minute));
+  return todayKey(shifted);
+};
+
 export const yesterdayKey = (today = todayKey()) => {
   const d = new Date(today + "T12:00:00");
   d.setDate(d.getDate() - 1);
