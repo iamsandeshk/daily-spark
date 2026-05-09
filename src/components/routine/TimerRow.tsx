@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play, Lock, Timer as TimerIcon } from "lucide-react";
+import { Pause, Play, Lock, Timer as TimerIcon, Trash2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { successHaptic, tapHaptic } from "@/lib/haptics";
@@ -25,11 +26,15 @@ type Props = {
   /** Whether the title input is editable (only for editor variant). */
   editable?: boolean;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
+  /** Optional: enables long-press to reveal a delete control. */
+  onDelete?: () => void;
 };
 
-export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, onUpdate }: Props) => {
+export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, onUpdate, onDelete }: Props) => {
   const duration = block.durationSeconds ?? 60;
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const longPressTimer = useRef<number | null>(null);
   const [, force] = useState(0);
   const completedRef = useRef(false);
 
@@ -126,14 +131,33 @@ export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, 
   const showProgress = running || paused;
   const displaySeconds = showProgress ? remaining : duration;
 
+  const startLongPress = () => {
+    if (!onDelete) return;
+    longPressTimer.current = window.setTimeout(() => {
+      tapHaptic();
+      setShowDelete(true);
+    }, 550);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   return (
     <>
       <div
+        onPointerDown={startLongPress}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
+        onPointerCancel={cancelLongPress}
         className={cn(
           "relative overflow-hidden flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3 shadow-block transition-colors",
           block.checked ? "border-success/30 bg-success-soft/30" : "border-border",
           locked && "opacity-70",
           running && "border-accent/40",
+          showDelete && "border-destructive/40",
         )}
       >
         {/* Progress fill background */}
@@ -215,6 +239,40 @@ export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, 
             {running ? <Pause size={16} strokeWidth={2.5} /> : <Play size={16} strokeWidth={2.5} className="ml-0.5" />}
           </button>
         )}
+
+        <AnimatePresence>
+          {showDelete && onDelete && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 flex items-center justify-end gap-2 pr-2 bg-background/85 backdrop-blur-sm rounded-xl"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  tapHaptic();
+                  onDelete();
+                  setShowDelete(false);
+                }}
+                className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-destructive text-destructive-foreground text-[13px] font-bold shadow-md active:scale-95 transition-transform"
+              >
+                <Trash2 size={14} strokeWidth={2.5} /> Delete
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDelete(false);
+                }}
+                className="h-9 w-9 rounded-lg bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
+                aria-label="Cancel"
+              >
+                <X size={15} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {variant === "editor" && (

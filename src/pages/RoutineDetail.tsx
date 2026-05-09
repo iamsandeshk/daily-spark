@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Flame, Trash2, Pencil, Plus, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, Flame, Trash2, Pencil, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
@@ -265,6 +265,15 @@ const RoutineDetail = () => {
                 </div>
               );
             })()}
+            {existing && (
+              <button
+                onClick={() => navigate(`/routine/${existing.id}/settings`)}
+                className="h-9 w-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-smooth"
+                aria-label="Routine settings"
+              >
+                <SettingsIcon size={16} />
+              </button>
+            )}
             {existing && (
               <button
                 onClick={() => setDeleteOpen(true)}

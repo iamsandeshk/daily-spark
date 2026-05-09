@@ -62,9 +62,16 @@ const Index = () => {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [reorderMode]);
 
-  const sortedRoutines = [...r.state.routines].sort((a, b) => a.order - b.order);
+  const today = new Date().toISOString().slice(0, 10);
+  const isVisible = (rt: Routine) => {
+    if (rt.archived) return false;
+    if (rt.startDate && today < rt.startDate) return false;
+    if (rt.endDate && today > rt.endDate) return false;
+    return true;
+  };
+  const sortedRoutines = [...r.state.routines].filter(isVisible).sort((a, b) => a.order - b.order);
   const [order, setOrder] = useState<Routine[]>(sortedRoutines);
-  
+
   useEffect(() => {
     setOrder(sortedRoutines);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,6 +167,10 @@ const Index = () => {
               onDeleteSection={r.deleteRoutine}
               onToggleRoutine={r.toggleRoutine}
               onDeleteRoutine={r.deleteRoutine}
+              onArchive={(id) => {
+                r.updateRoutine(id, { archived: true });
+                tapHaptic();
+              }}
               setRoutineBlocks={r.setRoutineBlocks}
             />
           ))}
@@ -224,6 +235,7 @@ type ItemProps = {
   onDeleteSection: (id: string) => void;
   onToggleRoutine: (id: string) => void;
   onDeleteRoutine: (id: string) => void;
+  onArchive: (id: string) => void;
   setRoutineBlocks: ReturnType<typeof useRoutines>["setRoutineBlocks"];
 };
 
