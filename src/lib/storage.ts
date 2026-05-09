@@ -85,9 +85,39 @@ const snapshotForDate = (state: RoutineState): DayHistory["snapshot"] => {
  * If the ending day had unfinished checkbox tasks, record a `pendingCarryForward`
  * so the user can decide (Smart Carry Forward).
  */
+/** Per-routine reset: routines with their own reset hour reset independently. */
+const applyPerRoutineReset = (state: RoutineState): RoutineState => {
+  let changed = false;
+  const routines = state.routines.map((r) => {
+    const hasOwn = r.resetHour !== undefined || r.resetMinute !== undefined;
+    if (!hasOwn) return r;
+    const eff = effectiveTodayKeyForRoutine(r, state);
+    if (!r.routineLastResetDate) {
+      changed = true;
+      return { ...r, routineLastResetDate: eff };
+    }
+    if (r.routineLastResetDate === eff) return r;
+    changed = true;
+    return {
+      ...r,
+      routineLastResetDate: eff,
+      isCompleted: false,
+      blocks: (r.blocks ?? []).map((b) =>
+        (b.type === "checkbox" || b.type === "timer")
+          ? { ...b, checked: false, timerEndAt: undefined, timerPausedRemaining: undefined }
+          : b,
+      ),
+    };
+  });
+  if (!changed) return state;
+  const next = { ...state, routines };
+  saveState(next);
+  return next;
+};
+
 export const applyDailyReset = (state: RoutineState): RoutineState => {
   const today = effectiveTodayKey(state);
-  if (state.lastResetDate === today) return state;
+  if (state.lastResetDate === today) return applyPerRoutineReset(state);
 
   // Save snapshot of the day that's ending (state.lastResetDate)
   const endingDate = state.lastResetDate;
