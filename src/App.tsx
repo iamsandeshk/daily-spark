@@ -29,6 +29,7 @@ const App = () => (
         <Routes>
         <Route path="/" element={<Index />} />
           <Route path="/routine/:id" element={<RoutineDetailRoute />} />
+          <Route path="/routine/:id/settings" element={<RoutineSettings />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/weekly-report" element={<WeeklyReport />} />
