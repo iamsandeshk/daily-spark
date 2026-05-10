@@ -209,12 +209,6 @@ const RoutineDetail = () => {
     navigate("/");
   };
 
-  const remove = () => {
-    if (!existing) return;
-    r.deleteRoutine(existing.id);
-    navigate("/");
-  };
-
   return (
     <div className="min-h-full bg-background pb-32">
       <header className="safe-top sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 transition-smooth">
