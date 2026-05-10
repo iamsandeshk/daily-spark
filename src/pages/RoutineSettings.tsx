@@ -102,6 +102,24 @@ const RoutineSettings = () => {
               </button>
             </div>
           )}
+          <div className="border-t border-border flex items-center gap-3 px-4 py-3.5">
+            <RefreshCw size={18} className="shrink-0 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] font-medium">Reset checked tasks</div>
+              <div className="text-[12px] text-muted-foreground">
+                {routine.disableDailyReset
+                  ? "Tasks stay checked until you uncheck them"
+                  : "Tasks reset every day at the reset time"}
+              </div>
+            </div>
+            <Switch
+              checked={!routine.disableDailyReset}
+              onCheckedChange={(v) => {
+                r.updateRoutine(routine.id, { disableDailyReset: !v });
+                tapHaptic();
+              }}
+            />
+          </div>
         </Card>
 
         <SectionLabel>Schedule</SectionLabel>
