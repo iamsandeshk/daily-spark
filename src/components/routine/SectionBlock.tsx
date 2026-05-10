@@ -102,10 +102,10 @@ export const SectionBlock = ({
     let changed = false;
     let prevAllDone = true;
     const nextBlocks = blocks.map((b) => {
-      const isTask = b.type === "checkbox" || b.type === "timer";
+      const isTask = (b.type === "checkbox" || b.type === "timer") && !!b.text?.trim();
       const wasPrevDone = prevAllDone;
       if (isTask && !b.checked) prevAllDone = false;
-      if (b.type !== "timer") return b;
+      if (b.type !== "timer" || !b.text?.trim()) return b;
       const idle = !b.checked && !b.timerEndAt && b.timerPausedRemaining === undefined;
       if (wasPrevDone && idle) {
         changed = true;
