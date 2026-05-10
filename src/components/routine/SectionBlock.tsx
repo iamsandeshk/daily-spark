@@ -61,16 +61,12 @@ export const SectionBlock = ({
   const allBlocks = (routine.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
   const done = allBlocks.filter((b) => b.checked).length;
 
-  // Show all tasks (including timers) on home — timers behave like regular tasks.
-  // Sort: unchecked timers first, then unchecked tasks, then checked. Cap at 4.
+  // Show all tasks in their natural order; only move checked tasks to the bottom.
   const sorted = [...allBlocks].sort((a, b) => {
     const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
     const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
-    if (aIsDone !== bIsDone) return aIsDone ? 1 : -1;
-    const aIsTimer = a.type === "timer";
-    const bIsTimer = b.type === "timer";
-    if (aIsTimer !== bIsTimer) return aIsTimer ? -1 : 1;
-    return 0;
+    if (aIsDone === bIsDone) return 0;
+    return aIsDone ? 1 : -1;
   });
   const visibleBlocks = sorted.slice(0, 4);
   const remainingCount = allBlocks.length - visibleBlocks.length;
