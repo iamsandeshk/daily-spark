@@ -1,22 +1,13 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Flame, Trash2, Pencil, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
+import { ArrowLeft, Flame, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-import { cn, uid } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { uid } from "@/lib/utils";
 
 
 const RoutineDetail = () => {
@@ -55,7 +46,6 @@ const RoutineDetail = () => {
         : []),
   );
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Reset history on ID change
   const [history, setHistory] = useState<{ title: string; emoji: string; blocks: RoutineBlockContent[] }[]>([]);
@@ -219,12 +209,6 @@ const RoutineDetail = () => {
     navigate("/");
   };
 
-  const remove = () => {
-    if (!existing) return;
-    r.deleteRoutine(existing.id);
-    navigate("/");
-  };
-
   return (
     <div className="min-h-full bg-background pb-32">
       <header className="safe-top sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 transition-smooth">
@@ -272,15 +256,6 @@ const RoutineDetail = () => {
                 aria-label="Routine settings"
               >
                 <SettingsIcon size={16} />
-              </button>
-            )}
-            {existing && (
-              <button
-                onClick={() => setDeleteOpen(true)}
-                className="h-9 w-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20 transition-smooth"
-                aria-label="Delete"
-              >
-                <Trash2 size={16} />
               </button>
             )}
           </div>
@@ -342,34 +317,6 @@ const RoutineDetail = () => {
           </motion.button>
         )}
       </AnimatePresence>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
-          <DialogHeader className="space-y-3">
-            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Delete routine?</DialogTitle>
-            <DialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
-              This will permanently delete "{existing?.title}" and its progress. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteOpen(false)}
-              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={remove}
-              className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-destructive/20"
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <EmojiPicker
         open={emojiOpen}
         value={emoji}

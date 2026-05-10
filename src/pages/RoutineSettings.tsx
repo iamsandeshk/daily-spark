@@ -1,11 +1,19 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, CalendarDays, Archive, ArchiveRestore, RotateCcw, RefreshCw } from "lucide-react";
+import { ArrowLeft, Clock, CalendarDays, Archive, ArchiveRestore, RotateCcw, RefreshCw, Trash2 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +34,7 @@ const RoutineSettings = () => {
   const routine = useMemo(() => r.state.routines.find((x) => x.id === id), [r.state.routines, id]);
 
   const [clockOpen, setClockOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!routine) {
     return (
@@ -185,6 +194,22 @@ const RoutineSettings = () => {
           </button>
         </Card>
 
+        <SectionLabel>Danger zone</SectionLabel>
+        <Card className="border-destructive/30">
+          <button
+            onClick={() => setDeleteOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 size={18} className="shrink-0 text-destructive" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] font-medium text-destructive">Delete routine</div>
+              <div className="text-[12px] text-muted-foreground">
+                Permanently remove this routine and its progress
+              </div>
+            </div>
+          </button>
+        </Card>
+
         <div className="mt-8 flex justify-end">
           <Button
             onClick={() => {
@@ -208,6 +233,39 @@ const RoutineSettings = () => {
           tapHaptic();
         }}
       />
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">
+              Delete routine?
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
+              This will permanently delete "{routine.title}" and its progress. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                r.deleteRoutine(routine.id);
+                setDeleteOpen(false);
+                navigate("/");
+              }}
+              className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-destructive/20"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
