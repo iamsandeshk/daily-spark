@@ -14,7 +14,7 @@ import { TimerRow } from "./TimerRow";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link as LinkIcon, ExternalLink } from "lucide-react";
 import {
   DropdownMenu,
