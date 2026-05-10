@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, CalendarDays, Archive, ArchiveRestore, RotateCcw } from "lucide-react";
+import { ArrowLeft, Clock, CalendarDays, Archive, ArchiveRestore, RotateCcw, RefreshCw } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
