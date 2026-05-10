@@ -46,7 +46,6 @@ const RoutineDetail = () => {
         : []),
   );
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Reset history on ID change
   const [history, setHistory] = useState<{ title: string; emoji: string; blocks: RoutineBlockContent[] }[]>([]);
