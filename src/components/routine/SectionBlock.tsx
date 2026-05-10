@@ -95,6 +95,29 @@ export const SectionBlock = ({
     setRoutineBlocks(routine.id, next);
   };
 
+  // Auto-start idle timers as soon as their preceding tasks are all complete,
+  // even when the timer isn't currently rendered on the home view.
+  useEffect(() => {
+    const blocks = routine.blocks ?? [];
+    let changed = false;
+    let prevAllDone = true;
+    const nextBlocks = blocks.map((b) => {
+      const isTask = b.type === "checkbox" || b.type === "timer";
+      const wasPrevDone = prevAllDone;
+      if (isTask && !b.checked) prevAllDone = false;
+      if (b.type !== "timer") return b;
+      const idle = !b.checked && !b.timerEndAt && b.timerPausedRemaining === undefined;
+      if (wasPrevDone && idle) {
+        changed = true;
+        const dur = b.durationSeconds ?? 60;
+        return { ...b, timerEndAt: Date.now() + dur * 1000 };
+      }
+      return b;
+    });
+    if (changed) setRoutineBlocks(routine.id, nextBlocks);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routine.blocks]);
+
   const handleToggleCheckbox = (blockId: string) => {
     const isChecking = !(routine.blocks ?? []).find(b => b.id === blockId)?.checked;
     
