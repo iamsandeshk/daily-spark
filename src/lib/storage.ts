@@ -98,6 +98,9 @@ const applyPerRoutineReset = (state: RoutineState): RoutineState => {
     }
     if (r.routineLastResetDate === eff) return r;
     changed = true;
+    if (r.disableDailyReset) {
+      return { ...r, routineLastResetDate: eff };
+    }
     return {
       ...r,
       routineLastResetDate: eff,
@@ -160,6 +163,11 @@ export const applyDailyReset = (state: RoutineState): RoutineState => {
 
   const yesterday = yesterdayKey(today);
   const routines = state.routines.map((r) => {
+    if (r.disableDailyReset) {
+      // Preserve completion state across the daily reset.
+      const keepStreak = r.lastCompletedDate === yesterday || r.lastCompletedDate === today;
+      return { ...r, streakCount: keepStreak ? r.streakCount : 0 };
+    }
     // Routines awaiting carry-forward decision keep their streak until user decides.
     if (willShowPopup && carriedIds.has(r.id)) {
       return {
