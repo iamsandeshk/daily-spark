@@ -48,6 +48,8 @@ export type Routine = {
   resetMinute?: number;
   /** Tracks last per-routine reset (YYYY-MM-DD using its own offset). */
   routineLastResetDate?: string;
+  /** When true, completed tasks stay checked across daily reset. */
+  disableDailyReset?: boolean;
 };
 
 export type Section = {
