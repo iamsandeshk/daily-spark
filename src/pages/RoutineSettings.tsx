@@ -194,6 +194,22 @@ const RoutineSettings = () => {
           </button>
         </Card>
 
+        <SectionLabel>Danger zone</SectionLabel>
+        <Card className="border-destructive/30">
+          <button
+            onClick={() => setDeleteOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 size={18} className="shrink-0 text-destructive" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[15px] font-medium text-destructive">Delete routine</div>
+              <div className="text-[12px] text-muted-foreground">
+                Permanently remove this routine and its progress
+              </div>
+            </div>
+          </button>
+        </Card>
+
         <div className="mt-8 flex justify-end">
           <Button
             onClick={() => {
