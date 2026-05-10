@@ -98,6 +98,9 @@ const applyPerRoutineReset = (state: RoutineState): RoutineState => {
     }
     if (r.routineLastResetDate === eff) return r;
     changed = true;
+    if (r.disableDailyReset) {
+      return { ...r, routineLastResetDate: eff };
+    }
     return {
       ...r,
       routineLastResetDate: eff,
