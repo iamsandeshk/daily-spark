@@ -1,22 +1,13 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Flame, Trash2, Pencil, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
+import { ArrowLeft, Flame, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-import { cn, uid } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { uid } from "@/lib/utils";
 
 
 const RoutineDetail = () => {
