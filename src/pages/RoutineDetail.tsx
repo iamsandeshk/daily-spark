@@ -333,7 +333,7 @@ const RoutineDetail = () => {
           </motion.button>
         )}
       </AnimatePresence>
-
+      <EmojiPicker
         open={emojiOpen}
         value={emoji}
         onClose={() => setEmojiOpen(false)}
