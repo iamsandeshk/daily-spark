@@ -34,6 +34,7 @@ const RoutineSettings = () => {
   const routine = useMemo(() => r.state.routines.find((x) => x.id === id), [r.state.routines, id]);
 
   const [clockOpen, setClockOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   if (!routine) {
     return (
