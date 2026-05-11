@@ -62,11 +62,14 @@ export const SectionBlock = ({
   const done = allBlocks.filter((b) => b.checked).length;
 
   // Show all tasks in their natural order; only move checked tasks to the bottom.
+  // Use original index as a tiebreaker so multiple timers (and tasks) keep
+  // their authored sequence regardless of engine sort stability.
+  const indexById = new Map(allBlocks.map((b, i) => [b.id, i] as const));
   const sorted = [...allBlocks].sort((a, b) => {
     const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
     const bIsDone = b.checked && !recentlyCheckedIds.has(b.id);
-    if (aIsDone === bIsDone) return 0;
-    return aIsDone ? 1 : -1;
+    if (aIsDone !== bIsDone) return aIsDone ? 1 : -1;
+    return (indexById.get(a.id) ?? 0) - (indexById.get(b.id) ?? 0);
   });
   const visibleBlocks = sorted.slice(0, 4);
   const remainingCount = allBlocks.length - visibleBlocks.length;
