@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Routine, RoutineState, Section } from "@/lib/routine-types";
 import { applyDailyReset, loadState, saveState, todayKey, todayLiveHistory, yesterdayKey } from "@/lib/storage";
 import { uid } from "@/lib/utils";
+import { scheduleResetReminder } from "@/lib/notifications";
 
 /** Merge today's live snapshot into history so the calendar always reflects current progress. */
 const withLiveToday = (s: RoutineState): RoutineState => {
@@ -60,6 +61,9 @@ export const useRoutines = () => {
       const settings = stateRef.current.settings ?? {};
       const resetHour = settings.resetHour ?? 0;
       const resetMinute = (settings as any).resetMinute ?? 0;
+      
+      scheduleResetReminder(resetHour, resetMinute);
+
       const now = new Date();
       const next = new Date(now);
       next.setHours(resetHour, resetMinute, 5, 0);

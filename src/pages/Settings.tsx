@@ -46,6 +46,9 @@ import {
 } from "@/components/ui/dialog";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 
 const useTheme = () => {
   const [mode, setMode] = useState<ThemeMode>(() => {
@@ -321,19 +324,37 @@ const Settings = () => {
     setTplOpen(false);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = localStorage.getItem("daily-routine-os/v1") ?? "{}";
+    const filename = `daily-routines-${new Date().toISOString().slice(0, 10)}.json`;
+
+    if (Capacitor.getPlatform() !== "web") {
+      try {
+        const result = await Filesystem.writeFile({
+          path: filename,
+          data: data,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        });
+        await Share.share({ url: result.uri });
+        successHaptic();
+      } catch (err) {
+        console.error("Export failed:", err);
+      }
+      return;
+    }
+
     const blob = new Blob([data], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `daily-routines-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     successHaptic();
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const esc = (v: any) => {
       const s = String(v ?? "");
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -368,11 +389,29 @@ const Settings = () => {
       }
     }
     const csv = rows.map((r) => r.map(esc).join(",")).join("\n");
+    const filename = `daily-routines-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    if (Capacitor.getPlatform() !== "web") {
+      try {
+        const result = await Filesystem.writeFile({
+          path: filename,
+          data: "\ufeff" + csv,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        });
+        await Share.share({ url: result.uri });
+        successHaptic();
+      } catch (err) {
+        console.error("CSV Export failed:", err);
+      }
+      return;
+    }
+
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `daily-routines-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     successHaptic();
