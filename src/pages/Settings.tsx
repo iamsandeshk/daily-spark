@@ -491,7 +491,7 @@ const Settings = () => {
             icon={LayoutTemplate}
             label="Templates"
             hint="Browse and add ready-made routines"
-            onClick={() => setTplOpen(true)}
+            onClick={() => navigate("/settings/templates")}
           />
           <Row
             icon={Archive}
@@ -508,7 +508,13 @@ const Settings = () => {
                 </span>
               ) : undefined
             }
-            onClick={() => setArchivedOpen(true)}
+            onClick={() => navigate("/settings/archived")}
+          />
+          <Row
+            icon={LayoutGrid}
+            label="Toolbar customization"
+            hint="Add, remove or reorder Quick Add tools"
+            onClick={() => navigate("/settings/toolbar")}
             last
           />
         </Card>
