@@ -10,6 +10,10 @@ import RoutineSettings from "./pages/RoutineSettings.tsx";
 import History from "./pages/History.tsx";
 import Settings from "./pages/Settings.tsx";
 import WeeklyReport from "./pages/WeeklyReport.tsx";
+import Templates from "./pages/Templates.tsx";
+import Archived from "./pages/Archived.tsx";
+import ToolbarCustomization from "./pages/ToolbarCustomization.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
 
 const queryClient = new QueryClient();
