@@ -56,6 +56,10 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
   const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
+  const { items: toolbarItems } = useToolbar();
+  const blockMenu = toolbarItems
+    .filter((i) => i.enabled)
+    .map((i) => ({ type: i.type, label: BLOCK_LABELS[i.type], icon: BLOCK_ICONS[i.type] }));
 
   const addBlock = (type: BlockType, afterIndex?: number) => {
     const nb: RoutineBlockContent = {
