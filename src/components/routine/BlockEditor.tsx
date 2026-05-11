@@ -28,21 +28,22 @@ import { RoutineCheckbox } from "./RoutineCheckbox";
 import { TimerRow, formatTime } from "./TimerRow";
 import { useRoutines } from "@/hooks/useRoutines";
 import { useNavigate } from "react-router-dom";
+import { useToolbar, BLOCK_LABELS } from "@/lib/toolbar-config";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-const blockMenu: { type: BlockType; label: string; icon: typeof Type }[] = [
-  { type: "text", label: "Text", icon: Type },
-  { type: "heading", label: "Heading", icon: Heading1 },
-  { type: "subheading", label: "Subheading", icon: Heading2 },
-  { type: "checkbox", label: "To-do", icon: CheckSquare },
-  { type: "timer", label: "Timer", icon: TimerIcon },
-  { type: "bullet", label: "Bullet list", icon: List },
-  { type: "routine", label: "Routine", icon: Layers },
-  { type: "link", label: "Link", icon: LinkIcon },
-  { type: "divider", label: "Divider", icon: Minus },
-  { type: "quote", label: "Quote", icon: Quote },
-];
+export const BLOCK_ICONS: Record<BlockType, typeof Type> = {
+  text: Type,
+  heading: Heading1,
+  subheading: Heading2,
+  checkbox: CheckSquare,
+  timer: TimerIcon,
+  bullet: List,
+  routine: Layers,
+  link: LinkIcon,
+  divider: Minus,
+  quote: Quote,
+};
 
 type Props = {
   blocks: RoutineBlockContent[];
@@ -55,6 +56,10 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
   const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
+  const { items: toolbarItems } = useToolbar();
+  const blockMenu = toolbarItems
+    .filter((i) => i.enabled)
+    .map((i) => ({ type: i.type, label: BLOCK_LABELS[i.type], icon: BLOCK_ICONS[i.type] }));
 
   const addBlock = (type: BlockType, afterIndex?: number) => {
     const nb: RoutineBlockContent = {

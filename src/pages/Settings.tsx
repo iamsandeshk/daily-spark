@@ -12,6 +12,10 @@ import {
   CalendarDays,
   Flame,
   LayoutTemplate,
+  LayoutGrid,
+  Star,
+  Shield,
+  Mail,
   Download,
   Upload,
   AlertTriangle,
@@ -491,7 +495,7 @@ const Settings = () => {
             icon={LayoutTemplate}
             label="Templates"
             hint="Browse and add ready-made routines"
-            onClick={() => setTplOpen(true)}
+            onClick={() => navigate("/settings/templates")}
           />
           <Row
             icon={Archive}
@@ -508,7 +512,13 @@ const Settings = () => {
                 </span>
               ) : undefined
             }
-            onClick={() => setArchivedOpen(true)}
+            onClick={() => navigate("/settings/archived")}
+          />
+          <Row
+            icon={LayoutGrid}
+            label="Toolbar customization"
+            hint="Add, remove or reorder Quick Add tools"
+            onClick={() => navigate("/settings/toolbar")}
             last
           />
         </Card>
@@ -658,6 +668,36 @@ const Settings = () => {
             <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Follow</span>
           </a>
         </div>
+
+        <Card className="mt-2.5">
+          <Row
+            icon={Star}
+            label="Rate this app"
+            hint="Leave a quick review on the store"
+            onClick={() => {
+              tapHaptic();
+              const pkg = "com.dailyroutiness.app";
+              window.open(`https://play.google.com/store/apps/details?id=${pkg}`, "_blank", "noopener,noreferrer");
+            }}
+          />
+          <Row
+            icon={Shield}
+            label="Privacy policy"
+            hint="Offline · your data stays on this device"
+            onClick={() => navigate("/settings/privacy")}
+          />
+          <Row
+            icon={Mail}
+            label="Send feedback"
+            hint="try.sandeshk@gmail.com"
+            onClick={() => {
+              tapHaptic();
+              const subject = encodeURIComponent("Daily Routines feedback");
+              window.location.href = `mailto:try.sandeshk@gmail.com?subject=${subject}`;
+            }}
+            last
+          />
+        </Card>
       </main>
 
       {/* Reset hour picker */}

@@ -10,6 +10,10 @@ import RoutineSettings from "./pages/RoutineSettings.tsx";
 import History from "./pages/History.tsx";
 import Settings from "./pages/Settings.tsx";
 import WeeklyReport from "./pages/WeeklyReport.tsx";
+import Templates from "./pages/Templates.tsx";
+import Archived from "./pages/Archived.tsx";
+import ToolbarCustomization from "./pages/ToolbarCustomization.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
 
 const queryClient = new QueryClient();
@@ -32,6 +36,10 @@ const App = () => (
           <Route path="/routine/:id/settings" element={<RoutineSettings />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/templates" element={<Templates />} />
+          <Route path="/settings/archived" element={<Archived />} />
+          <Route path="/settings/toolbar" element={<ToolbarCustomization />} />
+          <Route path="/settings/privacy" element={<PrivacyPolicy />} />
           <Route path="/weekly-report" element={<WeeklyReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
