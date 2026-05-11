@@ -36,6 +36,10 @@ const App = () => (
           <Route path="/routine/:id/settings" element={<RoutineSettings />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/templates" element={<Templates />} />
+          <Route path="/settings/archived" element={<Archived />} />
+          <Route path="/settings/toolbar" element={<ToolbarCustomization />} />
+          <Route path="/settings/privacy" element={<PrivacyPolicy />} />
           <Route path="/weekly-report" element={<WeeklyReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
