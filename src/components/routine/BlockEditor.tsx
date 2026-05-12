@@ -180,7 +180,7 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
             prevTasksComplete={prevTasksComplete}
             onUpdate={(patch) => updateBlock(b.id, patch)}
             onRemove={() => removeBlock(b.id)}
-            onEnter={() => handleEnter(i)}
+            onEnter={(pos) => handleEnter(i, pos)}
             onMergeWithPrevious={() => mergeWithPrevious(i)}
           />
         );
