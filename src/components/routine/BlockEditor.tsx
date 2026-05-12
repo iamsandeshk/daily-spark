@@ -248,7 +248,7 @@ type RowProps = {
   prevTasksComplete?: boolean;
   onUpdate: (patch: Partial<RoutineBlockContent>) => void;
   onRemove: () => void;
-  onEnter: () => void;
+  onEnter: (cursorPos?: number) => void;
   onMergeWithPrevious: () => void;
 };
 
