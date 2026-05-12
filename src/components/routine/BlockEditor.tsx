@@ -324,7 +324,8 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
     if (!editable) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onEnter();
+      const pos = (e.currentTarget as HTMLTextAreaElement | HTMLInputElement).selectionStart ?? undefined;
+      onEnter(pos ?? undefined);
     }
     if (e.key === "Backspace" && e.currentTarget.selectionStart === 0) {
       e.preventDefault();
