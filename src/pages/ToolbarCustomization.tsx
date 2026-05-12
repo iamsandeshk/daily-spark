@@ -11,16 +11,33 @@ import {
   Link as LinkIcon,
   Layers,
   Timer as TimerIcon,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
   RotateCcw,
 } from "lucide-react";
-import { useToolbar, BLOCK_LABELS, DEFAULT_TOOLBAR } from "@/lib/toolbar-config";
+import { useToolbar, BLOCK_LABELS, DEFAULT_TOOLBAR, type ToolbarItem } from "@/lib/toolbar-config";
 import type { BlockType } from "@/lib/routine-types";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const ICONS: Record<BlockType, typeof Type> = {
   text: Type,
@@ -35,16 +52,79 @@ const ICONS: Record<BlockType, typeof Type> = {
   quote: Quote,
 };
 
+interface RowProps {
+  item: ToolbarItem;
+  isLast: boolean;
+  onToggle: (v: boolean) => void;
+}
+
+const SortableRow = ({ item, isLast, onToggle }: RowProps) => {
+  const Icon = ICONS[item.type];
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.type });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2.5 bg-card",
+        !isLast && "border-b border-border",
+        isDragging && "shadow-lg opacity-90"
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        aria-label="Drag to reorder"
+        className="h-9 w-7 grid place-items-center rounded-md text-muted-foreground hover:bg-muted touch-none cursor-grab active:cursor-grabbing"
+      >
+        <GripVertical size={16} />
+      </button>
+      <div className="h-9 w-9 shrink-0 rounded-xl bg-muted flex items-center justify-center">
+        <Icon size={16} strokeWidth={2.5} className="text-muted-foreground/80" />
+      </div>
+      <div className="flex-1 min-w-0 text-[15px] font-medium">
+        {BLOCK_LABELS[item.type]}
+      </div>
+      <Switch
+        checked={item.enabled}
+        onCheckedChange={onToggle}
+        aria-label={`Enable ${BLOCK_LABELS[item.type]}`}
+      />
+    </div>
+  );
+};
+
 const ToolbarCustomization = () => {
   const navigate = useNavigate();
   const { items, setItems } = useToolbar();
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const j = idx + dir;
-    if (j < 0 || j >= items.length) return;
-    const next = [...items];
-    [next[idx], next[j]] = [next[j], next[idx]];
-    setItems(next);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((i) => i.type === active.id);
+    const newIndex = items.findIndex((i) => i.type === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    setItems(arrayMove(items, oldIndex, newIndex));
     tapHaptic();
   };
 
@@ -72,55 +152,32 @@ const ToolbarCustomization = () => {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-serif font-bold">Toolbar</h1>
           <p className="text-xs text-muted-foreground">
-            Choose which block types appear in Quick Add and their order
+            Drag to reorder. Toggle to show or hide in Quick Add.
           </p>
         </div>
       </header>
 
       <main className="px-5">
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          {items.map((it, i) => {
-            const Icon = ICONS[it.type];
-            return (
-              <div
-                key={it.type}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5",
-                  i < items.length - 1 && "border-b border-border"
-                )}
-              >
-                <div className="flex flex-col">
-                  <button
-                    onClick={() => move(i, -1)}
-                    disabled={i === 0}
-                    aria-label="Move up"
-                    className="h-6 w-6 grid place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
-                  >
-                    <ChevronUp size={14} />
-                  </button>
-                  <button
-                    onClick={() => move(i, 1)}
-                    disabled={i === items.length - 1}
-                    aria-label="Move down"
-                    className="h-6 w-6 grid place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30"
-                  >
-                    <ChevronDown size={14} />
-                  </button>
-                </div>
-                <div className="h-9 w-9 shrink-0 rounded-xl bg-muted flex items-center justify-center">
-                  <Icon size={16} strokeWidth={2.5} className="text-muted-foreground/80" />
-                </div>
-                <div className="flex-1 min-w-0 text-[15px] font-medium">
-                  {BLOCK_LABELS[it.type]}
-                </div>
-                <Switch
-                  checked={it.enabled}
-                  onCheckedChange={(v) => toggle(i, v)}
-                  aria-label={`Enable ${BLOCK_LABELS[it.type]}`}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={items.map((i) => i.type)}
+              strategy={verticalListSortingStrategy}
+            >
+              {items.map((it, i) => (
+                <SortableRow
+                  key={it.type}
+                  item={it}
+                  isLast={i === items.length - 1}
+                  onToggle={(v) => toggle(i, v)}
                 />
-              </div>
-            );
-          })}
+              ))}
+            </SortableContext>
+          </DndContext>
         </div>
 
         <div className="mt-5 flex justify-between items-center gap-3">
