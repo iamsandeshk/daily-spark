@@ -78,16 +78,27 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
     setToolboxOpen(false);
   };
 
-  const handleEnter = (index: number) => {
+  const handleEnter = (index: number, cursorPos?: number) => {
     const block = blocks[index];
-    const nextBlock = blocks[index + 1];
-    if (nextBlock && nextBlock.type === block.type) {
-      setFocusedBlockId(nextBlock.id);
-      setFocusedCursorPos(0);
-    } else if (block.text?.trim()) {
-      const continueTypes: BlockType[] = ["bullet", "checkbox", "text"];
-      addBlock(continueTypes.includes(block.type) ? block.type : "text", index);
-    }
+    const continueTypes: BlockType[] = ["bullet", "checkbox", "text"];
+    const newType = continueTypes.includes(block.type) ? block.type : "text";
+    const text = block.text ?? "";
+    const splitAt = typeof cursorPos === "number" ? cursorPos : text.length;
+    const before = text.slice(0, splitAt);
+    const after = text.slice(splitAt);
+
+    const nb: RoutineBlockContent = {
+      id: uid(),
+      type: newType,
+      text: after,
+      checked: (newType === "checkbox" || newType === "timer") ? false : undefined,
+      durationSeconds: newType === "timer" ? 60 : undefined,
+    };
+    const next = blocks.map((b, i) => (i === index ? { ...b, text: before } : b));
+    next.splice(index + 1, 0, nb);
+    setFocusedBlockId(nb.id);
+    setFocusedCursorPos(0);
+    onChange(next);
   };
 
   const mergeWithPrevious = (index: number) => {
