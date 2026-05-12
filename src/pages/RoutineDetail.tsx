@@ -120,9 +120,10 @@ const RoutineDetail = () => {
   };
 
   const handleTitleChange = (val: string) => {
+    const isRemoval = val.length < title.length;
     takeSnapshot();
     setTitle(val);
-    setShowUndo(true);
+    if (isRemoval) setShowUndo(true);
     if (existing) {
       r.updateRoutine(existing.id, { title: val });
     } else if (isNew && val.trim()) {
@@ -143,24 +144,28 @@ const RoutineDetail = () => {
   };
 
   const handleDescriptionChange = (val: string) => {
+    const isRemoval = val.length < description.length;
     takeSnapshot();
     setDescription(val);
-    setShowUndo(true);
+    if (isRemoval) setShowUndo(true);
     if (existing) {
       r.updateRoutine(existing.id, { description: val });
     }
   };
 
   const handleBlocksChange = (next: RoutineBlockContent[]) => {
-    // Show undo for any change that isn't just a checkbox toggle
-    const isOnlyCheckboxToggle = next.length === blocks.length && next.every((nb, i) => {
+    // Detect removal: a block was deleted, or any block's text got shorter.
+    const removedBlock = next.length < blocks.length;
+    const textShortened = !removedBlock && next.some((nb, i) => {
       const ob = blocks[i];
-      return ob && nb.id === ob.id && nb.text === ob.text && nb.type === ob.type;
+      if (!ob || ob.id !== nb.id) return false;
+      return (nb.text?.length ?? 0) < (ob.text?.length ?? 0);
     });
+    const isRemoval = removedBlock || textShortened;
 
     takeSnapshot();
     setBlocks(next);
-    setShowUndo(!isOnlyCheckboxToggle);
+    if (isRemoval) setShowUndo(true);
     if (existing) r.setRoutineBlocks(existing.id, next);
   };
 
