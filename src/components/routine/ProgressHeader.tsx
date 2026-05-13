@@ -54,8 +54,8 @@ export const ProgressHeader = ({
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   return (
-    <header className="px-5 pb-4">
-      <div className="sticky top-0 z-30 bg-background safe-top pb-3 -mx-5 px-5 flex items-start justify-between">
+    <>
+      <div className="sticky top-0 z-30 bg-background safe-top px-5 pb-3 flex items-start justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-medium">{dateLabel()}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{greeting()}</h1>
@@ -85,28 +85,30 @@ export const ProgressHeader = ({
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-block">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Today's progress</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {completed}
-              <span className="text-muted-foreground text-base font-medium"> / {total}</span>
-            </p>
+      <div className="px-5 pb-4">
+        <div className="mt-2 rounded-2xl border border-border bg-card p-4 shadow-block">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Today's progress</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {completed}
+                <span className="text-muted-foreground text-base font-medium"> / {total}</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-semibold tabular-nums tracking-tight">{pct}%</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-semibold tabular-nums tracking-tight">{pct}%</p>
+          <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-foreground rounded-full"
+              initial={false}
+              animate={{ width: `${pct}%` }}
+              transition={{ type: "spring", stiffness: 120, damping: 20 }}
+            />
           </div>
-        </div>
-        <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-foreground rounded-full"
-            initial={false}
-            animate={{ width: `${pct}%` }}
-            transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          />
         </div>
       </div>
-    </header>
+    </>
   );
 };
