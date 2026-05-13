@@ -438,7 +438,7 @@ const Settings = () => {
 
   return (
     <div className="min-h-full bg-background pb-20 no-select">
-      <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background safe-top px-5 pb-3 pt-3 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
           className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
