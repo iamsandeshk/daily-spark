@@ -54,8 +54,8 @@ export const ProgressHeader = ({
   const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   return (
-    <header className="safe-top px-5 pb-4">
-      <div className="flex items-start justify-between">
+    <header className="px-5 pb-4">
+      <div className="sticky top-0 z-30 bg-background safe-top pb-3 -mx-5 px-5 flex items-start justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-medium">{dateLabel()}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">{greeting()}</h1>
