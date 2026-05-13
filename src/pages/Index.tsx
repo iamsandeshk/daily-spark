@@ -139,15 +139,12 @@ const Index = () => {
         show={showCelebration}
         onDone={() => setShowCelebration(false)}
       />
-      <div className="sticky top-0 z-30 bg-background">
-        <ProgressHeader
-          completed={r.completed}
-          total={r.total}
-          globalStreak={r.globalStreak}
-          onOpenHistory={() => navigate("/history")}
-          stickyHeaderOnly
-        />
-      </div>
+      <ProgressHeader
+        completed={r.completed}
+        total={r.total}
+        globalStreak={r.globalStreak}
+        onOpenHistory={() => navigate("/history")}
+      />
 
       <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
 
