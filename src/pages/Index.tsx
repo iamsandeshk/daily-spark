@@ -145,10 +145,11 @@ const Index = () => {
           total={r.total}
           globalStreak={r.globalStreak}
           onOpenHistory={() => navigate("/history")}
+          stickyHeaderOnly
         />
-
-        <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
       </div>
+
+      <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
 
       <CarryForwardDialog
         state={r.state}
