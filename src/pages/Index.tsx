@@ -139,14 +139,16 @@ const Index = () => {
         show={showCelebration}
         onDone={() => setShowCelebration(false)}
       />
-      <ProgressHeader
-        completed={r.completed}
-        total={r.total}
-        globalStreak={r.globalStreak}
-        onOpenHistory={() => navigate("/history")}
-      />
+      <div className="sticky top-0 z-30 bg-background">
+        <ProgressHeader
+          completed={r.completed}
+          total={r.total}
+          globalStreak={r.globalStreak}
+          onOpenHistory={() => navigate("/history")}
+        />
 
-      <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
+        <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
+      </div>
 
       <CarryForwardDialog
         state={r.state}
