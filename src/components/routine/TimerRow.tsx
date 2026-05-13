@@ -74,10 +74,13 @@ export const TimerRow = ({ block, prevTasksComplete, variant, editable = false, 
     }
   }, [running, remaining, block.checked]);
 
-  // Auto-start when previous tasks just became complete
+  // Auto-start (or resume) when previous tasks just became complete
   useEffect(() => {
-    if (prevTasksComplete && !block.checked && !running && !paused) {
-      onUpdate({ timerEndAt: Date.now() + duration * 1000, timerPausedRemaining: undefined });
+    if (prevTasksComplete && !block.checked && !running) {
+      const start = paused && typeof block.timerPausedRemaining === "number"
+        ? block.timerPausedRemaining
+        : duration;
+      onUpdate({ timerEndAt: Date.now() + start * 1000, timerPausedRemaining: undefined });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prevTasksComplete, block.checked]);
