@@ -134,7 +134,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-full bg-background pb-32">
+    <div className="min-h-full bg-background pb-32 no-select">
       <CompletionCelebration
         show={showCelebration}
         onDone={() => setShowCelebration(false)}
