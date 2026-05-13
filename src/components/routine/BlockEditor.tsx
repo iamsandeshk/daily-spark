@@ -369,13 +369,6 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
               <RoutineCheckbox
                 checked={!!block.checked}
                 onChange={() => {
-                  if (!block.checked && !prevTasksComplete && !ro) {
-                    tapHaptic();
-                    toast("Complete previous tasks first", {
-                      description: "Finish the tasks above before checking this one.",
-                    });
-                    return;
-                  }
                   if (!block.checked) successHaptic();
                   else tapHaptic();
                   onUpdate({ checked: !block.checked });
