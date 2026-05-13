@@ -437,7 +437,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-full bg-background pb-20">
+    <div className="min-h-full bg-background pb-20 no-select">
       <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
