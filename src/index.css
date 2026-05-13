@@ -163,3 +163,17 @@
   .safe-top { padding-top: calc(max(env(safe-area-inset-top), 1rem) + 0.75rem); }
   .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
 }
+
+@layer utilities {
+  .no-select {
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  .no-select input,
+  .no-select textarea,
+  .no-select [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
