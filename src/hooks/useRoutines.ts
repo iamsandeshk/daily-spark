@@ -61,8 +61,17 @@ export const useRoutines = () => {
       const settings = stateRef.current.settings ?? {};
       const resetHour = settings.resetHour ?? 0;
       const resetMinute = (settings as any).resetMinute ?? 0;
+      const reminderHour = (settings as any).reminderHour ?? 7;
+      const reminderMinute = (settings as any).reminderMinute ?? 0;
+      const dailyReminder = (settings as any).dailyReminder ?? false;
       
-      scheduleResetReminder(resetHour, resetMinute);
+      if (dailyReminder) {
+        scheduleResetReminder(reminderHour, reminderMinute);
+      } else {
+        import("@/lib/notifications").then(({ cancelResetReminder }) => {
+          cancelResetReminder().catch(() => {});
+        }).catch(() => {});
+      }
 
       const now = new Date();
       const next = new Date(now);
@@ -307,6 +316,23 @@ export const useRoutines = () => {
     // If not, the streak is just the past consecutive days.
     return isTodayComplete ? streak + 1 : streak;
   }, [state]);
+
+  useEffect(() => {
+    const settings = state.settings ?? {};
+    const resetHour = settings.resetHour ?? 0;
+    const resetMinute = (settings as any).resetMinute ?? 0;
+    const dailyReminder = (settings as any).dailyReminder ?? false;
+    
+    if (dailyReminder) {
+      import("@/lib/notifications").then(({ scheduleEveningReminder }) => {
+        scheduleEveningReminder(resetHour, resetMinute, completed, total).catch(() => {});
+      });
+    } else {
+      import("@/lib/notifications").then(({ cancelEveningReminder }) => {
+        cancelEveningReminder().catch(() => {});
+      });
+    }
+  }, [completed, total, state.settings]);
 
   /** User accepted carry-forward: restore the streaks that were active before
    * the missed day so the streak continues. Set lastCompletedDate to yesterday

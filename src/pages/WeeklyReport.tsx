@@ -446,30 +446,6 @@ const WeeklyReport = () => {
           <ArrowLeft size={18} />
         </button>
         <h1 className="text-2xl font-serif font-bold flex-1">Weekly Report</h1>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
-              aria-label="Export report"
-            >
-              <Download size={18} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={exportPDF}>
-              <FileText size={14} className="mr-2" /> Weekly report (PDF)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportJSON}>
-              <FileJson size={14} className="mr-2" /> Weekly report (JSON)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAppDataPDF}>
-              <FileText size={14} className="mr-2" /> App data (PDF)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAppDataJSON}>
-              <FileJson size={14} className="mr-2" /> App data (JSON)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </header>
 
       <main className="px-5 space-y-5">

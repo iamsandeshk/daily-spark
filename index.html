@@ -17,11 +17,16 @@
       (function () {
         try {
           var saved = localStorage.getItem("theme");
+          var amoled = localStorage.getItem("amoled") === "1";
           var prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          var dark = saved ? saved === "dark" : prefers;
-          if (dark) document.documentElement.classList.add("dark");
+          var dark = saved === "dark" || (saved === "system" && prefers) || (!saved && prefers);
+          if (dark) {
+            document.documentElement.classList.add("dark");
+            if (amoled) document.documentElement.classList.add("amoled");
+          }
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", dark ? "#171513" : "#fafaf7");
+          if (meta) meta.setAttribute("content", dark ? (amoled ? "#000000" : "#171513") : "#fafaf7");
+          document.documentElement.style.backgroundColor = dark ? (amoled ? "#000000" : "hsl(30, 8%, 8%)") : "hsl(40, 20%, 99%)";
         } catch (e) {}
       })();
     </script>
