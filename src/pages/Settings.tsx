@@ -26,6 +26,9 @@ import {
   Bell,
   Info as InfoIcon,
   TrendingUp,
+  Crown,
+  Lock,
+  Palette,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
@@ -46,6 +49,8 @@ import {
 } from "@/components/ui/dialog";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
+import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
+import { isPro } from "@/lib/pro";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
