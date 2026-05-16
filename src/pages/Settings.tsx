@@ -26,6 +26,9 @@ import {
   Bell,
   Info as InfoIcon,
   TrendingUp,
+  Crown,
+  Lock,
+  Palette,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
@@ -46,6 +49,8 @@ import {
 } from "@/components/ui/dialog";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
+import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
+import { isPro } from "@/lib/pro";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -127,6 +132,14 @@ const Settings = () => {
   const navigate = useNavigate();
   const r = useRoutines();
   const { mode, setTheme, amoled, setAmoled } = useTheme();
+  const [colorThemeId, setColorThemeIdState] = useState<ColorThemeId>(getColorTheme());
+  const [proEnabled, setProEnabled] = useState<boolean>(isPro());
+  useEffect(() => {
+    const onPro = () => setProEnabled(isPro());
+    window.addEventListener("pro:updated", onPro);
+    return () => window.removeEventListener("pro:updated", onPro);
+  }, []);
+
 
   const settings = r.state.settings ?? {};
   const resetHour = settings.resetHour ?? 0;
@@ -450,6 +463,27 @@ const Settings = () => {
       </header>
 
       <main className="px-5">
+        {/* Pro CTA */}
+        <button
+          onClick={() => { tapHaptic(); navigate("/settings/pro"); }}
+          className="mt-2 w-full rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 flex items-center gap-3 text-left"
+        >
+          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center shrink-0">
+            <Crown size={18} className="text-accent-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-bold">
+              {proEnabled ? "Pro is active" : "Upgrade to Pro"}
+            </div>
+            <div className="text-[12px] text-muted-foreground">
+              {proEnabled ? "All Pro features unlocked" : "Themes, insights, sync & more"}
+            </div>
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-wider text-accent">
+            {proEnabled ? "ON" : "View"}
+          </span>
+        </button>
+
         <SectionLabel>Appearance</SectionLabel>
         <div className="grid grid-cols-3 gap-2">
           {themeOptions.map((opt) => {
@@ -481,6 +515,56 @@ const Settings = () => {
           </div>
           <Switch checked={amoled} onCheckedChange={setAmoled} aria-label="AMOLED black theme" />
         </div>
+
+        <SectionLabel>
+          <span className="inline-flex items-center gap-1.5">
+            <Palette size={11} /> Color theme
+            {!proEnabled && (
+              <span className="ml-1 inline-flex items-center gap-1 text-accent">
+                <Crown size={10} /> Pro
+              </span>
+            )}
+          </span>
+        </SectionLabel>
+        <div className="grid grid-cols-5 gap-2.5">
+          {COLOR_THEMES.map((t) => {
+            const active = colorThemeId === t.id;
+            const locked = t.pro && !proEnabled;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  if (locked) {
+                    tapHaptic();
+                    navigate("/settings/pro");
+                    return;
+                  }
+                  setColorTheme(t.id);
+                  setColorThemeIdState(t.id);
+                  tapHaptic();
+                }}
+                aria-label={t.name}
+                className={cn(
+                  "relative aspect-square rounded-2xl border-2 transition-all flex items-center justify-center",
+                  active ? "border-foreground scale-[0.96]" : "border-border hover:border-muted-foreground/40"
+                )}
+                style={{ backgroundColor: t.swatch }}
+              >
+                {active && <Check size={16} className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" strokeWidth={3} />}
+                {locked && !active && (
+                  <div className="absolute inset-0 rounded-xl bg-background/55 flex items-center justify-center">
+                    <Lock size={12} className="text-foreground" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2 px-1">
+          {COLOR_THEMES.find((t) => t.id === colorThemeId)?.name}
+          {!proEnabled && " · Tap a locked color to unlock with Pro"}
+        </p>
+
 
         <SectionLabel>Routines</SectionLabel>
         <Card>

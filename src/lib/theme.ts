@@ -1,4 +1,5 @@
 import { StatusBar, Style } from "@capacitor/status-bar";
+import { applyColorTheme } from "./color-themes";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -18,4 +19,6 @@ export const applyTheme = (mode: ThemeMode = getThemeMode(), amoled: boolean = g
   StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }).catch(() => {});
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute("content", dark ? (amoled ? "#000000" : "#171513") : "#fafaf7");
+  // Re-apply color theme so accent variables match the new light/dark palette.
+  applyColorTheme();
 };
