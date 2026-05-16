@@ -132,6 +132,14 @@ const Settings = () => {
   const navigate = useNavigate();
   const r = useRoutines();
   const { mode, setTheme, amoled, setAmoled } = useTheme();
+  const [colorThemeId, setColorThemeIdState] = useState<ColorThemeId>(getColorTheme());
+  const [proEnabled, setProEnabled] = useState<boolean>(isPro());
+  useEffect(() => {
+    const onPro = () => setProEnabled(isPro());
+    window.addEventListener("pro:updated", onPro);
+    return () => window.removeEventListener("pro:updated", onPro);
+  }, []);
+
 
   const settings = r.state.settings ?? {};
   const resetHour = settings.resetHour ?? 0;
