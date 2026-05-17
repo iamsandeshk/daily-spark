@@ -29,6 +29,8 @@ import {
   Crown,
   Lock,
   Palette,
+  Type,
+  LayoutDashboard,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
@@ -51,6 +53,7 @@ import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
 import { isPro } from "@/lib/pro";
+import { FONTS, DENSITIES, getFont, getDensity, setFont, setDensity, type FontId, type DensityId } from "@/lib/appearance";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -134,6 +137,8 @@ const Settings = () => {
   const { mode, setTheme, amoled, setAmoled } = useTheme();
   const [colorThemeId, setColorThemeIdState] = useState<ColorThemeId>(getColorTheme());
   const [proEnabled, setProEnabled] = useState<boolean>(isPro());
+  const [fontId, setFontIdState] = useState<FontId>(getFont());
+  const [densityId, setDensityIdState] = useState<DensityId>(getDensity());
   useEffect(() => {
     const onPro = () => setProEnabled(isPro());
     window.addEventListener("pro:updated", onPro);
