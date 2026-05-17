@@ -16,6 +16,7 @@ import Archived from "./pages/Archived.tsx";
 import ToolbarCustomization from "./pages/ToolbarCustomization.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import Pro from "./pages/Pro.tsx";
+import Insights from "./pages/Insights.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/settings/toolbar" element={<ToolbarCustomization />} />
           <Route path="/settings/privacy" element={<PrivacyPolicy />} />
           <Route path="/settings/pro" element={<Pro />} />
+          <Route path="/insights" element={<Insights />} />
           <Route path="/weekly-report" element={<WeeklyReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
