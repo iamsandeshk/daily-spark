@@ -101,7 +101,7 @@ export const ProgressHeader = ({
           </div>
           <div className="mt-3 h-1.5 w-full bg-muted rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-foreground rounded-full"
+              className="h-full bg-accent rounded-full"
               initial={false}
               animate={{ width: `${pct}%` }}
               transition={{ type: "spring", stiffness: 120, damping: 20 }}

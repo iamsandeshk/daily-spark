@@ -12,6 +12,10 @@ import { CompletionCelebration } from "@/components/routine/CompletionCelebratio
 import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
 import { uid } from "@/lib/utils";
 import { tapHaptic } from "@/lib/haptics";
+import { isPro } from "@/lib/pro";
+import { toast } from "@/hooks/use-toast";
+
+const FREE_ROUTINE_LIMIT = 5;
 
 // Module-level flag: the FAB "New Section → +" intro animation only plays
 // the first time the app mounts in this session, not on every Home navigation.
@@ -80,6 +84,15 @@ const Index = () => {
   const newRoutine = (routineId?: string) => {
     if (routineId) {
       navigate(`/routine/${routineId}`);
+      return;
+    }
+    const activeCount = r.state.routines.filter((rt) => !rt.archived).length;
+    if (!isPro() && activeCount >= FREE_ROUTINE_LIMIT) {
+      toast({
+        title: "Free tier limit reached",
+        description: `Free includes up to ${FREE_ROUTINE_LIMIT} routines. Upgrade to Pro for unlimited.`,
+      });
+      navigate("/settings/pro");
       return;
     }
     navigate("/routine/new");
@@ -202,7 +215,7 @@ const Index = () => {
           initial={false}
           animate={{ width: showFullButton ? "auto" : 56 }}
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center justify-center h-14 rounded-full bg-foreground text-background shadow-elevated overflow-hidden px-4 hover:opacity-90 active:scale-95"
+          className="flex items-center justify-center h-14 rounded-full bg-accent text-accent-foreground shadow-elevated overflow-hidden px-4 hover:opacity-90 active:scale-95"
           aria-label="Add routine"
         >
           <Plus size={22} strokeWidth={2.5} className="shrink-0" />

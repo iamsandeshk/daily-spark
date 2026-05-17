@@ -29,6 +29,8 @@ import {
   Crown,
   Lock,
   Palette,
+  Type,
+  LayoutDashboard,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { TEMPLATES } from "@/components/routine/TemplateLibrary";
@@ -51,6 +53,7 @@ import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
 import { isPro } from "@/lib/pro";
+import { FONTS, DENSITIES, getFont, getDensity, setFont, setDensity, type FontId, type DensityId } from "@/lib/appearance";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -134,6 +137,8 @@ const Settings = () => {
   const { mode, setTheme, amoled, setAmoled } = useTheme();
   const [colorThemeId, setColorThemeIdState] = useState<ColorThemeId>(getColorTheme());
   const [proEnabled, setProEnabled] = useState<boolean>(isPro());
+  const [fontId, setFontIdState] = useState<FontId>(getFont());
+  const [densityId, setDensityIdState] = useState<DensityId>(getDensity());
   useEffect(() => {
     const onPro = () => setProEnabled(isPro());
     window.addEventListener("pro:updated", onPro);
@@ -565,6 +570,86 @@ const Settings = () => {
           {!proEnabled && " · Tap a locked color to unlock with Pro"}
         </p>
 
+        <SectionLabel>
+          <span className="inline-flex items-center gap-1.5">
+            <Type size={11} /> Font
+            {!proEnabled && (
+              <span className="ml-1 inline-flex items-center gap-1 text-accent">
+                <Crown size={10} /> Pro
+              </span>
+            )}
+          </span>
+        </SectionLabel>
+        <div className="grid grid-cols-4 gap-2">
+          {FONTS.map((f) => {
+            const active = fontId === f.id;
+            const locked = f.pro && !proEnabled;
+            return (
+              <button
+                key={f.id}
+                onClick={() => {
+                  if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
+                  setFont(f.id);
+                  setFontIdState(f.id);
+                  tapHaptic();
+                }}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-1 py-3 rounded-2xl border transition-all",
+                  active ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-muted/60"
+                )}
+              >
+                <span className="text-xl leading-none" style={{ fontFamily: f.family }}>{f.sample}</span>
+                <span className="text-[10px] font-semibold text-muted-foreground truncate max-w-full px-1">{f.name}</span>
+                {locked && !active && (
+                  <div className="absolute inset-0 rounded-2xl bg-background/55 flex items-center justify-center">
+                    <Lock size={12} />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <SectionLabel>
+          <span className="inline-flex items-center gap-1.5">
+            <LayoutDashboard size={11} /> Layout density
+            {!proEnabled && (
+              <span className="ml-1 inline-flex items-center gap-1 text-accent">
+                <Crown size={10} /> Pro
+              </span>
+            )}
+          </span>
+        </SectionLabel>
+        <div className="grid grid-cols-3 gap-2">
+          {DENSITIES.map((d) => {
+            const active = densityId === d.id;
+            const locked = !proEnabled && d.id !== "cozy";
+            return (
+              <button
+                key={d.id}
+                onClick={() => {
+                  if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
+                  setDensity(d.id);
+                  setDensityIdState(d.id);
+                  tapHaptic();
+                }}
+                className={cn(
+                  "relative flex flex-col items-center gap-1 py-3.5 rounded-2xl border transition-all",
+                  active ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-muted/60"
+                )}
+              >
+                <span className="text-[13px] font-bold">{d.name}</span>
+                <span className="text-[10px] text-muted-foreground">{d.hint}</span>
+                {locked && !active && (
+                  <div className="absolute inset-0 rounded-2xl bg-background/55 flex items-center justify-center">
+                    <Lock size={12} />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
 
         <SectionLabel>Routines</SectionLabel>
         <Card>
@@ -707,6 +792,19 @@ const Settings = () => {
             label="Weekly report"
             hint="See completed tasks, mood, and skip patterns"
             onClick={() => navigate("/weekly-report")}
+          />
+          <Row
+            icon={TrendingUp}
+            label="Advanced insights"
+            hint="Heatmap, best/worst days, mood correlation"
+            right={
+              !proEnabled ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent">
+                  <Crown size={10} /> Pro
+                </span>
+              ) : undefined
+            }
+            onClick={() => navigate("/insights")}
             last
           />
         </Card>
