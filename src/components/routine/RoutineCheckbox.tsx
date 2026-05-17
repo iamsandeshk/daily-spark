@@ -21,7 +21,7 @@ export const RoutineCheckbox = ({ checked, onChange, size = 22 }: Props) => {
       className={cn(
         "relative shrink-0 rounded-md border transition-smooth flex items-center justify-center",
         checked
-          ? "bg-success border-success text-success-foreground"
+          ? "bg-accent border-accent text-accent-foreground"
           : "bg-background border-input hover:border-foreground/40",
       )}
       style={{ width: size, height: size }}
