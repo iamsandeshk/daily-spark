@@ -792,6 +792,19 @@ const Settings = () => {
             label="Weekly report"
             hint="See completed tasks, mood, and skip patterns"
             onClick={() => navigate("/weekly-report")}
+          />
+          <Row
+            icon={TrendingUp}
+            label="Advanced insights"
+            hint="Heatmap, best/worst days, mood correlation"
+            right={
+              !proEnabled ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent">
+                  <Crown size={10} /> Pro
+                </span>
+              ) : undefined
+            }
+            onClick={() => navigate("/insights")}
             last
           />
         </Card>
