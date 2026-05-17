@@ -570,6 +570,86 @@ const Settings = () => {
           {!proEnabled && " · Tap a locked color to unlock with Pro"}
         </p>
 
+        <SectionLabel>
+          <span className="inline-flex items-center gap-1.5">
+            <Type size={11} /> Font
+            {!proEnabled && (
+              <span className="ml-1 inline-flex items-center gap-1 text-accent">
+                <Crown size={10} /> Pro
+              </span>
+            )}
+          </span>
+        </SectionLabel>
+        <div className="grid grid-cols-4 gap-2">
+          {FONTS.map((f) => {
+            const active = fontId === f.id;
+            const locked = f.pro && !proEnabled;
+            return (
+              <button
+                key={f.id}
+                onClick={() => {
+                  if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
+                  setFont(f.id);
+                  setFontIdState(f.id);
+                  tapHaptic();
+                }}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-1 py-3 rounded-2xl border transition-all",
+                  active ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-muted/60"
+                )}
+              >
+                <span className="text-xl leading-none" style={{ fontFamily: f.family }}>{f.sample}</span>
+                <span className="text-[10px] font-semibold text-muted-foreground truncate max-w-full px-1">{f.name}</span>
+                {locked && !active && (
+                  <div className="absolute inset-0 rounded-2xl bg-background/55 flex items-center justify-center">
+                    <Lock size={12} />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <SectionLabel>
+          <span className="inline-flex items-center gap-1.5">
+            <LayoutDashboard size={11} /> Layout density
+            {!proEnabled && (
+              <span className="ml-1 inline-flex items-center gap-1 text-accent">
+                <Crown size={10} /> Pro
+              </span>
+            )}
+          </span>
+        </SectionLabel>
+        <div className="grid grid-cols-3 gap-2">
+          {DENSITIES.map((d) => {
+            const active = densityId === d.id;
+            const locked = !proEnabled && d.id !== "cozy";
+            return (
+              <button
+                key={d.id}
+                onClick={() => {
+                  if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
+                  setDensity(d.id);
+                  setDensityIdState(d.id);
+                  tapHaptic();
+                }}
+                className={cn(
+                  "relative flex flex-col items-center gap-1 py-3.5 rounded-2xl border transition-all",
+                  active ? "border-foreground bg-foreground/5" : "border-border bg-card hover:bg-muted/60"
+                )}
+              >
+                <span className="text-[13px] font-bold">{d.name}</span>
+                <span className="text-[10px] text-muted-foreground">{d.hint}</span>
+                {locked && !active && (
+                  <div className="absolute inset-0 rounded-2xl bg-background/55 flex items-center justify-center">
+                    <Lock size={12} />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
 
         <SectionLabel>Routines</SectionLabel>
         <Card>
