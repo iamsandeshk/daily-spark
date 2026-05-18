@@ -4,22 +4,24 @@
 export type FontId =
   | "default"
   | "manrope"
+  | "inter-tight"
   | "sora"
-  | "fraunces"
-  | "ibm-plex"
+  | "lora"
   | "space-mono"
-  | "vt323";
+  | "doto"
+  | "silkscreen";
 
 export type DensityId = "compact" | "cozy" | "spacious";
 
 export const FONTS: { id: FontId; name: string; family: string; sample: string; pro: boolean }[] = [
-  { id: "default",    name: "Default",       family: "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", sample: "Aa", pro: false },
-  { id: "manrope",    name: "Manrope",       family: "'Manrope', ui-sans-serif, sans-serif", sample: "Aa", pro: true },
-  { id: "sora",       name: "Sora",          family: "'Sora', ui-sans-serif, sans-serif", sample: "Aa", pro: true },
-  { id: "fraunces",   name: "Fraunces",      family: "'Fraunces', Georgia, serif", sample: "Aa", pro: true },
-  { id: "ibm-plex",   name: "IBM Plex Serif",family: "'IBM Plex Serif', Georgia, serif", sample: "Aa", pro: true },
-  { id: "space-mono", name: "Space Mono",    family: "'Space Mono', ui-monospace, monospace", sample: "Aa", pro: true },
-  { id: "vt323",      name: "Dot Pixel",     family: "'VT323', 'Silkscreen', monospace", sample: "Aa", pro: true },
+  { id: "default",     name: "Default",     family: "'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", sample: "Aa", pro: false },
+  { id: "manrope",     name: "Manrope",     family: "'Manrope', ui-sans-serif, sans-serif", sample: "Aa", pro: true },
+  { id: "inter-tight", name: "Inter Tight", family: "'Inter Tight', ui-sans-serif, sans-serif", sample: "Aa", pro: true },
+  { id: "sora",        name: "Sora",        family: "'Sora', ui-sans-serif, sans-serif", sample: "Aa", pro: true },
+  { id: "lora",        name: "Lora",        family: "'Lora', Georgia, serif", sample: "Aa", pro: true },
+  { id: "space-mono",  name: "Space Mono",  family: "'Space Mono', ui-monospace, monospace", sample: "Aa", pro: true },
+  { id: "doto",        name: "Nothing Dot", family: "'Doto', 'Silkscreen', ui-monospace, monospace", sample: "Aa", pro: true },
+  { id: "silkscreen",  name: "Pixel",       family: "'Silkscreen', 'Doto', ui-monospace, monospace", sample: "Aa", pro: true },
 ];
 
 export const DENSITIES: { id: DensityId; name: string; hint: string }[] = [
