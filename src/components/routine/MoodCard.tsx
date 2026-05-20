@@ -5,19 +5,13 @@ import type { MoodValue, RoutineState } from "@/lib/routine-types";
 import { todayKey } from "@/lib/storage";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { getMoodConfig, MOOD_ORDER } from "@/lib/mood-customization";
 
 type Props = {
   state: RoutineState;
   onSelectMood: (mood: MoodValue) => void;
   onResetMood: () => void;
 };
-
-const MOODS: { value: MoodValue; emoji: string; label: string }[] = [
-  { value: "great", emoji: "🙂", label: "Great" },
-  { value: "ok", emoji: "😐", label: "OK" },
-  { value: "tired", emoji: "😴", label: "Tired" },
-  { value: "stressed", emoji: "😫", label: "Stressed" },
-];
 
 // Persisted across full app restarts so the chip stays after the picker is dismissed.
 const DISMISS_KEY = "mood-card-dismissed-date";
@@ -53,13 +47,20 @@ const computeMoodInsight = (state: RoutineState): string | null => {
   const worst = ratios[ratios.length - 1];
   if (best.avg - worst.avg < 0.15) return null;
 
-  const label = MOODS.find((m) => m.value === best.mood)?.label.toLowerCase() ?? best.mood;
+  const label = (getMoodConfig()[best.mood]?.name ?? best.mood).toLowerCase();
   return `You complete more when you feel ${label}.`;
 };
 
 export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
   const today = todayKey();
   const todaysMood = state.moods?.[today];
+  const [moodCfg, setMoodCfg] = useState(getMoodConfig());
+  useEffect(() => {
+    const on = () => setMoodCfg(getMoodConfig());
+    window.addEventListener("mood-config:updated", on);
+    return () => window.removeEventListener("mood-config:updated", on);
+  }, []);
+  const MOODS = MOOD_ORDER.map((v) => ({ value: v, emoji: moodCfg[v].emoji, label: moodCfg[v].name }));
 
   const lastMood: MoodValue | undefined = useMemo(() => {
     const moods = state.moods ?? {};

@@ -1,22 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import type { MoodValue, RoutineState } from "@/lib/routine-types";
 import { todayKey } from "@/lib/storage";
 import { cn } from "@/lib/utils";
-
-const EMOJI: Record<MoodValue, string> = {
-  great: "🙂",
-  ok: "😐",
-  tired: "😴",
-  stressed: "😫",
-};
-
-const FEELING: Record<MoodValue, string> = {
-  great: "happy",
-  ok: "normal",
-  tired: "tired",
-  stressed: "stressed",
-};
+import { getMoodConfig } from "@/lib/mood-customization";
 
 const dayShort = (k: string) =>
   new Date(k + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" }).slice(0, 1);
@@ -25,6 +12,24 @@ type Props = { state: RoutineState };
 
 export const MoodHistoryStrip = ({ state }: Props) => {
   const today = todayKey();
+  const [moodCfg, setMoodCfg] = useState(getMoodConfig());
+  useEffect(() => {
+    const on = () => setMoodCfg(getMoodConfig());
+    window.addEventListener("mood-config:updated", on);
+    return () => window.removeEventListener("mood-config:updated", on);
+  }, []);
+  const EMOJI: Record<MoodValue, string> = {
+    great: moodCfg.great.emoji,
+    ok: moodCfg.ok.emoji,
+    tired: moodCfg.tired.emoji,
+    stressed: moodCfg.stressed.emoji,
+  };
+  const FEELING: Record<MoodValue, string> = {
+    great: moodCfg.great.name.toLowerCase(),
+    ok: moodCfg.ok.name.toLowerCase(),
+    tired: moodCfg.tired.name.toLowerCase(),
+    stressed: moodCfg.stressed.name.toLowerCase(),
+  };
 
   const days = useMemo(() => {
     const out: { key: string; mood?: MoodValue; isToday: boolean }[] = [];

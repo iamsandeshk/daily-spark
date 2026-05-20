@@ -522,144 +522,23 @@ const Settings = () => {
         </div>
 
         <SectionLabel>Customization</SectionLabel>
-        <Card className="p-4 space-y-5">
-          {/* Color theme */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5 px-0.5">
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-bold">
-                <Palette size={13} /> Color theme
-              </span>
-              {!proEnabled && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent">
-                  <Crown size={10} /> Pro
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-5 gap-2.5">
-              {COLOR_THEMES.map((t) => {
-                const active = colorThemeId === t.id;
-                const locked = t.pro && !proEnabled;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
-                      setColorTheme(t.id);
-                      setColorThemeIdState(t.id);
-                      tapHaptic();
-                    }}
-                    aria-label={t.name}
-                    className={cn(
-                      "relative aspect-square rounded-2xl border-2 transition-all flex items-center justify-center",
-                      active ? "border-foreground scale-[0.96]" : "border-border hover:border-muted-foreground/40"
-                    )}
-                    style={{ backgroundColor: t.swatch }}
-                  >
-                    {active && <Check size={16} className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" strokeWidth={3} />}
-                    {locked && !active && (
-                      <div className="absolute inset-0 rounded-xl bg-background/55 flex items-center justify-center">
-                        <Lock size={12} className="text-foreground" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2 px-0.5">
-              {COLOR_THEMES.find((t) => t.id === colorThemeId)?.name}
-              {!proEnabled && " · Tap a locked color to unlock with Pro"}
-            </p>
-          </div>
-
-          <div className="h-px bg-border -mx-4" />
-
-          {/* Font */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5 px-0.5">
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-bold">
-                <Type size={13} /> Font
-              </span>
-              {!proEnabled && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent">
-                  <Crown size={10} /> Pro
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {FONTS.map((f) => {
-                const active = fontId === f.id;
-                const locked = f.pro && !proEnabled;
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => {
-                      if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
-                      setFont(f.id);
-                      setFontIdState(f.id);
-                      tapHaptic();
-                    }}
-                    className={cn(
-                      "relative flex flex-col items-center justify-center gap-1 py-3 rounded-2xl border transition-all",
-                      active ? "border-foreground bg-foreground/5" : "border-border bg-background hover:bg-muted/60"
-                    )}
-                  >
-                    <span className="text-xl leading-none" style={{ fontFamily: f.family }}>{f.sample}</span>
-                    <span className="text-[10px] font-semibold text-muted-foreground truncate max-w-full px-1">{f.name}</span>
-                    {locked && !active && (
-                      <div className="absolute inset-0 rounded-2xl bg-background/55 flex items-center justify-center">
-                        <Lock size={12} />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="h-px bg-border -mx-4" />
-
-          {/* Layout density */}
-          <div>
-            <div className="flex items-center justify-between mb-2.5 px-0.5">
-              <span className="inline-flex items-center gap-1.5 text-[12px] font-bold">
-                <LayoutDashboard size={13} /> Layout density
-              </span>
-              {!proEnabled && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent">
-                  <Crown size={10} /> Pro
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {DENSITIES.map((d) => {
-                const active = densityId === d.id;
-                const locked = !proEnabled && d.id !== "cozy";
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => {
-                      if (locked) { tapHaptic(); navigate("/settings/pro"); return; }
-                      setDensity(d.id);
-                      setDensityIdState(d.id);
-                      tapHaptic();
-                    }}
-                    className={cn(
-                      "relative flex flex-col items-center gap-1 py-3.5 rounded-2xl border transition-all",
-                      active ? "border-foreground bg-foreground/5" : "border-border bg-background hover:bg-muted/60"
-                    )}
-                  >
-                    <span className="text-[13px] font-bold">{d.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{d.hint}</span>
-                    {locked && !active && (
-                      <div className="absolute inset-0 rounded-2xl bg-background/55 flex items-center justify-center">
-                        <Lock size={12} />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <Card>
+          <Row
+            icon={Palette}
+            label="Customization"
+            hint="Color theme, font, layout density & moods"
+            right={
+              <div className="flex items-center gap-2">
+                <div
+                  className="h-5 w-5 rounded-md border border-border"
+                  style={{ backgroundColor: COLOR_THEMES.find((t) => t.id === colorThemeId)?.swatch }}
+                />
+                <span className="text-muted-foreground text-[18px] leading-none">›</span>
+              </div>
+            }
+            onClick={() => { tapHaptic(); navigate("/settings/customization"); }}
+            last
+          />
         </Card>
 
 
