@@ -56,6 +56,7 @@ const App = () => (
           <Route path="/settings/toolbar" element={<ToolbarCustomization />} />
           <Route path="/settings/privacy" element={<PrivacyPolicy />} />
           <Route path="/settings/pro" element={<Pro />} />
+          <Route path="/settings/customization" element={<Customization />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/weekly-report" element={<WeeklyReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
