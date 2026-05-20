@@ -47,13 +47,20 @@ const computeMoodInsight = (state: RoutineState): string | null => {
   const worst = ratios[ratios.length - 1];
   if (best.avg - worst.avg < 0.15) return null;
 
-  const label = MOODS.find((m) => m.value === best.mood)?.label.toLowerCase() ?? best.mood;
+  const label = (getMoodConfig()[best.mood]?.name ?? best.mood).toLowerCase();
   return `You complete more when you feel ${label}.`;
 };
 
 export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
   const today = todayKey();
   const todaysMood = state.moods?.[today];
+  const [moodCfg, setMoodCfg] = useState(getMoodConfig());
+  useEffect(() => {
+    const on = () => setMoodCfg(getMoodConfig());
+    window.addEventListener("mood-config:updated", on);
+    return () => window.removeEventListener("mood-config:updated", on);
+  }, []);
+  const MOODS = MOOD_ORDER.map((v) => ({ value: v, emoji: moodCfg[v].emoji, label: moodCfg[v].name }));
 
   const lastMood: MoodValue | undefined = useMemo(() => {
     const moods = state.moods ?? {};
