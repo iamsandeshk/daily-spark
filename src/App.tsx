@@ -17,6 +17,7 @@ import ToolbarCustomization from "./pages/ToolbarCustomization.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import Pro from "./pages/Pro.tsx";
 import Insights from "./pages/Insights.tsx";
+import Customization from "./pages/Customization.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
 
 const queryClient = new QueryClient();
