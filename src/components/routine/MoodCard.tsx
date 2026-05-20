@@ -5,19 +5,13 @@ import type { MoodValue, RoutineState } from "@/lib/routine-types";
 import { todayKey } from "@/lib/storage";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { getMoodConfig, MOOD_ORDER } from "@/lib/mood-customization";
 
 type Props = {
   state: RoutineState;
   onSelectMood: (mood: MoodValue) => void;
   onResetMood: () => void;
 };
-
-const MOODS: { value: MoodValue; emoji: string; label: string }[] = [
-  { value: "great", emoji: "🙂", label: "Great" },
-  { value: "ok", emoji: "😐", label: "OK" },
-  { value: "tired", emoji: "😴", label: "Tired" },
-  { value: "stressed", emoji: "😫", label: "Stressed" },
-];
 
 // Persisted across full app restarts so the chip stays after the picker is dismissed.
 const DISMISS_KEY = "mood-card-dismissed-date";
