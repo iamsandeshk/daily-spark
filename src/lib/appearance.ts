@@ -35,7 +35,7 @@ const DENS_KEY = "app-density";
 
 export const getFont = (): FontId => {
   const v = localStorage.getItem(FONT_KEY) as FontId | null;
-  return v && FONTS.some((f) => f.id === v) ? v : "default";
+  return v && FONTS.some((f) => f.id === v) ? v : "doto";
 };
 export const getDensity = (): DensityId => {
   const v = localStorage.getItem(DENS_KEY) as DensityId | null;
