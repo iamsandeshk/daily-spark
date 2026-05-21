@@ -8,6 +8,9 @@ import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { uid } from "@/lib/utils";
+import { isPro, FREE_ROUTINE_LIMIT } from "@/lib/pro";
+import { toast } from "@/hooks/use-toast";
+
 
 
 const RoutineDetail = () => {
@@ -119,6 +122,19 @@ const RoutineDetail = () => {
     setHistory(prev => [...prev, { title, emoji, blocks }].slice(-20));
   };
 
+  const blockedByLimit = () => {
+    const activeCount = r.state.routines.filter((rt) => !rt.archived).length;
+    if (!isPro() && activeCount >= FREE_ROUTINE_LIMIT) {
+      toast({
+        title: "Free tier limit reached",
+        description: `Free includes up to ${FREE_ROUTINE_LIMIT} routines. Upgrade to Pro for unlimited.`,
+      });
+      navigate("/settings/pro", { replace: true });
+      return true;
+    }
+    return false;
+  };
+
   const handleTitleChange = (val: string) => {
     const isRemoval = val.length < title.length;
     takeSnapshot();
@@ -127,12 +143,15 @@ const RoutineDetail = () => {
     if (existing) {
       r.updateRoutine(existing.id, { title: val });
     } else if (isNew && val.trim()) {
+      if (blockedByLimit()) return;
       // Auto-create routine on first title entry
       const newId = uid();
-      r.addRoutine({ id: newId, title: val.trim(), description, emoji, sectionId, blocks });
+      const created = r.addRoutine({ id: newId, title: val.trim(), description, emoji, sectionId, blocks });
+      if (created === null) return;
       navigate(`/routine/${newId}`, { replace: true });
     }
   };
+
 
   const handleEmojiChange = (val: string) => {
     takeSnapshot();
@@ -200,7 +219,9 @@ const RoutineDetail = () => {
     const displayDescription = description.trim() || firstText?.text?.trim() || undefined;
 
     if (isNew) {
-      r.addRoutine({ title: title.trim(), description: displayDescription, emoji, sectionId, blocks });
+      if (blockedByLimit()) return;
+      const created = r.addRoutine({ title: title.trim(), description: displayDescription, emoji, sectionId, blocks });
+      if (created === null) return;
     } else if (existing) {
       r.updateRoutine(existing.id, {
         title: title.trim(),
@@ -213,6 +234,7 @@ const RoutineDetail = () => {
     tapHaptic();
     navigate("/");
   };
+
 
   return (
     <div className="min-h-full bg-background pb-32">
