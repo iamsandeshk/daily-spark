@@ -9,6 +9,7 @@ import { CarryForwardDialog } from "@/components/routine/CarryForwardDialog";
 import { MoodCard } from "@/components/routine/MoodCard";
 import { TemplateLibrary } from "@/components/routine/TemplateLibrary";
 import { CompletionCelebration } from "@/components/routine/CompletionCelebration";
+import { StreakGoalCelebration } from "@/components/routine/StreakGoalCelebration";
 import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
 import { uid } from "@/lib/utils";
 import { tapHaptic } from "@/lib/haptics";
@@ -27,6 +28,58 @@ const Index = () => {
   const [showFullButton, setShowFullButton] = useState(() => !fabIntroPlayed);
   const [showCelebration, setShowCelebration] = useState(false);
   const [prevCompleted, setPrevCompleted] = useState(r.completed);
+  const streakGoal = r.state.settings?.streakGoal ?? 7;
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+
+  // Helper to get the day after a YYYY-MM-DD date string
+  const getDayAfter = (dateStr: string) => {
+    const date = new Date(dateStr + "T12:00:00");
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().slice(0, 10);
+  };
+
+  // 1. One-time check on mount/open to show celebration if streak goal was completed today or yesterday
+  useEffect(() => {
+    const completedDate = localStorage.getItem("streak-goal-completed-date");
+    if (completedDate) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const dayAfterCompleted = getDayAfter(completedDate);
+      
+      if (todayStr === completedDate || todayStr === dayAfterCompleted) {
+        const celebrationShown = localStorage.getItem("streak-goal-celebration-shown");
+        if (celebrationShown !== completedDate) {
+          setShowStreakCelebration(true);
+          // Mark as shown for this specific completion date
+          localStorage.setItem("streak-goal-celebration-shown", completedDate);
+        }
+      }
+    }
+  }, []);
+
+  // 2. Reactive check to detect completion during the current session
+  useEffect(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const isTodayComplete = r.total > 0 && r.completed === r.total;
+    const completedDate = localStorage.getItem("streak-goal-completed-date");
+
+    if (isTodayComplete && r.globalStreak >= streakGoal && completedDate !== todayStr) {
+      // Mark as completed today
+      localStorage.setItem("streak-goal-completed-date", todayStr);
+      
+      // Mark as shown today (since we'll show it immediately)
+      localStorage.setItem("streak-goal-celebration-shown", todayStr);
+      
+      // Trigger the celebration modal immediately
+      setShowStreakCelebration(true);
+      
+      // Schedule the local push notification for 2 hours in the future
+      import("@/lib/notifications").then(({ scheduleStreakGoalNotification }) => {
+        scheduleStreakGoalNotification(streakGoal).catch(err => {
+          console.error("Failed to schedule streak goal notification:", err);
+        });
+      });
+    }
+  }, [r.completed, r.total, r.globalStreak, streakGoal]);
 
   useEffect(() => {
     if (
@@ -169,6 +222,11 @@ const Index = () => {
         show={showCelebration}
         onDone={() => setShowCelebration(false)}
       />
+      <StreakGoalCelebration
+        show={showStreakCelebration}
+        streakGoal={streakGoal}
+        onClose={() => setShowStreakCelebration(false)}
+      />
       <ProgressHeader
         completed={r.completed}
         total={r.total}
@@ -205,12 +263,6 @@ const Index = () => {
             />
           ))}
         </Reorder.Group>
-
-        {r.total > 0 && (
-          <p className="text-center text-xs text-muted-foreground pt-6">
-            Tap the + button to add/edit items · Drag handles to reorder
-          </p>
-        )}
 
         <TemplateLibrary onAdd={handleAddTemplate} />
       </main>

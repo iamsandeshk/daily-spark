@@ -19,6 +19,7 @@ import {
   Link2Off,
   Flame,
   Timer as TimerIcon,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
@@ -569,23 +570,39 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
               </div>
               
               {editable && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    tapHaptic();
-                    setLocalIsEditing(!localIsEditing);
-                  }}
-                  className={cn(
-                    "h-8 w-8 shrink-0 rounded-full flex items-center justify-center border transition-all shadow-sm",
-                    localIsEditing 
-                      ? "bg-accent text-white border-accent shadow-accent/20" 
-                      : "bg-muted/30 border-border/50 text-muted-foreground/50 hover:text-accent hover:bg-accent/10 hover:border-accent/20"
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {localIsEditing && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        tapHaptic();
+                        onRemove();
+                      }}
+                      className="h-8 w-8 rounded-full flex items-center justify-center border border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all shadow-sm"
+                      title="Delete link"
+                    >
+                      <Trash2 size={14} strokeWidth={2.5} />
+                    </button>
                   )}
-                  title={localIsEditing ? "Save changes" : "Edit link"}
-                >
-                  {localIsEditing ? <Check size={14} strokeWidth={3} /> : <Settings2 size={14} strokeWidth={2.5} />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      tapHaptic();
+                      setLocalIsEditing(!localIsEditing);
+                    }}
+                    className={cn(
+                      "h-8 w-8 rounded-full flex items-center justify-center border transition-all shadow-sm",
+                      localIsEditing 
+                        ? "bg-accent text-white border-accent shadow-accent/20" 
+                        : "bg-muted/30 border-border/50 text-muted-foreground/50 hover:text-accent hover:bg-accent/10 hover:border-accent/20"
+                    )}
+                    title={localIsEditing ? "Save changes" : "Edit link"}
+                  >
+                    {localIsEditing ? <Check size={14} strokeWidth={3} /> : <Settings2 size={14} strokeWidth={2.5} />}
+                  </button>
+                </div>
               )}
             </div>
           </div>

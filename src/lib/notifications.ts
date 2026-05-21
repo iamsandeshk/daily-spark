@@ -89,3 +89,71 @@ export const cancelEveningReminder = async () => {
   if (Capacitor.getPlatform() === 'web') return;
   await LocalNotifications.cancel({ notifications: [{ id: 2 }] });
 };
+
+export const scheduleStreakReminder = async (resetHour: number, resetMinute: number, completed: number, total: number) => {
+  if (Capacitor.getPlatform() === 'web') return;
+  await setupNotifications();
+  await LocalNotifications.cancel({ notifications: [{ id: 3 }] });
+
+  // Only trigger if no tasks have been completed today, and there are tasks to do
+  if (total === 0 || completed > 0) return;
+
+  let stHour = resetHour - 3;
+  if (stHour < 0) stHour += 24;
+
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        title: 'Streak Warning!',
+        body: "Don't break your streak! You haven't completed any tasks today. You have 3 hours left before your day resets!",
+        id: 3,
+        schedule: { 
+          on: { 
+            hour: stHour, 
+            minute: resetMinute 
+          }, 
+          allowWhileIdle: true 
+        },
+        actionTypeId: '',
+        extra: null
+      }
+    ]
+  });
+};
+
+export const cancelStreakReminder = async () => {
+  if (Capacitor.getPlatform() === 'web') return;
+  await LocalNotifications.cancel({ notifications: [{ id: 3 }] });
+};
+
+export const scheduleStreakGoalNotification = async (streakGoal: number) => {
+  if (Capacitor.getPlatform() === 'web') return;
+  await setupNotifications();
+
+  // Clear existing streak goal notification
+  await LocalNotifications.cancel({ notifications: [{ id: 4 }] });
+
+  // Schedule 2 hours in the future
+  const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        title: 'Streak Goal Achieved! 🎉',
+        body: `Unbelievable! You've successfully hit your ${streakGoal}-day streak goal! Keep this momentum going! 🔥`,
+        id: 4,
+        schedule: {
+          at: twoHoursFromNow,
+          allowWhileIdle: true
+        },
+        actionTypeId: '',
+        extra: null
+      }
+    ]
+  });
+};
+
+export const cancelStreakGoalNotification = async () => {
+  if (Capacitor.getPlatform() === 'web') return;
+  await LocalNotifications.cancel({ notifications: [{ id: 4 }] });
+};

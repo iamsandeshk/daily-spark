@@ -6,7 +6,6 @@ import {
   Moon,
   Monitor,
   Info,
-  Twitter,
   Check,
   Clock,
   CalendarDays,
@@ -492,13 +491,7 @@ const Settings = () => {
             <div className="text-[15px] font-bold">
               {proEnabled ? "Pro is active" : "Upgrade to Pro"}
             </div>
-            <div className="text-[12px] text-muted-foreground">
-              {proEnabled ? "All Pro features unlocked" : "Themes, insights, sync & more"}
-            </div>
           </div>
-          <span className="text-[11px] font-black uppercase tracking-wider text-accent">
-            {proEnabled ? "ON" : "View"}
-          </span>
         </button>
 
         <SectionLabel>Appearance</SectionLabel>
@@ -528,7 +521,6 @@ const Settings = () => {
           <Moon size={18} className="text-muted-foreground shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="text-[15px] font-medium">AMOLED black</div>
-            <div className="text-[12px] text-muted-foreground">Pure black in dark mode to save battery on OLED screens</div>
           </div>
           <Switch checked={amoled} onCheckedChange={setAmoled} aria-label="AMOLED black theme" />
         </div>
@@ -639,7 +631,6 @@ const Settings = () => {
           <Row
             icon={Bell}
             label="Daily reminder"
-            hint="Push notification each morning"
             right={
               <Switch
                 checked={dailyReminder}
@@ -653,14 +644,12 @@ const Settings = () => {
           <Row
             icon={Clock}
             label="Reminder time"
-            hint="When to remind you"
             right={<span className="text-[13px] text-muted-foreground tabular-nums">{formatTime(reminderHour, reminderMinute)}</span>}
             onClick={() => setReminderClockOpen(true)}
           />
           <Row
             icon={InfoIcon}
             label="Streak reminders"
-            hint="Alert before streak breaks"
             right={
               <Switch
                 checked={streakReminder}
@@ -674,7 +663,6 @@ const Settings = () => {
           <Row
             icon={TrendingUp}
             label="Completion celebration"
-            hint="Animation on 100% done"
             right={
               <Switch
                 checked={completionCelebration}
@@ -768,36 +756,30 @@ const Settings = () => {
         <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mt-7 mb-2.5">
           About
         </h3>
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <Info size={18} className="text-muted-foreground shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-[15px] font-semibold">Daily Routines</p>
-              <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">
-                A simple, calm space to track the rhythms that matter to you — routines, moods, and progress in one place.
-              </p>
-            </div>
-          </div>
-          <a
-            href="https://x.com/The1UX"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-xl bg-muted/60 hover:bg-muted px-3.5 py-3 transition-colors"
+        <a
+          href="https://x.com/The1UX"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-2xl border border-border bg-card hover:bg-muted/60 px-4 py-3.5 transition-colors"
+        >
+          <svg 
+            viewBox="0 0 24 24" 
+            className="w-[18px] h-[18px] text-muted-foreground shrink-0" 
+            fill="currentColor"
           >
-            <Twitter size={18} className="text-muted-foreground shrink-0" />
-            <div className="flex-1">
-              <p className="text-[13px] text-muted-foreground">Developer</p>
-              <p className="text-[14px] font-semibold">@The1UX</p>
-            </div>
-            <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Follow</span>
-          </a>
-        </div>
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-[13px] text-muted-foreground">Developer</p>
+            <p className="text-[14px] font-semibold">@The1UX</p>
+          </div>
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-bold">Follow</span>
+        </a>
 
         <Card className="mt-2.5">
           <Row
             icon={Star}
             label="Rate this app"
-            hint="Leave a quick review on the store"
             onClick={() => {
               tapHaptic();
               const pkg = "com.dailyroutiness.app";
@@ -807,13 +789,11 @@ const Settings = () => {
           <Row
             icon={Shield}
             label="Privacy policy"
-            hint="Offline · your data stays on this device"
             onClick={() => navigate("/settings/privacy")}
           />
           <Row
             icon={Mail}
             label="Send feedback"
-            hint="try.sandeshk@gmail.com"
             onClick={() => {
               tapHaptic();
               const subject = encodeURIComponent("Daily Routines feedback");
@@ -825,7 +805,6 @@ const Settings = () => {
             <Row
               icon={LifeBuoy}
               label="Priority support"
-              hint="Pro · sandeshkullolli4@gmail.com"
               onClick={() => {
                 tapHaptic();
                 const subject = encodeURIComponent("Priority Support for Daily Routines");

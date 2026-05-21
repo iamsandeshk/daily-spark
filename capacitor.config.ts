@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Daily Routines",
   webDir: "dist",
   android: {
-    backgroundColor: "#fafaf7",
+    backgroundColor: "#00000000",
   },
 };
 

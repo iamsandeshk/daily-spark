@@ -186,7 +186,7 @@ export const SectionBlock = ({
           <DropdownMenuTrigger asChild>
             <button
               className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-              aria-label="Section options"
+              aria-label="Routine options"
             >
               <MoreHorizontal size={16} />
             </button>
@@ -199,19 +199,19 @@ export const SectionBlock = ({
               <GripVertical size={14} className="mr-2" /> Reorder sections
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
+              className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 font-medium"
               onSelect={() => setDeleteOpen(true)}
             >
-              <Trash2 size={14} className="mr-2" /> Delete section
+              <Trash2 size={14} className="mr-2" /> Delete routine
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-
+ 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
           <DialogHeader className="space-y-3">
-            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Delete section?</DialogTitle>
+            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Delete routine?</DialogTitle>
             <DialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
               This will permanently delete "{routine.title}" and all tasks inside it. This action cannot be undone.
             </DialogDescription>

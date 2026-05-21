@@ -165,7 +165,8 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
   };
 
   return (
-    <div className="mt-12 mb-8 px-1">
+    <div className="mt-9 mb-8 px-1 pt-7 relative">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
       <motion.button
         layout="position"
         onClick={() => {

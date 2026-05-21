@@ -327,6 +327,7 @@ export const useRoutines = () => {
     const resetHour = settings.resetHour ?? 0;
     const resetMinute = (settings as any).resetMinute ?? 0;
     const dailyReminder = (settings as any).dailyReminder ?? false;
+    const streakReminder = (settings as any).streakReminder ?? true;
     
     if (dailyReminder) {
       import("@/lib/notifications").then(({ scheduleEveningReminder }) => {
@@ -335,6 +336,16 @@ export const useRoutines = () => {
     } else {
       import("@/lib/notifications").then(({ cancelEveningReminder }) => {
         cancelEveningReminder().catch(() => {});
+      });
+    }
+
+    if (streakReminder) {
+      import("@/lib/notifications").then(({ scheduleStreakReminder }) => {
+        scheduleStreakReminder(resetHour, resetMinute, completed, total).catch(() => {});
+      });
+    } else {
+      import("@/lib/notifications").then(({ cancelStreakReminder }) => {
+        cancelStreakReminder().catch(() => {});
       });
     }
   }, [completed, total, state.settings]);

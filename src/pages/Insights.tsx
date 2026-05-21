@@ -29,6 +29,22 @@ const Insights = () => {
 
   // Build last ~12 weeks (84 days) heatmap data.
   const heatmap = useMemo(() => {
+    if (!pro) {
+      const days: { key: string; ratio: number; has: boolean }[] = [];
+      const totalDays = 12 * 7;
+      for (let i = 0; i < totalDays; i++) {
+        const seed = i * 17 + 5;
+        const has = (seed % 10) > 1; // 80% filled
+        const ratio = has ? (0.2 + (seed % 7) * 0.12) : 0;
+        days.push({
+          key: `fake-${i}`,
+          ratio,
+          has
+        });
+      }
+      return days;
+    }
+
     const days: { key: string; ratio: number; has: boolean }[] = [];
     const today = new Date();
     today.setHours(12, 0, 0, 0);
@@ -53,10 +69,27 @@ const Insights = () => {
       }
     }
     return days;
-  }, [state.history]);
+  }, [state.history, pro]);
 
   // Weekday stats
   const weekdayStats = useMemo(() => {
+    if (!pro) {
+      const arr = [
+        { dow: 0, label: "Sun", avg: 0.65, count: 8 },
+        { dow: 1, label: "Mon", avg: 0.42, count: 8 },
+        { dow: 2, label: "Tue", avg: 0.72, count: 8 },
+        { dow: 3, label: "Wed", avg: 0.85, count: 8 },
+        { dow: 4, label: "Thu", avg: 0.90, count: 8 },
+        { dow: 5, label: "Fri", avg: 0.78, count: 8 },
+        { dow: 6, label: "Sat", avg: 0.55, count: 8 },
+      ];
+      return {
+        arr,
+        best: arr[4], // Thu
+        worst: arr[1], // Mon
+      };
+    }
+
     const buckets: { sum: number; count: number }[] = Array.from({ length: 7 }, () => ({ sum: 0, count: 0 }));
     for (const k of Object.keys(state.history)) {
       const h = state.history[k];
@@ -75,10 +108,19 @@ const Insights = () => {
     const best = tracked.length ? tracked.reduce((a, b) => (b.avg > a.avg ? b : a)) : null;
     const worst = tracked.length ? tracked.reduce((a, b) => (b.avg < a.avg ? b : a)) : null;
     return { arr, best, worst };
-  }, [state.history]);
+  }, [state.history, pro]);
 
   // Mood vs completion
   const moodStats = useMemo(() => {
+    if (!pro) {
+      return [
+        { mood: "great" as MoodValue, avg: 0.88, count: 10 },
+        { mood: "ok" as MoodValue, avg: 0.68, count: 12 },
+        { mood: "tired" as MoodValue, avg: 0.35, count: 8 },
+        { mood: "stressed" as MoodValue, avg: 0.22, count: 5 },
+      ];
+    }
+
     const moods = state.moods ?? {};
     const buckets: Record<MoodValue, { sum: number; count: number }> = {
       great: { sum: 0, count: 0 },
@@ -97,7 +139,7 @@ const Insights = () => {
       avg: buckets[m].count ? buckets[m].sum / buckets[m].count : 0,
       count: buckets[m].count,
     }));
-  }, [state.history, state.moods]);
+  }, [state.history, state.moods, pro]);
 
   const cellColor = (ratio: number, has: boolean) => {
     if (!has) return "bg-muted/40";
@@ -246,7 +288,9 @@ const Insights = () => {
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground mt-3">
-              Based on {Object.keys(state.moods ?? {}).length} mood entr{Object.keys(state.moods ?? {}).length === 1 ? "y" : "ies"}.
+              {pro 
+                ? `Based on ${Object.keys(state.moods ?? {}).length} mood entr${Object.keys(state.moods ?? {}).length === 1 ? "y" : "ies"}.`
+                : "Based on 35 mock mood entries (Preview only)"}
             </p>
           </div>
         </section>
