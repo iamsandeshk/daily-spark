@@ -37,6 +37,8 @@ import { TEMPLATES } from "@/components/routine/TemplateLibrary";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
+import { toast } from "@/hooks/use-toast";
+
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy } from "lucide-react";
@@ -337,10 +339,20 @@ const Settings = () => {
   const handleAddTemplate = (t: typeof TEMPLATES[number]) => {
     const sectionId = r.state.sections[0]?.id || r.addSection("Routines");
     const blocks: RoutineBlockContent[] = t.blocks.map((b) => ({ ...b, id: uid() }));
-    r.addRoutine({ title: t.title, emoji: t.emoji, description: t.description, sectionId, blocks });
+    const created = r.addRoutine({ title: t.title, emoji: t.emoji, description: t.description, sectionId, blocks });
+    if (created === null) {
+      toast({
+        title: "Free tier limit reached",
+        description: "Free includes up to 3 routines. Upgrade to Pro for unlimited.",
+      });
+      setTplOpen(false);
+      navigate("/settings/pro");
+      return;
+    }
     successHaptic();
     setTplOpen(false);
   };
+
 
   const handleExport = async () => {
     const data = localStorage.getItem("daily-routine-os/v1") ?? "{}";

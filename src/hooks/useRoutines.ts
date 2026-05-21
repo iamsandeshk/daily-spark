@@ -3,6 +3,8 @@ import type { Routine, RoutineState, Section } from "@/lib/routine-types";
 import { applyDailyReset, loadState, saveState, todayKey, todayLiveHistory, yesterdayKey } from "@/lib/storage";
 import { uid } from "@/lib/utils";
 import { scheduleResetReminder } from "@/lib/notifications";
+import { canAddRoutine } from "@/lib/pro";
+
 
 /** Merge today's live snapshot into history so the calendar always reflects current progress. */
 const withLiveToday = (s: RoutineState): RoutineState => {
@@ -173,7 +175,9 @@ export const useRoutines = () => {
     });
   }, []);
 
-  const addRoutine = useCallback((data: Omit<Routine, "id" | "isCompleted" | "streakCount" | "order"> & { id?: string }) => {
+  const addRoutine = useCallback((data: Omit<Routine, "id" | "isCompleted" | "streakCount" | "order"> & { id?: string }): string | null => {
+    const activeCount = stateRef.current.routines.filter((r) => !r.archived).length;
+    if (!canAddRoutine(activeCount)) return null;
     const finalId = data.id || uid();
     setState((s) => {
       const sectionRoutines = s.routines.filter((r) => r.sectionId === data.sectionId);
@@ -185,6 +189,7 @@ export const useRoutines = () => {
     });
     return finalId;
   }, []);
+
 
   const updateRoutine = useCallback((id: string, patch: Partial<Routine>) => {
     setState((s) => withLiveToday({ ...s, routines: s.routines.map((r) => (r.id === id ? { ...r, ...patch } : r)) }));

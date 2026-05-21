@@ -12,10 +12,9 @@ import { CompletionCelebration } from "@/components/routine/CompletionCelebratio
 import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
 import { uid } from "@/lib/utils";
 import { tapHaptic } from "@/lib/haptics";
-import { isPro } from "@/lib/pro";
+import { isPro, FREE_ROUTINE_LIMIT } from "@/lib/pro";
 import { toast } from "@/hooks/use-toast";
 
-const FREE_ROUTINE_LIMIT = 5;
 
 // Module-level flag: the FAB "New Section → +" intro animation only plays
 // the first time the app mounts in this session, not on every Home navigation.
@@ -98,7 +97,20 @@ const Index = () => {
     navigate("/routine/new");
   };
 
+  const proLimitToast = () => {
+    toast({
+      title: "Free tier limit reached",
+      description: `Free includes up to ${FREE_ROUTINE_LIMIT} routines. Upgrade to Pro for unlimited.`,
+    });
+    navigate("/settings/pro");
+  };
+
   const handleAddTemplate = (t: any) => {
+    const activeCount = r.state.routines.filter((rt) => !rt.archived).length;
+    if (!isPro() && activeCount >= FREE_ROUTINE_LIMIT) {
+      proLimitToast();
+      return;
+    }
     const sectionId = r.state.sections[0]?.id || r.addSection("Routines");
     
     // Find or create a routine by title (helper for nested templates)
@@ -116,11 +128,11 @@ const Index = () => {
           description: template.description,
           sectionId,
           blocks: depBlocks,
-        });
+        }) ?? "";
       }
       
       // Fallback: Create a blank one
-      return r.addRoutine({ title: routineTitle, sectionId, blocks: [] });
+      return r.addRoutine({ title: routineTitle, sectionId, blocks: [] }) ?? "";
     };
 
     const blocks: RoutineBlockContent[] = t.blocks.map((b: any) => {
@@ -131,15 +143,20 @@ const Index = () => {
       return newBlock;
     });
 
-    r.addRoutine({
+    const created = r.addRoutine({
       title: t.title,
       emoji: t.emoji,
       description: t.description,
       sectionId,
       blocks,
     });
+    if (created === null) {
+      proLimitToast();
+      return;
+    }
     tapHaptic();
   };
+
 
   const handleReorder = (next: Routine[]) => {
     setOrder(next);
