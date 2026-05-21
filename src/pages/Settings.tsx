@@ -807,8 +807,21 @@ const Settings = () => {
               const subject = encodeURIComponent("Daily Routines feedback");
               window.location.href = `mailto:try.sandeshk@gmail.com?subject=${subject}`;
             }}
-            last
+            last={!proEnabled}
           />
+          {proEnabled && (
+            <Row
+              icon={LifeBuoy}
+              label="Priority support"
+              hint="Pro · sandeshkullolli4@gmail.com"
+              onClick={() => {
+                tapHaptic();
+                const subject = encodeURIComponent("Priority Support for Daily Routines");
+                window.location.href = `mailto:sandeshkullolli4@gmail.com?subject=${subject}`;
+              }}
+              last
+            />
+          )}
         </Card>
       </main>
 
