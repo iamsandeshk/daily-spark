@@ -16,6 +16,8 @@ import {
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import type { RoutineBlockContent } from "@/lib/routine-types";
+import { isPro, FREE_ROUTINE_LIMIT } from "@/lib/pro";
+import { toast } from "@/hooks/use-toast";
 
 const Templates = () => {
   const navigate = useNavigate();
@@ -23,12 +25,32 @@ const Templates = () => {
   const [previewTpl, setPreviewTpl] = useState<typeof TEMPLATES[number] | null>(null);
 
   const handleAdd = (t: typeof TEMPLATES[number]) => {
+    const activeCount = r.state.routines.filter((rt) => !rt.archived).length;
+    if (!isPro() && activeCount >= FREE_ROUTINE_LIMIT) {
+      toast({
+        title: "Free tier limit reached",
+        description: `Free includes up to ${FREE_ROUTINE_LIMIT} routines. Upgrade to Pro for unlimited.`,
+      });
+      setPreviewTpl(null);
+      navigate("/settings/pro");
+      return;
+    }
     const sectionId = r.state.sections[0]?.id || r.addSection("Routines");
     const blocks: RoutineBlockContent[] = t.blocks.map((b) => ({ ...b, id: uid() }));
-    r.addRoutine({ title: t.title, emoji: t.emoji, description: t.description, sectionId, blocks });
+    const created = r.addRoutine({ title: t.title, emoji: t.emoji, description: t.description, sectionId, blocks });
+    if (created === null) {
+      toast({
+        title: "Free tier limit reached",
+        description: `Free includes up to ${FREE_ROUTINE_LIMIT} routines. Upgrade to Pro for unlimited.`,
+      });
+      setPreviewTpl(null);
+      navigate("/settings/pro");
+      return;
+    }
     successHaptic();
     setPreviewTpl(null);
   };
+
 
   return (
     <div className="min-h-full bg-background pb-20">
