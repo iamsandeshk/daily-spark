@@ -39,7 +39,7 @@ import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore } from "lucide-react";
+import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy } from "lucide-react";
 import { BlockPreview } from "@/components/routine/BlockEditor";
 import {
   Dialog,
@@ -807,8 +807,21 @@ const Settings = () => {
               const subject = encodeURIComponent("Daily Routines feedback");
               window.location.href = `mailto:try.sandeshk@gmail.com?subject=${subject}`;
             }}
-            last
+            last={!proEnabled}
           />
+          {proEnabled && (
+            <Row
+              icon={LifeBuoy}
+              label="Priority support"
+              hint="Pro · sandeshkullolli4@gmail.com"
+              onClick={() => {
+                tapHaptic();
+                const subject = encodeURIComponent("Priority Support for Daily Routines");
+                window.location.href = `mailto:sandeshkullolli4@gmail.com?subject=${subject}`;
+              }}
+              last
+            />
+          )}
         </Card>
       </main>
 
