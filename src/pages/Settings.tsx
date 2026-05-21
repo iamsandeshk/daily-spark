@@ -37,6 +37,8 @@ import { TEMPLATES } from "@/components/routine/TemplateLibrary";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
+import { toast } from "@/hooks/use-toast";
+
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy } from "lucide-react";
