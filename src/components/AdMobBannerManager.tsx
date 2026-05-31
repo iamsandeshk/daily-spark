@@ -42,7 +42,7 @@ export const AdMobBannerManager = () => {
       try {
         await AdMob.initialize({
           requestTrackingAuthorization: true,
-        });
+        } as Parameters<typeof AdMob.initialize>[0]);
         setIsAdmobInitialized(true);
         console.log("AdMob Initialized successfully.");
       } catch (err) {
