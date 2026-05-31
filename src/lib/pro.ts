@@ -1,4 +1,6 @@
 import { Capacitor } from "@capacitor/core";
+import { enforceFreeColorTheme } from "./color-themes";
+import { enforceFreeAppearance } from "./appearance";
 import { NativePurchases } from "@capgo/native-purchases";
 
 const KEY = "pro-enabled";
@@ -44,6 +46,9 @@ export const setPro = (v: boolean, planType: "monthly" | "yearly" | "lifetime" =
     localStorage.removeItem("pro-purchase-date");
     localStorage.removeItem("pro-expiry-date");
     localStorage.removeItem("pro-subscription-cancelled");
+    // Pro ended — revert any Pro-only customizations to the free defaults.
+    enforceFreeColorTheme();
+    enforceFreeAppearance();
   }
   window.dispatchEvent(new Event("pro:updated"));
 };
