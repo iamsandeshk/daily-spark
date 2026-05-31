@@ -53,6 +53,13 @@ export const setDensity = (id: DensityId) => {
   window.dispatchEvent(new Event("appearance:updated"));
 };
 
+// Reset font + density to the free defaults if the current selection is Pro-only.
+export const enforceFreeAppearance = () => {
+  const font = FONTS.find((f) => f.id === getFont());
+  if (font?.pro) setFont("default");
+  if (getDensity() !== "cozy") setDensity("cozy");
+};
+
 export const applyAppearance = () => {
   const root = document.documentElement;
   const font = FONTS.find((f) => f.id === getFont()) ?? FONTS[0];

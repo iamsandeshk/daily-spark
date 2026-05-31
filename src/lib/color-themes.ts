@@ -119,6 +119,12 @@ export const setColorTheme = (id: ColorThemeId) => {
   window.dispatchEvent(new Event("color-theme:updated"));
 };
 
+// Reset to the free default theme if the current selection is Pro-only.
+export const enforceFreeColorTheme = () => {
+  const theme = COLOR_THEMES.find((t) => t.id === getColorTheme());
+  if (theme?.pro) setColorTheme("default");
+};
+
 export const applyColorTheme = (id: ColorThemeId = getColorTheme()) => {
   const theme = COLOR_THEMES.find((t) => t.id === id) ?? COLOR_THEMES[0];
   const root = document.documentElement;
