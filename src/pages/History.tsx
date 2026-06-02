@@ -54,6 +54,21 @@ const History = () => {
   };
 
   const changeMonth = (delta: number) => {
+    // Viewing previous months is a Pro feature.
+    if (delta < 0 && !isPro()) {
+      const now = new Date();
+      const target = new Date(year, month + delta, 1);
+      const isPastMonth =
+        target.getFullYear() < now.getFullYear() ||
+        (target.getFullYear() === now.getFullYear() && target.getMonth() < now.getMonth());
+      if (isPastMonth) {
+        toast("Viewing previous months is a Pro feature", {
+          description: "Upgrade to Pro to browse your full history.",
+          action: { label: "Get Pro", onClick: () => navigate("/settings/pro") },
+        });
+        return;
+      }
+    }
     setDirection(delta > 0 ? "right" : "left");
     setCursor(new Date(year, month + delta, 1));
   };
