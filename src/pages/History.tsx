@@ -150,9 +150,12 @@ const History = () => {
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => changeMonth(-1)}
-              className="p-2 rounded-full text-muted-foreground hover:bg-muted transition-colors"
+              className="relative p-2 rounded-full text-muted-foreground hover:bg-muted transition-colors"
             >
               <ChevronDown size={18} className="rotate-90" />
+              {!isPro() && (
+                <Lock size={9} strokeWidth={3} className="absolute top-1 right-1 text-accent" />
+              )}
             </button>
             <p className="text-sm font-bold tracking-tight">{monthLabel(cursor)}</p>
             <button
