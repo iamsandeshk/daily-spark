@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Flame, ChevronDown, Settings } from "lucide-react";
+import { ArrowLeft, Flame, ChevronDown, Settings, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, yesterdayKey } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { isPro } from "@/lib/pro";
 import { MoodHistoryStrip } from "@/components/routine/MoodHistoryStrip";
 
 const monthLabel = (d: Date) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
