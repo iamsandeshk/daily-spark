@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Flame, ChevronDown, Settings } from "lucide-react";
+import { ArrowLeft, Flame, ChevronDown, Settings, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, yesterdayKey } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { isPro } from "@/lib/pro";
 import { MoodHistoryStrip } from "@/components/routine/MoodHistoryStrip";
 
 const monthLabel = (d: Date) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
@@ -52,6 +54,21 @@ const History = () => {
   };
 
   const changeMonth = (delta: number) => {
+    // Viewing previous months is a Pro feature.
+    if (delta < 0 && !isPro()) {
+      const now = new Date();
+      const target = new Date(year, month + delta, 1);
+      const isPastMonth =
+        target.getFullYear() < now.getFullYear() ||
+        (target.getFullYear() === now.getFullYear() && target.getMonth() < now.getMonth());
+      if (isPastMonth) {
+        toast("Viewing previous months is a Pro feature", {
+          description: "Upgrade to Pro to browse your full history.",
+          action: { label: "Get Pro", onClick: () => navigate("/settings/pro") },
+        });
+        return;
+      }
+    }
     setDirection(delta > 0 ? "right" : "left");
     setCursor(new Date(year, month + delta, 1));
   };
@@ -133,9 +150,12 @@ const History = () => {
           <div className="flex items-center justify-between mb-3">
             <button
               onClick={() => changeMonth(-1)}
-              className="p-2 rounded-full text-muted-foreground hover:bg-muted transition-colors"
+              className="relative p-2 rounded-full text-muted-foreground hover:bg-muted transition-colors"
             >
               <ChevronDown size={18} className="rotate-90" />
+              {!isPro() && (
+                <Lock size={9} strokeWidth={3} className="absolute top-1 right-1 text-accent" />
+              )}
             </button>
             <p className="text-sm font-bold tracking-tight">{monthLabel(cursor)}</p>
             <button
