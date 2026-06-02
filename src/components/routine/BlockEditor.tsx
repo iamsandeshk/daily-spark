@@ -227,17 +227,23 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
               <div className="grid grid-cols-2 gap-3">
                 {blockMenu.map((m) => {
                   const Icon = m.icon;
+                  const locked = m.type === "timer" && !isPro();
                   return (
                     <button
                       key={m.type}
                       type="button"
                       onClick={() => addBlock(m.type)}
-                      className="group flex flex-row items-center gap-3 rounded-xl border border-border bg-background p-2.5 text-[13px] font-bold text-foreground hover:bg-muted hover:border-accent/30 hover:text-accent transition-all active:scale-[0.97]"
+                      className="group relative flex flex-row items-center gap-3 rounded-xl border border-border bg-background p-2.5 text-[13px] font-bold text-foreground hover:bg-muted hover:border-accent/30 hover:text-accent transition-all active:scale-[0.97]"
                     >
                       <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center group-hover:bg-accent/10 shrink-0 transition-colors">
                         <Icon size={16} strokeWidth={2.5} className="text-muted-foreground/80 group-hover:text-accent transition-colors" />
                       </div>
                       <span className="truncate">{m.label}</span>
+                      {locked && (
+                        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent shrink-0">
+                          <Lock size={9} strokeWidth={3} /> Pro
+                        </span>
+                      )}
                     </button>
                   );
                 })}
