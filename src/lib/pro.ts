@@ -5,6 +5,19 @@ import { NativePurchases } from "@capgo/native-purchases";
 
 const KEY = "pro-enabled";
 
+// ─── Product IDs — must match Google Play Console exactly ──────────────────
+export const PRODUCT_IDS = {
+  monthly: "monthly",
+  yearly: "yearly",
+  lifetime: "lifetime",
+} as const;
+
+// Base Plan IDs for subscriptions (set in Play Console under each subscription)
+export const PLAN_IDS = {
+  monthly: "monthly",
+  yearly: "yearly",
+} as const;
+
 export interface ProDetails {
   planType: "monthly" | "yearly" | "lifetime";
   purchaseDate: string;
@@ -40,6 +53,7 @@ export const setPro = (v: boolean, planType: "monthly" | "yearly" | "lifetime" =
     } else if (planType === "yearly") {
       expiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
     }
+    // lifetime stays "Never"
     localStorage.setItem("pro-expiry-date", expiryDate);
   } else {
     localStorage.removeItem("pro-plan-type");
@@ -62,7 +76,7 @@ export const syncProSubscription = async () => {
 
   const { planType, expiryDate, isCancelled } = details;
 
-  // Lifetime purchases never expire
+  // Lifetime purchases never expire — nothing to sync
   if (planType === "lifetime" || expiryDate === "Never") return;
 
   const now = new Date();
@@ -75,13 +89,13 @@ export const syncProSubscription = async () => {
 
   if (Capacitor.isNativePlatform()) {
     try {
-      // Query current entitlements from Google Play
+      // Query current entitlements from Google Play using the correct product ID
       const { purchases } = await NativePurchases.getPurchases({ onlyCurrentEntitlements: true });
-      const subId = `com.dailyroutiness.app.pro.${planType}`;
+      const productId = PRODUCT_IDS[planType]; // "monthly" or "yearly"
       
-      // Find matching purchase
+      // Find matching active subscription purchase
       const activePurchase = purchases?.find(
-        (p) => p.productIdentifier === subId || p.productIdentifier.includes(planType)
+        (p) => p.productIdentifier === productId || p.productIdentifier.includes(planType)
       );
 
       if (activePurchase) {
@@ -95,7 +109,7 @@ export const syncProSubscription = async () => {
           localStorage.setItem("pro-subscription-cancelled", "0");
         }
 
-        // Check if there is an explicit expirationDate from the native transaction (mainly iOS StoreKit 2)
+        // Check if there is an explicit expirationDate from the native transaction
         if (activePurchase.expirationDate) {
           const storeExpiry = new Date(activePurchase.expirationDate);
           localStorage.setItem("pro-expiry-date", storeExpiry.toISOString());
@@ -106,10 +120,9 @@ export const syncProSubscription = async () => {
             return;
           }
         } else {
-          // Fallback calculation for Android (since expirationDate is not native on Android client SDK)
+          // Fallback calculation for Android (expirationDate not always present on Android client)
           if (isLastDayOrLater) {
-            // It's the last day or past expiry, but the subscription is STILL active/valid in Google Play.
-            // This means it has renewed! Let's update the expiry date to the next cycle.
+            // Still active in Google Play — must have renewed. Extend local expiry.
             const prevExpiry = new Date(expiryDate);
             let newExpiry = "Never";
             
@@ -120,18 +133,16 @@ export const syncProSubscription = async () => {
             }
             
             localStorage.setItem("pro-expiry-date", newExpiry);
-            // If it is active in store, reset cancelled state unless Google says otherwise
             if (activePurchase.willCancel === null) {
-              // On Android we assume active since it's active in purchases list
+              // Active on Android — assume renewed
               localStorage.setItem("pro-subscription-cancelled", "0"); 
             }
           }
         }
         window.dispatchEvent(new Event("pro:updated"));
       } else {
-        // No longer returned as active entitlement in Google Play/App Store.
-        // It has either been cancelled and expired, or cancelled and in paid period.
-        // If the calculated paid period has fully lapsed, expire Pro now and rewrite local storage to non-pro.
+        // No longer returned as active entitlement in Google Play.
+        // Either cancelled+expired, or cancelled+in paid period.
         if (now.getTime() > expiry.getTime()) {
           setPro(false);
         } else {
@@ -147,7 +158,7 @@ export const syncProSubscription = async () => {
     // Web / Simulator environment
     if (now.getTime() > expiry.getTime()) {
       if (isCancelled) {
-        // Cancelled and fully expired, deactivate Pro and rewrite local storage to non-pro
+        // Cancelled and fully expired, deactivate Pro
         setPro(false);
       } else {
         // Auto-renewing, extend it!
@@ -171,6 +182,3 @@ export const FREE_ROUTINE_LIMIT = 3;
 
 export const canAddRoutine = (activeCount: number): boolean =>
   isPro() || activeCount < FREE_ROUTINE_LIMIT;
-
-
-

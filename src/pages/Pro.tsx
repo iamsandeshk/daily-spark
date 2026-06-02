@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
-import { isPro, setPro, getProDetails, syncProSubscription } from "@/lib/pro";
+import { isPro, setPro, getProDetails, syncProSubscription, PRODUCT_IDS, PLAN_IDS } from "@/lib/pro";
 import { toast } from "@/hooks/use-toast";
 import { Capacitor } from "@capacitor/core";
 import { NativePurchases, PURCHASE_TYPE } from "@capgo/native-purchases";
@@ -69,36 +69,33 @@ const Pro = () => {
       if (!Capacitor.isNativePlatform()) return;
       
       try {
-        const subIds = ["com.dailyroutiness.app.pro.monthly", "com.dailyroutiness.app.pro.yearly"];
-        const inAppIds = ["com.dailyroutiness.app.pro.lifetime"];
-        
         const updatedPrices: Record<string, string> = { ...getLocalePricing() };
         
-        // Query subscriptions (Monthly & Yearly)
+        // Query subscriptions (Monthly & Yearly) — IDs must match Play Console exactly
         const subResult = await NativePurchases.getProducts({
-          productIdentifiers: subIds,
+          productIdentifiers: [PRODUCT_IDS.monthly, PRODUCT_IDS.yearly],
           productType: PURCHASE_TYPE.SUBS
         });
         
         if (subResult?.products) {
           subResult.products.forEach((p) => {
-            if (p.identifier.includes("monthly") && p.priceString) {
+            if (p.identifier === PRODUCT_IDS.monthly && p.priceString) {
               updatedPrices.monthly = p.priceString;
-            } else if (p.identifier.includes("yearly") && p.priceString) {
+            } else if (p.identifier === PRODUCT_IDS.yearly && p.priceString) {
               updatedPrices.yearly = p.priceString;
             }
           });
         }
         
-        // Query one-time purchase (Lifetime)
+        // Query one-time in-app purchase (Lifetime) — ID must match Play Console exactly
         const inAppResult = await NativePurchases.getProducts({
-          productIdentifiers: inAppIds,
+          productIdentifiers: [PRODUCT_IDS.lifetime],
           productType: PURCHASE_TYPE.INAPP
         });
         
         if (inAppResult?.products) {
           inAppResult.products.forEach((p) => {
-            if (p.identifier.includes("lifetime") && p.priceString) {
+            if (p.identifier === PRODUCT_IDS.lifetime && p.priceString) {
               updatedPrices.lifetime = p.priceString;
             }
           });
@@ -120,65 +117,133 @@ const Pro = () => {
   }, []);
 
   const handlePurchase = async () => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const prodId = `com.dailyroutiness.app.pro.${selected}`;
-        const planId = selected === "lifetime" ? undefined : `${selected}-plan`;
-        const type = selected === "lifetime" ? PURCHASE_TYPE.INAPP : PURCHASE_TYPE.SUBS;
-        
-        await NativePurchases.purchaseProduct({
-          productIdentifier: prodId,
-          planIdentifier: planId,
-          productType: type
-        });
-      } catch (err) {
-        console.error("Native purchase error:", err);
+    if (!Capacitor.isNativePlatform()) {
+      // Web / simulator fallback — grant directly for development testing
+      localStorage.setItem("pro-purchased", "1");
+      setPro(true, selected);
+      setProState(true);
+      successHaptic();
+      toast({
+        title: "Welcome to Pro! (Simulated)",
+        description: `Pro activated in web/simulator mode (${selected} plan).`,
+      });
+      navigate(-1);
+      return;
+    }
+
+    // Native device — initiate real Google Play billing
+    try {
+      const result = await NativePurchases.purchaseProduct({
+        productIdentifier: PRODUCT_IDS[selected],
+        // For subscriptions, pass the base plan ID; lifetime has no plan
+        planIdentifier: selected !== "lifetime" ? PLAN_IDS[selected] : undefined,
+        productType: selected === "lifetime" ? PURCHASE_TYPE.INAPP : PURCHASE_TYPE.SUBS,
+      });
+
+      // Only grant Pro if Google Play confirms a valid purchase token
+      if (result?.productIdentifier || result?.purchaseToken) {
+        localStorage.setItem("pro-purchased", "1");
+        setPro(true, selected);
+        setProState(true);
+        successHaptic();
         toast({
-          title: "Billing Simulated",
-          description: "Using standard billing simulator for sandbox environment.",
+          title: "Welcome to Pro!",
+          description: `Successfully activated Daily Routines Pro (${selected} plan).`,
+        });
+        navigate(-1);
+      } else {
+        // Purchase returned no token — something went wrong
+        toast({
+          title: "Purchase Incomplete",
+          description: "The purchase could not be verified. Please try again.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Native purchase error:", err);
+      // Don't show error for user-initiated cancellation
+      const cancelled =
+        err?.code === "E_USER_CANCELLED" ||
+        err?.message?.toLowerCase().includes("cancel") ||
+        err?.message?.toLowerCase().includes("dismiss");
+      if (!cancelled) {
+        toast({
+          title: "Purchase Failed",
+          description: err?.message || "Something went wrong. Please try again.",
         });
       }
     }
-
-    localStorage.setItem("pro-purchased", "1");
-    setPro(true, selected);
-    setProState(true);
-    successHaptic();
-    
-    toast({
-      title: "Welcome to Pro!",
-      description: `Successfully activated Daily Routines Pro (${selected} Plan).`,
-    });
-    
-    navigate(-1);
   };
 
   const handleRestore = async () => {
     if (Capacitor.isNativePlatform()) {
       try {
+        // Tell Google Play to restore all previous purchases for this account
         await NativePurchases.restorePurchases();
-        const { purchases } = await NativePurchases.getPurchases({ onlyCurrentEntitlements: true });
-        if (purchases && purchases.length > 0) {
-          const active = purchases[0];
-          const type = active.productIdentifier.includes("monthly") 
-            ? "monthly" 
-            : active.productIdentifier.includes("lifetime") 
-              ? "lifetime" 
-              : "yearly";
-          
+
+        // ── 1. Check for lifetime one-time purchase ──────────────────────────
+        // One-time INAPP purchases are not returned by onlyCurrentEntitlements;
+        // we must query active purchases directly.
+        const { purchases: allPurchases } = await NativePurchases.getPurchases({
+          onlyCurrentEntitlements: false,
+        });
+
+        const lifetimePurchase = allPurchases?.find(
+          (p) => p.productIdentifier === PRODUCT_IDS.lifetime
+        );
+
+        if (lifetimePurchase) {
+          localStorage.setItem("pro-purchased", "1");
+          setPro(true, "lifetime");
+          setProState(true);
+          successHaptic();
+          toast({
+            title: "Purchase restored",
+            description: "Your Lifetime Pro has been successfully restored.",
+          });
+          navigate(-1);
+          return;
+        }
+
+        // ── 2. Check for active subscription (monthly / yearly) ──────────────
+        const { purchases: entitlements } = await NativePurchases.getPurchases({
+          onlyCurrentEntitlements: true,
+        });
+
+        if (entitlements && entitlements.length > 0) {
+          const active = entitlements[0];
+          const type: "monthly" | "yearly" | "lifetime" =
+            active.productIdentifier === PRODUCT_IDS.monthly
+              ? "monthly"
+              : active.productIdentifier === PRODUCT_IDS.yearly
+              ? "yearly"
+              : "lifetime";
+
+          localStorage.setItem("pro-purchased", "1");
           setPro(true, type);
           setProState(true);
           successHaptic();
           toast({
             title: "Purchase restored",
-            description: "Your Pro status has been successfully restored from Google Play.",
+            description: `Your ${type} Pro subscription has been restored from Google Play.`,
           });
           navigate(-1);
           return;
         }
+
+        // Nothing found
+        tapHaptic();
+        toast({
+          title: "No active subscription",
+          description: "We couldn't find an active Pro purchase on this Google account.",
+        });
       } catch (err) {
         console.error("Native restore error:", err);
+        toast({
+          title: "Restore Failed",
+          description: "Could not contact Google Play. Please check your connection and try again.",
+        });
       }
+      return;
     }
 
     // Web/Simulation fallback
