@@ -29,6 +29,7 @@ import { RoutineCheckbox } from "./RoutineCheckbox";
 import { TimerRow, formatTime } from "./TimerRow";
 import { useRoutines } from "@/hooks/useRoutines";
 import { useNavigate } from "react-router-dom";
+import { isPro } from "@/lib/pro";
 import { useToolbar, BLOCK_LABELS } from "@/lib/toolbar-config";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
