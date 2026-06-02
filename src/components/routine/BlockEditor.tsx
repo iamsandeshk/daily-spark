@@ -20,6 +20,7 @@ import {
   Flame,
   Timer as TimerIcon,
   Trash2,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BlockType, RoutineBlockContent } from "@/lib/routine-types";
