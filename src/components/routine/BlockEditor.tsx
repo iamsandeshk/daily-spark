@@ -58,12 +58,21 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
   const [toolboxOpen, setToolboxOpen] = useState(false);
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
   const [focusedCursorPos, setFocusedCursorPos] = useState<number | null>(null);
+  const navigate = useNavigate();
   const { items: toolbarItems } = useToolbar();
   const blockMenu = toolbarItems
     .filter((i) => i.enabled)
     .map((i) => ({ type: i.type, label: BLOCK_LABELS[i.type], icon: BLOCK_ICONS[i.type] }));
 
   const addBlock = (type: BlockType, afterIndex?: number) => {
+    // Timer block is a Pro feature.
+    if (type === "timer" && !isPro()) {
+      toast("Timer is a Pro feature", {
+        description: "Upgrade to Pro to add timer blocks.",
+        action: { label: "Get Pro", onClick: () => navigate("/settings/pro") },
+      });
+      return;
+    }
     const nb: RoutineBlockContent = {
       id: uid(),
       type,
