@@ -53,7 +53,7 @@ import {
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
-import { isPro } from "@/lib/pro";
+import { isPro, areAdsTemporarilyDisabled, getAdsDisabledUntil, disableAdsForHours } from "@/lib/pro";
 import { FONTS, DENSITIES, getFont, getDensity, setFont, setDensity, type FontId, type DensityId } from "@/lib/appearance";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
