@@ -8,6 +8,7 @@ import { SectionBlock } from "@/components/routine/SectionBlock";
 import { CarryForwardDialog } from "@/components/routine/CarryForwardDialog";
 import { MoodCard } from "@/components/routine/MoodCard";
 import { TemplateLibrary } from "@/components/routine/TemplateLibrary";
+import { SupportSection } from "@/components/SupportSection";
 import { CompletionCelebration } from "@/components/routine/CompletionCelebration";
 import { StreakGoalCelebration } from "@/components/routine/StreakGoalCelebration";
 import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
@@ -263,6 +264,8 @@ const Index = () => {
             />
           ))}
         </Reorder.Group>
+
+        <SupportSection />
 
         <TemplateLibrary onAdd={handleAddTemplate} />
       </main>
