@@ -108,10 +108,12 @@ export const AdMobBannerManager = () => {
   useEffect(() => {
     if (!isNative || !isAdmobInitialized) return;
 
+    let cancelled = false;
     const manageNativeBanner = async () => {
       try {
         if (shouldShowAd && !isKeyboardVisible) {
-          // Show native AdMob banner
+          // Always recreate the banner so it reliably reappears on every
+          // qualifying page (showBanner after a removeBanner builds a fresh ad).
           await AdMob.showBanner({
             adId: AD_UNIT_ID,
             adSize: BannerAdSize.BANNER,
@@ -119,15 +121,13 @@ export const AdMobBannerManager = () => {
             margin: 0,
             isTesting: false,
           });
-          setIsNativeBannerActive(true);
+          if (!cancelled) setIsNativeBannerActive(true);
           console.log("Native AdMob banner displayed.");
         } else {
-          // Hide native AdMob banner
-          if (isNativeBannerActive) {
-            await AdMob.hideBanner();
-            setIsNativeBannerActive(false);
-            console.log("Native AdMob banner hidden.");
-          }
+          // Remove (not just hide) so the next showBanner rebuilds it cleanly.
+          await AdMob.removeBanner().catch(() => {});
+          if (!cancelled) setIsNativeBannerActive(false);
+          console.log("Native AdMob banner removed.");
         }
       } catch (err) {
         console.warn("AdMob banner action failed:", err);
@@ -136,13 +136,10 @@ export const AdMobBannerManager = () => {
 
     manageNativeBanner();
 
-    // Clean up banner on route switch to home or unmount
     return () => {
-      if (isNativeBannerActive) {
-        AdMob.hideBanner().catch(() => {});
-      }
+      cancelled = true;
     };
-  }, [shouldShowAd, isKeyboardVisible, isAdmobInitialized, isNative, isNativeBannerActive]);
+  }, [shouldShowAd, isKeyboardVisible, isAdmobInitialized, isNative]);
 
   // 4. Inject bottom layout padding to prevent blocking bottom elements/buttons
   useEffect(() => {
