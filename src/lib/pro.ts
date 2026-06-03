@@ -27,6 +27,27 @@ export interface ProDetails {
 
 export const isPro = (): boolean => localStorage.getItem(KEY) === "1";
 
+// ─── Temporary ad-free window (e.g. earned by watching a rewarded ad) ──────
+const ADS_DISABLED_KEY = "ads-disabled-until";
+
+export const getAdsDisabledUntil = (): number => {
+  const v = Number(localStorage.getItem(ADS_DISABLED_KEY) || 0);
+  return Number.isFinite(v) ? v : 0;
+};
+
+export const areAdsTemporarilyDisabled = (): boolean =>
+  getAdsDisabledUntil() > Date.now();
+
+export const disableAdsForHours = (hours: number) => {
+  const base = Math.max(getAdsDisabledUntil(), Date.now());
+  const until = base + hours * 60 * 60 * 1000;
+  localStorage.setItem(ADS_DISABLED_KEY, String(until));
+  window.dispatchEvent(new Event("pro:updated"));
+};
+
+// Ads are off whenever the user is Pro OR inside a temporary ad-free window.
+export const adsDisabled = (): boolean => isPro() || areAdsTemporarilyDisabled();
+
 export const getProDetails = (): ProDetails | null => {
   const enabled = isPro();
   if (!enabled) return null;

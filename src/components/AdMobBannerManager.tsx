@@ -5,7 +5,7 @@ import { Keyboard } from "@capacitor/keyboard";
 import { AdMob, BannerAdSize, BannerAdPosition } from "@capacitor-community/admob";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Info } from "lucide-react";
-import { isPro } from "@/lib/pro";
+import { isPro, areAdsTemporarilyDisabled } from "@/lib/pro";
 
 const AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
 
@@ -15,6 +15,7 @@ export const AdMobBannerManager = () => {
   const [isAdmobInitialized, setIsAdmobInitialized] = useState(false);
   const [isNativeBannerActive, setIsNativeBannerActive] = useState(false);
   const [proActive, setProActive] = useState(() => isPro());
+  const [adsTempOff, setAdsTempOff] = useState(() => areAdsTemporarilyDisabled());
 
   const isNative = Capacitor.getPlatform() !== "web";
 
@@ -22,6 +23,7 @@ export const AdMobBannerManager = () => {
   useEffect(() => {
     const handleProChange = () => {
       setProActive(isPro());
+      setAdsTempOff(areAdsTemporarilyDisabled());
     };
     window.addEventListener("pro:updated", handleProChange);
     window.addEventListener("storage", handleProChange);
@@ -30,9 +32,18 @@ export const AdMobBannerManager = () => {
       window.removeEventListener("storage", handleProChange);
     };
   }, []);
-  
-  // Rule: Display the banner ad on all pages except the Home page ("/") if user does NOT have Pro
-  const shouldShowAd = location.pathname !== "/" && !proActive;
+
+  // Re-check the temporary ad-free window so the banner reappears once it expires
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setAdsTempOff(areAdsTemporarilyDisabled());
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Rule: Display the banner ad on all pages except the Home page ("/") if the
+  // user does NOT have Pro and ads are not temporarily disabled.
+  const shouldShowAd = location.pathname !== "/" && !proActive && !adsTempOff;
 
   // 1. Initialize AdMob on native platforms
   useEffect(() => {
@@ -97,10 +108,12 @@ export const AdMobBannerManager = () => {
   useEffect(() => {
     if (!isNative || !isAdmobInitialized) return;
 
+    let cancelled = false;
     const manageNativeBanner = async () => {
       try {
         if (shouldShowAd && !isKeyboardVisible) {
-          // Show native AdMob banner
+          // Always recreate the banner so it reliably reappears on every
+          // qualifying page (showBanner after a removeBanner builds a fresh ad).
           await AdMob.showBanner({
             adId: AD_UNIT_ID,
             adSize: BannerAdSize.BANNER,
@@ -108,15 +121,13 @@ export const AdMobBannerManager = () => {
             margin: 0,
             isTesting: false,
           });
-          setIsNativeBannerActive(true);
+          if (!cancelled) setIsNativeBannerActive(true);
           console.log("Native AdMob banner displayed.");
         } else {
-          // Hide native AdMob banner
-          if (isNativeBannerActive) {
-            await AdMob.hideBanner();
-            setIsNativeBannerActive(false);
-            console.log("Native AdMob banner hidden.");
-          }
+          // Remove (not just hide) so the next showBanner rebuilds it cleanly.
+          await AdMob.removeBanner().catch(() => {});
+          if (!cancelled) setIsNativeBannerActive(false);
+          console.log("Native AdMob banner removed.");
         }
       } catch (err) {
         console.warn("AdMob banner action failed:", err);
@@ -125,13 +136,10 @@ export const AdMobBannerManager = () => {
 
     manageNativeBanner();
 
-    // Clean up banner on route switch to home or unmount
     return () => {
-      if (isNativeBannerActive) {
-        AdMob.hideBanner().catch(() => {});
-      }
+      cancelled = true;
     };
-  }, [shouldShowAd, isKeyboardVisible, isAdmobInitialized, isNative, isNativeBannerActive]);
+  }, [shouldShowAd, isKeyboardVisible, isAdmobInitialized, isNative]);
 
   // 4. Inject bottom layout padding to prevent blocking bottom elements/buttons
   useEffect(() => {

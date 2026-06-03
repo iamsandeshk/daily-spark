@@ -40,7 +40,7 @@ import { toast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy } from "lucide-react";
+import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy, Heart, Clapperboard, Twitter, Share2 } from "lucide-react";
 import { BlockPreview } from "@/components/routine/BlockEditor";
 import {
   Dialog,
@@ -53,11 +53,15 @@ import {
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
-import { isPro } from "@/lib/pro";
+import { isPro, areAdsTemporarilyDisabled, getAdsDisabledUntil, disableAdsForHours } from "@/lib/pro";
 import { FONTS, DENSITIES, getFont, getDensity, setFont, setDensity, type FontId, type DensityId } from "@/lib/appearance";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
+
+// Replace with a real AdMob Rewarded ad unit before release.
+const REWARD_AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
 
 const useTheme = () => {
   const [mode, setMode] = useState<ThemeMode>(() => {
@@ -140,8 +144,12 @@ const Settings = () => {
   const [proEnabled, setProEnabled] = useState<boolean>(isPro());
   const [fontId, setFontIdState] = useState<FontId>(getFont());
   const [densityId, setDensityIdState] = useState<DensityId>(getDensity());
+  const [adsFreeUntil, setAdsFreeUntil] = useState<number>(() => getAdsDisabledUntil());
   useEffect(() => {
-    const onPro = () => setProEnabled(isPro());
+    const onPro = () => {
+      setProEnabled(isPro());
+      setAdsFreeUntil(getAdsDisabledUntil());
+    };
     window.addEventListener("pro:updated", onPro);
     return () => window.removeEventListener("pro:updated", onPro);
   }, []);
@@ -351,6 +359,87 @@ const Settings = () => {
     successHaptic();
     setTplOpen(false);
   };
+
+  const openExternal = (url: string) => {
+    tapHaptic();
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const formatAdsFreeLeft = () => {
+    const ms = adsFreeUntil - Date.now();
+    if (ms <= 0) return "";
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `${mins}m left`;
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return rem ? `${hrs}h ${rem}m left` : `${hrs}h left`;
+  };
+
+  const handleWatchAd = async () => {
+    tapHaptic();
+    if (isPro()) {
+      toast({ title: "You're Pro", description: "You already have an ad-free experience." });
+      return;
+    }
+    if (areAdsTemporarilyDisabled()) {
+      toast({ title: "Ads already disabled", description: formatAdsFreeLeft() });
+      return;
+    }
+
+    if (Capacitor.getPlatform() !== "web") {
+      try {
+        let rewarded = false;
+        const earnedListener = await AdMob.addListener(
+          RewardAdPluginEvents.Rewarded,
+          () => {
+            rewarded = true;
+          }
+        );
+        await AdMob.prepareRewardVideoAd({ adId: REWARD_AD_UNIT_ID });
+        await AdMob.showRewardVideoAd();
+        await earnedListener.remove();
+        if (rewarded) {
+          disableAdsForHours(4);
+          setAdsFreeUntil(getAdsDisabledUntil());
+          successHaptic();
+          toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+        }
+      } catch (err) {
+        console.warn("Reward ad failed:", err);
+        toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
+      }
+      return;
+    }
+
+    // Web fallback — grant the reward directly
+    disableAdsForHours(4);
+    setAdsFreeUntil(getAdsDisabledUntil());
+    successHaptic();
+    toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+  };
+
+  const handleShareApp = async () => {
+    tapHaptic();
+    const shareData = {
+      title: "Daily Routines",
+      text: "Check out Daily Routines — a simple, beautiful habit & routine tracker.",
+      url: "https://play.google.com/store/apps/details?id=com.dailyroutiness.app",
+    };
+    try {
+      if (Capacitor.getPlatform() !== "web") {
+        await Share.share(shareData);
+      } else if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast({ title: "Link copied", description: "Share it with your friends!" });
+      }
+    } catch {
+      /* user cancelled */
+    }
+  };
+
+
 
 
   const handleExport = async () => {
@@ -588,6 +677,53 @@ const Settings = () => {
             hint={`Target ${streakGoal} day streak`}
             right={<span className="text-[13px] text-muted-foreground tabular-nums">{streakGoal}d</span>}
             onClick={() => setStreakOpen(true)}
+            last
+          />
+        </Card>
+
+        {/* Divider before Support */}
+        <div className="mt-7 border-t border-border" />
+
+        <SectionLabel>Support the developer</SectionLabel>
+        <Card>
+          <Row
+            icon={Heart}
+            label="Donate to the developer"
+            hint="Buy me a coffee to keep updates coming"
+            onClick={() => openExternal("https://buymeacoffee.com/sandeshkullolli")}
+          />
+          <Row
+            icon={Clapperboard}
+            label="Watch an ad — go ad-free 4 hrs"
+            hint={
+              !proEnabled && adsFreeUntil > Date.now()
+                ? `Ad-free active · ${formatAdsFreeLeft()}`
+                : "Support the app and remove ads temporarily"
+            }
+            right={
+              !proEnabled && adsFreeUntil > Date.now() ? (
+                <Check size={18} className="text-accent shrink-0" />
+              ) : undefined
+            }
+            onClick={handleWatchAd}
+          />
+          <Row
+            icon={Twitter}
+            label="Follow on X"
+            hint="Get updates and behind-the-scenes"
+            onClick={() => openExternal("https://x.com/sandeshkullolli")}
+          />
+          <Row
+            icon={Star}
+            label="Rate on Play Store"
+            hint="A 5-star review means the world"
+            onClick={() => openExternal("https://play.google.com/store/apps/details?id=com.dailyroutiness.app")}
+          />
+          <Row
+            icon={Share2}
+            label="Share the app"
+            hint="Tell a friend who'd love it"
+            onClick={handleShareApp}
             last
           />
         </Card>
