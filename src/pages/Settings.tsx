@@ -360,6 +360,87 @@ const Settings = () => {
     setTplOpen(false);
   };
 
+  const openExternal = (url: string) => {
+    tapHaptic();
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const formatAdsFreeLeft = () => {
+    const ms = adsFreeUntil - Date.now();
+    if (ms <= 0) return "";
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `${mins}m left`;
+    const hrs = Math.floor(mins / 60);
+    const rem = mins % 60;
+    return rem ? `${hrs}h ${rem}m left` : `${hrs}h left`;
+  };
+
+  const handleWatchAd = async () => {
+    tapHaptic();
+    if (isPro()) {
+      toast({ title: "You're Pro", description: "You already have an ad-free experience." });
+      return;
+    }
+    if (areAdsTemporarilyDisabled()) {
+      toast({ title: "Ads already disabled", description: formatAdsFreeLeft() });
+      return;
+    }
+
+    if (Capacitor.getPlatform() !== "web") {
+      try {
+        let rewarded = false;
+        const earnedListener = await AdMob.addListener(
+          RewardAdPluginEvents.Rewarded,
+          () => {
+            rewarded = true;
+          }
+        );
+        await AdMob.prepareRewardVideoAd({ adId: REWARD_AD_UNIT_ID });
+        await AdMob.showRewardVideoAd();
+        await earnedListener.remove();
+        if (rewarded) {
+          disableAdsForHours(4);
+          setAdsFreeUntil(getAdsDisabledUntil());
+          successHaptic();
+          toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+        }
+      } catch (err) {
+        console.warn("Reward ad failed:", err);
+        toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
+      }
+      return;
+    }
+
+    // Web fallback — grant the reward directly
+    disableAdsForHours(4);
+    setAdsFreeUntil(getAdsDisabledUntil());
+    successHaptic();
+    toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+  };
+
+  const handleShareApp = async () => {
+    tapHaptic();
+    const shareData = {
+      title: "Daily Routines",
+      text: "Check out Daily Routines — a simple, beautiful habit & routine tracker.",
+      url: "https://play.google.com/store/apps/details?id=com.dailyroutiness.app",
+    };
+    try {
+      if (Capacitor.getPlatform() !== "web") {
+        await Share.share(shareData);
+      } else if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast({ title: "Link copied", description: "Share it with your friends!" });
+      }
+    } catch {
+      /* user cancelled */
+    }
+  };
+
+
+
 
   const handleExport = async () => {
     const data = localStorage.getItem("daily-routine-os/v1") ?? "{}";
