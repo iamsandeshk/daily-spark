@@ -58,6 +58,10 @@ import { FONTS, DENSITIES, getFont, getDensity, setFont, setDensity, type FontId
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
+
+// Replace with a real AdMob Rewarded ad unit before release.
+const REWARD_AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
 
 const useTheme = () => {
   const [mode, setMode] = useState<ThemeMode>(() => {
