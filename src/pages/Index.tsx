@@ -264,6 +264,8 @@ const Index = () => {
           ))}
         </Reorder.Group>
 
+        <SupportSection />
+
         <TemplateLibrary onAdd={handleAddTemplate} />
       </main>
 
