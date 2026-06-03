@@ -23,6 +23,7 @@ export const AdMobBannerManager = () => {
   useEffect(() => {
     const handleProChange = () => {
       setProActive(isPro());
+      setAdsTempOff(areAdsTemporarilyDisabled());
     };
     window.addEventListener("pro:updated", handleProChange);
     window.addEventListener("storage", handleProChange);
@@ -31,9 +32,18 @@ export const AdMobBannerManager = () => {
       window.removeEventListener("storage", handleProChange);
     };
   }, []);
-  
-  // Rule: Display the banner ad on all pages except the Home page ("/") if user does NOT have Pro
-  const shouldShowAd = location.pathname !== "/" && !proActive;
+
+  // Re-check the temporary ad-free window so the banner reappears once it expires
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setAdsTempOff(areAdsTemporarilyDisabled());
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Rule: Display the banner ad on all pages except the Home page ("/") if the
+  // user does NOT have Pro and ads are not temporarily disabled.
+  const shouldShowAd = location.pathname !== "/" && !proActive && !adsTempOff;
 
   // 1. Initialize AdMob on native platforms
   useEffect(() => {
