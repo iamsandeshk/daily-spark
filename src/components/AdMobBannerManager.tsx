@@ -15,6 +15,7 @@ export const AdMobBannerManager = () => {
   const [isAdmobInitialized, setIsAdmobInitialized] = useState(false);
   const [isNativeBannerActive, setIsNativeBannerActive] = useState(false);
   const [proActive, setProActive] = useState(() => isPro());
+  const [adsTempOff, setAdsTempOff] = useState(() => areAdsTemporarilyDisabled());
 
   const isNative = Capacitor.getPlatform() !== "web";
 
