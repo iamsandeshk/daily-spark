@@ -144,8 +144,12 @@ const Settings = () => {
   const [proEnabled, setProEnabled] = useState<boolean>(isPro());
   const [fontId, setFontIdState] = useState<FontId>(getFont());
   const [densityId, setDensityIdState] = useState<DensityId>(getDensity());
+  const [adsFreeUntil, setAdsFreeUntil] = useState<number>(() => getAdsDisabledUntil());
   useEffect(() => {
-    const onPro = () => setProEnabled(isPro());
+    const onPro = () => {
+      setProEnabled(isPro());
+      setAdsFreeUntil(getAdsDisabledUntil());
+    };
     window.addEventListener("pro:updated", onPro);
     return () => window.removeEventListener("pro:updated", onPro);
   }, []);
