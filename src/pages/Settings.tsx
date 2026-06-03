@@ -681,53 +681,6 @@ const Settings = () => {
           />
         </Card>
 
-        {/* Divider before Support */}
-        <div className="mt-7 border-t border-border" />
-
-        <SectionLabel>Support the developer</SectionLabel>
-        <Card>
-          <Row
-            icon={Heart}
-            label="Donate to the developer"
-            hint="Buy me a coffee to keep updates coming"
-            onClick={() => openExternal("https://buymeacoffee.com/sandeshkullolli")}
-          />
-          <Row
-            icon={Clapperboard}
-            label="Watch an ad — go ad-free 4 hrs"
-            hint={
-              !proEnabled && adsFreeUntil > Date.now()
-                ? `Ad-free active · ${formatAdsFreeLeft()}`
-                : "Support the app and remove ads temporarily"
-            }
-            right={
-              !proEnabled && adsFreeUntil > Date.now() ? (
-                <Check size={18} className="text-accent shrink-0" />
-              ) : undefined
-            }
-            onClick={handleWatchAd}
-          />
-          <Row
-            icon={Twitter}
-            label="Follow on X"
-            hint="Get updates and behind-the-scenes"
-            onClick={() => openExternal("https://x.com/sandeshkullolli")}
-          />
-          <Row
-            icon={Star}
-            label="Rate on Play Store"
-            hint="A 5-star review means the world"
-            onClick={() => openExternal("https://play.google.com/store/apps/details?id=com.dailyroutiness.app")}
-          />
-          <Row
-            icon={Share2}
-            label="Share the app"
-            hint="Tell a friend who'd love it"
-            onClick={handleShareApp}
-            last
-          />
-        </Card>
-
         <SectionLabel>Library</SectionLabel>
         <Card>
           <Row
