@@ -63,6 +63,7 @@ export const SupportSection = () => {
   const [proEnabled, setProEnabled] = useState<boolean>(() => isPro());
   const [adsFreeUntil, setAdsFreeUntil] = useState<number>(() => getAdsDisabledUntil());
   const [now, setNow] = useState<number>(() => Date.now());
+  const [adState, setAdState] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
     const onPro = () => {
