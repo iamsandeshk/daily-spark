@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer } from "lucide-react";
+import { Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer, Loader2, AlertCircle } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
