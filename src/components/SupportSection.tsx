@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Heart, Clapperboard, Twitter, Share2, Star, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { Heart, Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
@@ -13,14 +15,12 @@ import {
   disableAdsForHours,
 } from "@/lib/pro";
 
+// Shared animation config — mirror the routine section open/close transition.
+const SECTION_EASE = [0.32, 0.72, 0, 1] as const;
+const SECTION_DURATION = 0.45;
+
 // Replace with a real AdMob Rewarded ad unit before release.
 const REWARD_AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
-
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mt-7 mb-2.5">
-    {children}
-  </h3>
-);
 
 const Card = ({ children }: { children: React.ReactNode }) => (
   <div className="rounded-2xl border border-border bg-card overflow-hidden">{children}</div>
@@ -58,8 +58,11 @@ const Row = ({
 );
 
 export const SupportSection = () => {
+  const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
   const [proEnabled, setProEnabled] = useState<boolean>(() => isPro());
   const [adsFreeUntil, setAdsFreeUntil] = useState<number>(() => getAdsDisabledUntil());
+  const [now, setNow] = useState<number>(() => Date.now());
 
   useEffect(() => {
     const onPro = () => {
@@ -70,19 +73,27 @@ export const SupportSection = () => {
     return () => window.removeEventListener("pro:updated", onPro);
   }, []);
 
+  // Live ticking countdown while the temporary ad-free window is active.
+  const adsFreeActive = !proEnabled && adsFreeUntil > now;
+  useEffect(() => {
+    if (!adsFreeActive) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [adsFreeActive]);
+
   const openExternal = (url: string) => {
     tapHaptic();
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const formatAdsFreeLeft = () => {
-    const ms = adsFreeUntil - Date.now();
-    if (ms <= 0) return "";
-    const mins = Math.round(ms / 60000);
-    if (mins < 60) return `${mins}m left`;
-    const hrs = Math.floor(mins / 60);
-    const rem = mins % 60;
-    return rem ? `${hrs}h ${rem}m left` : `${hrs}h left`;
+  // Full H:MM:SS countdown for the ad-free window.
+  const formatCountdown = () => {
+    const ms = Math.max(0, adsFreeUntil - now);
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
   const handleWatchAd = async () => {
@@ -92,7 +103,7 @@ export const SupportSection = () => {
       return;
     }
     if (areAdsTemporarilyDisabled()) {
-      toast({ title: "Ads already disabled", description: formatAdsFreeLeft() });
+      toast({ title: "Ads already disabled", description: `${formatCountdown()} left` });
       return;
     }
 
@@ -111,6 +122,7 @@ export const SupportSection = () => {
         if (rewarded) {
           disableAdsForHours(4);
           setAdsFreeUntil(getAdsDisabledUntil());
+          setNow(Date.now());
           successHaptic();
           toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
         }
@@ -124,6 +136,7 @@ export const SupportSection = () => {
     // Web fallback — grant the reward directly
     disableAdsForHours(4);
     setAdsFreeUntil(getAdsDisabledUntil());
+    setNow(Date.now());
     successHaptic();
     toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
   };
@@ -149,52 +162,122 @@ export const SupportSection = () => {
     }
   };
 
-  const adsFreeActive = !proEnabled && adsFreeUntil > Date.now();
-
   return (
-    <div className="mt-2">
+    <section className="flex flex-col mt-6">
       {/* Divider above Support */}
-      <div className="border-t border-border" />
+      <div className="border-t border-border mb-3" />
 
-      <SectionLabel>Support the developer</SectionLabel>
-      <Card>
-        <Row
-          icon={Heart}
-          label="Donate to the developer"
-          hint="Buy me a coffee to keep updates coming"
-          onClick={() => openExternal("https://buymeacoffee.com/sandeshkullolli")}
-        />
-        <Row
-          icon={Clapperboard}
-          label="Watch an ad — go ad-free 4 hrs"
-          hint={
-            adsFreeActive
-              ? `Ad-free active · ${formatAdsFreeLeft()}`
-              : "Support the app and remove ads temporarily"
-          }
-          right={adsFreeActive ? <Check size={18} className="text-accent shrink-0" /> : undefined}
-          onClick={handleWatchAd}
-        />
-        <Row
-          icon={Twitter}
-          label="Follow on X"
-          hint="Get updates and behind-the-scenes"
-          onClick={() => openExternal("https://x.com/sandeshkullolli")}
-        />
-        <Row
-          icon={Star}
-          label="Rate on Play Store"
-          hint="A 5-star review means the world"
-          onClick={() => openExternal("https://play.google.com/store/apps/details?id=com.dailyroutiness.app")}
-        />
-        <Row
-          icon={Share2}
-          label="Share the app"
-          hint="Tell a friend who'd love it"
-          onClick={handleShareApp}
-          last
-        />
-      </Card>
-    </div>
+      <header className="flex items-center gap-2 px-1">
+        <button
+          onClick={() => {
+            tapHaptic();
+            setCollapsed((v) => !v);
+          }}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        >
+          <motion.span
+            animate={{ rotate: collapsed ? -90 : 0 }}
+            transition={{ duration: SECTION_DURATION, ease: SECTION_EASE }}
+            className="text-muted-foreground"
+          >
+            <ChevronDown size={16} />
+          </motion.span>
+          <h2 className="text-base font-semibold tracking-tight truncate">Support the developer</h2>
+        </button>
+      </header>
+
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              height: { duration: SECTION_DURATION, ease: SECTION_EASE },
+              opacity: { duration: SECTION_DURATION, ease: SECTION_EASE },
+            }}
+            style={{ overflow: "hidden" }}
+          >
+            <div className="pt-3">
+              {/* Ad-free countdown banner */}
+              {adsFreeActive && (
+                <div className="mb-3 flex items-center gap-3 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3">
+                  <Timer size={18} className="shrink-0 text-accent" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-semibold text-foreground">Ad-free active</div>
+                    <div className="text-[12px] text-muted-foreground">Enjoy a clean, ad-free experience</div>
+                  </div>
+                  <div className="font-mono text-[15px] font-bold tabular-nums text-accent">
+                    {formatCountdown()}
+                  </div>
+                </div>
+              )}
+
+              {/* Get Pro CTA for free users */}
+              {!proEnabled && (
+                <button
+                  onClick={() => {
+                    tapHaptic();
+                    navigate("/settings/pro");
+                  }}
+                  className="mb-3 w-full flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-card to-amber-900/10 px-4 py-3.5 text-left transition-colors hover:from-amber-500/25"
+                >
+                  <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-amber-500/15 text-amber-500 shrink-0">
+                    <Crown size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[15px] font-bold text-foreground">Get Pro</div>
+                    <div className="text-[12px] text-muted-foreground truncate">
+                      Remove ads forever and unlock everything
+                    </div>
+                  </div>
+                  <ChevronDown size={18} className="-rotate-90 text-muted-foreground shrink-0" />
+                </button>
+              )}
+
+              <Card>
+                <Row
+                  icon={Heart}
+                  label="Donate to the developer"
+                  hint="Buy me a coffee to keep updates coming"
+                  onClick={() => openExternal("https://buymeacoffee.com/sandeshkullolli")}
+                />
+                <Row
+                  icon={Clapperboard}
+                  label="Watch an ad — go ad-free 4 hrs"
+                  hint={
+                    adsFreeActive
+                      ? `Ad-free active · ${formatCountdown()} left`
+                      : "Support the app and remove ads temporarily"
+                  }
+                  right={adsFreeActive ? <Check size={18} className="text-accent shrink-0" /> : undefined}
+                  onClick={handleWatchAd}
+                />
+                <Row
+                  icon={Twitter}
+                  label="Follow on X"
+                  hint="Get updates and behind-the-scenes"
+                  onClick={() => openExternal("https://x.com/sandeshkullolli")}
+                />
+                <Row
+                  icon={Star}
+                  label="Rate on Play Store"
+                  hint="A 5-star review means the world"
+                  onClick={() => openExternal("https://play.google.com/store/apps/details?id=com.dailyroutiness.app")}
+                />
+                <Row
+                  icon={Share2}
+                  label="Share the app"
+                  hint="Tell a friend who'd love it"
+                  onClick={handleShareApp}
+                  last
+                />
+              </Card>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 };
