@@ -5,7 +5,7 @@ import { Keyboard } from "@capacitor/keyboard";
 import { AdMob, BannerAdSize, BannerAdPosition } from "@capacitor-community/admob";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Info } from "lucide-react";
-import { isPro, areAdsTemporarilyDisabled } from "@/lib/pro";
+import { isPro, areAdsTemporarilyDisabled, getAdsDisabledUntil } from "@/lib/pro";
 
 const AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
 
