@@ -33,12 +33,47 @@ export const AdMobBannerManager = () => {
     };
   }, []);
 
-  // Re-check the temporary ad-free window so the banner reappears once it expires
+  // Re-check the temporary ad-free window so the banner reappears the instant
+  // it expires. We poll frequently AND schedule a precise timeout for the exact
+  // expiry moment, so ads re-enable exactly at zero — even after the app was
+  // backgrounded or the device restarted (the expiry is persisted in storage).
   useEffect(() => {
-    const id = window.setInterval(() => {
+    let preciseTimeout: number | undefined;
+
+    const evaluate = () => {
       setAdsTempOff(areAdsTemporarilyDisabled());
-    }, 30000);
-    return () => window.clearInterval(id);
+
+      // Schedule an exact re-enable at the moment the countdown hits zero.
+      if (preciseTimeout !== undefined) {
+        window.clearTimeout(preciseTimeout);
+        preciseTimeout = undefined;
+      }
+      const remaining = getAdsDisabledUntil() - Date.now();
+      if (remaining > 0) {
+        preciseTimeout = window.setTimeout(() => {
+          setAdsTempOff(areAdsTemporarilyDisabled());
+        }, remaining + 50);
+      }
+    };
+
+    evaluate();
+    const id = window.setInterval(evaluate, 1000);
+
+    // Re-evaluate immediately when the app returns to the foreground.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") evaluate();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", evaluate);
+    window.addEventListener("pro:updated", evaluate);
+
+    return () => {
+      window.clearInterval(id);
+      if (preciseTimeout !== undefined) window.clearTimeout(preciseTimeout);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", evaluate);
+      window.removeEventListener("pro:updated", evaluate);
+    };
   }, []);
 
   // Rule: Display the banner ad on all pages except the Home page ("/") if the
