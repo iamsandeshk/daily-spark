@@ -28,6 +28,7 @@ const Card = ({ children }: { children: React.ReactNode }) => (
 
 const Row = ({
   icon: Icon,
+  iconClassName,
   label,
   hint,
   right,
@@ -35,6 +36,7 @@ const Row = ({
   last,
 }: {
   icon: any;
+  iconClassName?: string;
   label: string;
   hint?: string;
   right?: React.ReactNode;
@@ -48,7 +50,7 @@ const Row = ({
       !last && "border-b border-border"
     )}
   >
-    <Icon size={18} className="shrink-0 text-muted-foreground" />
+    <Icon size={18} className={cn("shrink-0 text-muted-foreground", iconClassName)} />
     <div className="flex-1 min-w-0">
       <div className="text-[15px] font-medium truncate">{label}</div>
       {hint && <div className="text-[12px] text-muted-foreground truncate">{hint}</div>}
