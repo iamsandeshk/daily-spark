@@ -97,8 +97,27 @@ export const SupportSection = () => {
     return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
+  const grantReward = () => {
+    disableAdsForHours(4);
+    setAdsFreeUntil(getAdsDisabledUntil());
+    setNow(Date.now());
+    setAdState("success");
+    successHaptic();
+    toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+    // Reset back to idle once the success state has been shown briefly.
+    window.setTimeout(() => setAdState("idle"), 2500);
+  };
+
+  const failReward = (err?: unknown) => {
+    if (err) console.warn("Reward ad failed:", err);
+    setAdState("error");
+    toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
+    window.setTimeout(() => setAdState("idle"), 3000);
+  };
+
   const handleWatchAd = async () => {
     tapHaptic();
+    if (adState === "loading") return;
     if (isPro()) {
       toast({ title: "You're Pro", description: "You already have an ad-free experience." });
       return;
@@ -107,6 +126,8 @@ export const SupportSection = () => {
       toast({ title: "Ads already disabled", description: `${formatCountdown()} left` });
       return;
     }
+
+    setAdState("loading");
 
     if (Capacitor.getPlatform() !== "web") {
       try {
@@ -121,25 +142,25 @@ export const SupportSection = () => {
         await AdMob.showRewardVideoAd();
         await earnedListener.remove();
         if (rewarded) {
-          disableAdsForHours(4);
-          setAdsFreeUntil(getAdsDisabledUntil());
-          setNow(Date.now());
-          successHaptic();
-          toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+          grantReward();
+        } else {
+          // User dismissed the ad before earning the reward.
+          setAdState("idle");
+          toast({ title: "Ad not finished", description: "Watch the full ad to go ad-free." });
         }
       } catch (err) {
-        console.warn("Reward ad failed:", err);
-        toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
+        failReward(err);
       }
       return;
     }
 
-    // Web fallback — grant the reward directly
-    disableAdsForHours(4);
-    setAdsFreeUntil(getAdsDisabledUntil());
-    setNow(Date.now());
-    successHaptic();
-    toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+    // Web fallback — simulate a short load, then grant the reward directly.
+    try {
+      await new Promise((res) => setTimeout(res, 1200));
+      grantReward();
+    } catch (err) {
+      failReward(err);
+    }
   };
 
   const handleShareApp = async () => {
