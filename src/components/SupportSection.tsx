@@ -280,20 +280,19 @@ export const SupportSection = () => {
 
               <Card>
                 <Row
-                  icon={Heart}
-                  label="Donate to the developer"
-                  hint="Buy me a coffee to keep updates coming"
-                  onClick={() => openExternal("https://buymeacoffee.com/sandeshkullolli")}
-                />
-                <Row
-                  icon={Clapperboard}
-                  label="Watch an ad — go ad-free 4 hrs"
-                  hint={
-                    adsFreeActive
-                      ? `Ad-free active · ${formatCountdown()} left`
-                      : "Support the app and remove ads temporarily"
+                  icon={watchAdIcon}
+                  iconClassName={cn(
+                    adState === "loading" && "animate-spin text-foreground",
+                    adState === "error" && "text-destructive",
+                    adState === "success" && "text-accent"
+                  )}
+                  label={watchAdLabel}
+                  hint={watchAdHint}
+                  right={
+                    adsFreeActive && adState === "idle" ? (
+                      <Check size={18} className="text-accent shrink-0" />
+                    ) : undefined
                   }
-                  right={adsFreeActive ? <Check size={18} className="text-accent shrink-0" /> : undefined}
                   onClick={handleWatchAd}
                 />
                 <Row
