@@ -184,10 +184,30 @@ export const SupportSection = () => {
     }
   };
 
+  // Dynamic icon, label and hint for the Watch-an-ad row based on its state.
+  const watchAdIcon =
+    adState === "loading" ? Loader2 : adState === "error" ? AlertCircle : adState === "success" ? Check : Clapperboard;
+  const watchAdLabel =
+    adState === "loading"
+      ? "Loading ad…"
+      : adState === "error"
+        ? "Couldn't load ad"
+        : adState === "success"
+          ? "Ads disabled for 4 hours"
+          : "Watch an ad — go ad-free 4 hrs";
+  const watchAdHint =
+    adState === "loading"
+      ? "Please wait a moment"
+      : adState === "error"
+        ? "Tap to try again"
+        : adsFreeActive
+          ? `Ad-free active · ${formatCountdown()} left`
+          : "Support the app and remove ads temporarily";
+
   return (
-    <section className="flex flex-col mt-6">
-      {/* Divider above Support */}
-      <div className="border-t border-border mb-3" />
+    <section className="flex flex-col mt-9 relative pt-7">
+      {/* Faded divider above Support (matches the Template Library divider) */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
       <header className="flex items-center gap-2 px-1">
         <button
