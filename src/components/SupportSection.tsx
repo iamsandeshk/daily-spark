@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer } from "lucide-react";
+import { Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer, Loader2, AlertCircle } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
@@ -28,6 +28,7 @@ const Card = ({ children }: { children: React.ReactNode }) => (
 
 const Row = ({
   icon: Icon,
+  iconClassName,
   label,
   hint,
   right,
@@ -35,6 +36,7 @@ const Row = ({
   last,
 }: {
   icon: any;
+  iconClassName?: string;
   label: string;
   hint?: string;
   right?: React.ReactNode;
@@ -48,7 +50,7 @@ const Row = ({
       !last && "border-b border-border"
     )}
   >
-    <Icon size={18} className="shrink-0 text-muted-foreground" />
+    <Icon size={18} className={cn("shrink-0 text-muted-foreground", iconClassName)} />
     <div className="flex-1 min-w-0">
       <div className="text-[15px] font-medium truncate">{label}</div>
       {hint && <div className="text-[12px] text-muted-foreground truncate">{hint}</div>}
@@ -63,6 +65,7 @@ export const SupportSection = () => {
   const [proEnabled, setProEnabled] = useState<boolean>(() => isPro());
   const [adsFreeUntil, setAdsFreeUntil] = useState<number>(() => getAdsDisabledUntil());
   const [now, setNow] = useState<number>(() => Date.now());
+  const [adState, setAdState] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   useEffect(() => {
     const onPro = () => {
@@ -96,8 +99,27 @@ export const SupportSection = () => {
     return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
+  const grantReward = () => {
+    disableAdsForHours(4);
+    setAdsFreeUntil(getAdsDisabledUntil());
+    setNow(Date.now());
+    setAdState("success");
+    successHaptic();
+    toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+    // Reset back to idle once the success state has been shown briefly.
+    window.setTimeout(() => setAdState("idle"), 2500);
+  };
+
+  const failReward = (err?: unknown) => {
+    if (err) console.warn("Reward ad failed:", err);
+    setAdState("error");
+    toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
+    window.setTimeout(() => setAdState("idle"), 3000);
+  };
+
   const handleWatchAd = async () => {
     tapHaptic();
+    if (adState === "loading") return;
     if (isPro()) {
       toast({ title: "You're Pro", description: "You already have an ad-free experience." });
       return;
@@ -106,6 +128,8 @@ export const SupportSection = () => {
       toast({ title: "Ads already disabled", description: `${formatCountdown()} left` });
       return;
     }
+
+    setAdState("loading");
 
     if (Capacitor.getPlatform() !== "web") {
       try {
@@ -120,25 +144,25 @@ export const SupportSection = () => {
         await AdMob.showRewardVideoAd();
         await earnedListener.remove();
         if (rewarded) {
-          disableAdsForHours(4);
-          setAdsFreeUntil(getAdsDisabledUntil());
-          setNow(Date.now());
-          successHaptic();
-          toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+          grantReward();
+        } else {
+          // User dismissed the ad before earning the reward.
+          setAdState("idle");
+          toast({ title: "Ad not finished", description: "Watch the full ad to go ad-free." });
         }
       } catch (err) {
-        console.warn("Reward ad failed:", err);
-        toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
+        failReward(err);
       }
       return;
     }
 
-    // Web fallback — grant the reward directly
-    disableAdsForHours(4);
-    setAdsFreeUntil(getAdsDisabledUntil());
-    setNow(Date.now());
-    successHaptic();
-    toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
+    // Web fallback — simulate a short load, then grant the reward directly.
+    try {
+      await new Promise((res) => setTimeout(res, 1200));
+      grantReward();
+    } catch (err) {
+      failReward(err);
+    }
   };
 
   const handleShareApp = async () => {
@@ -162,10 +186,30 @@ export const SupportSection = () => {
     }
   };
 
+  // Dynamic icon, label and hint for the Watch-an-ad row based on its state.
+  const watchAdIcon =
+    adState === "loading" ? Loader2 : adState === "error" ? AlertCircle : adState === "success" ? Check : Clapperboard;
+  const watchAdLabel =
+    adState === "loading"
+      ? "Loading ad…"
+      : adState === "error"
+        ? "Couldn't load ad"
+        : adState === "success"
+          ? "Ads disabled for 4 hours"
+          : "Watch an ad — go ad-free 4 hrs";
+  const watchAdHint =
+    adState === "loading"
+      ? "Please wait a moment"
+      : adState === "error"
+        ? "Tap to try again"
+        : adsFreeActive
+          ? `Ad-free active · ${formatCountdown()} left`
+          : "Support the app and remove ads temporarily";
+
   return (
-    <section className="flex flex-col mt-6">
-      {/* Divider above Support */}
-      <div className="border-t border-border mb-3" />
+    <section className="flex flex-col mt-9 relative pt-7">
+      {/* Faded divider above Support (matches the Template Library divider) */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
 
       <header className="flex items-center gap-2 px-1">
         <button
@@ -238,20 +282,19 @@ export const SupportSection = () => {
 
               <Card>
                 <Row
-                  icon={Heart}
-                  label="Donate to the developer"
-                  hint="Buy me a coffee to keep updates coming"
-                  onClick={() => openExternal("https://buymeacoffee.com/sandeshkullolli")}
-                />
-                <Row
-                  icon={Clapperboard}
-                  label="Watch an ad — go ad-free 4 hrs"
-                  hint={
-                    adsFreeActive
-                      ? `Ad-free active · ${formatCountdown()} left`
-                      : "Support the app and remove ads temporarily"
+                  icon={watchAdIcon}
+                  iconClassName={cn(
+                    adState === "loading" && "animate-spin text-foreground",
+                    adState === "error" && "text-destructive",
+                    adState === "success" && "text-accent"
+                  )}
+                  label={watchAdLabel}
+                  hint={watchAdHint}
+                  right={
+                    adsFreeActive && adState === "idle" ? (
+                      <Check size={18} className="text-accent shrink-0" />
+                    ) : undefined
                   }
-                  right={adsFreeActive ? <Check size={18} className="text-accent shrink-0" /> : undefined}
                   onClick={handleWatchAd}
                 />
                 <Row
