@@ -48,3 +48,8 @@ export const resetMoodConfig = () => {
   localStorage.removeItem(KEY);
   window.dispatchEvent(new Event("mood-config:updated"));
 };
+
+// Mood customization is a Pro feature — revert to defaults when Pro ends.
+export const enforceFreeMoodConfig = () => {
+  if (localStorage.getItem(KEY)) resetMoodConfig();
+};

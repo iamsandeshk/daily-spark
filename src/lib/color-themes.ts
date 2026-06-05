@@ -43,7 +43,7 @@ export const COLOR_THEMES: ColorTheme[] = [
     id: "green",
     name: "Forest Green",
     swatch: "#22c55e",
-    pro: false,
+    pro: true,
     light: { accent: "142 65% 42%", accentSoft: "142 55% 94%", accentFg: "0 0% 100%" },
     dark:  { accent: "142 60% 50%", accentSoft: "142 40% 16%", accentFg: "30 8% 8%" },
   },

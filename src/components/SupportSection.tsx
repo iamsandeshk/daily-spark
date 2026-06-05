@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer, Loader2, AlertCircle } from "lucide-react";
+import { Clapperboard, Twitter, Share2, Star, Check, ChevronDown, Crown, Timer, Loader2, AlertCircle, WifiOff } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
@@ -21,6 +21,12 @@ const SECTION_DURATION = 0.45;
 
 // Replace with a real AdMob Rewarded ad unit before release.
 const REWARD_AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
+
+// Automatic retry policy for a failed rewarded ad load.
+const MAX_AUTO_RETRIES = 3;
+const BACKOFF_SECONDS = [5, 15, 30]; // exponential-ish backoff per attempt
+
+type AdState = "idle" | "loading" | "retrying" | "success" | "error" | "offline";
 
 const Card = ({ children }: { children: React.ReactNode }) => (
   <div className="rounded-2xl border border-border bg-card overflow-hidden">{children}</div>
@@ -65,7 +71,16 @@ export const SupportSection = () => {
   const [proEnabled, setProEnabled] = useState<boolean>(() => isPro());
   const [adsFreeUntil, setAdsFreeUntil] = useState<number>(() => getAdsDisabledUntil());
   const [now, setNow] = useState<number>(() => Date.now());
-  const [adState, setAdState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [adState, setAdState] = useState<AdState>("idle");
+  const [retryIn, setRetryIn] = useState<number>(0);
+
+  // Refs used inside async flows / timers to avoid stale closures.
+  const attemptRef = useRef(0);
+  const cancelledRef = useRef(false);
+  const retryTimerRef = useRef<number | undefined>(undefined);
+  const countdownTimerRef = useRef<number | undefined>(undefined);
+  const adStateRef = useRef<AdState>("idle");
+  adStateRef.current = adState;
 
   useEffect(() => {
     const onPro = () => {
@@ -83,6 +98,45 @@ export const SupportSection = () => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [adsFreeActive]);
+
+  const clearAdTimers = () => {
+    if (retryTimerRef.current !== undefined) {
+      window.clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = undefined;
+    }
+    if (countdownTimerRef.current !== undefined) {
+      window.clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = undefined;
+    }
+  };
+
+  // Detect network changes. If we recover while showing the offline state,
+  // gently reset back to idle so the user can retry.
+  useEffect(() => {
+    const onOnline = () => {
+      if (adStateRef.current === "offline") setAdState("idle");
+    };
+    const onOffline = () => {
+      if (adStateRef.current === "loading" || adStateRef.current === "retrying") {
+        clearAdTimers();
+        setAdState("offline");
+      }
+    };
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  // Cleanup any pending retry timers when the component unmounts.
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+      clearAdTimers();
+    };
+  }, []);
 
   const openExternal = (url: string) => {
     tapHaptic();
@@ -107,17 +161,94 @@ export const SupportSection = () => {
     successHaptic();
     toast({ title: "Ads disabled for 4 hours", description: "Thanks for supporting the app!" });
     // Reset back to idle once the success state has been shown briefly.
-    window.setTimeout(() => setAdState("idle"), 2500);
+    window.setTimeout(() => {
+      if (!cancelledRef.current) setAdState("idle");
+    }, 2500);
   };
 
-  const failReward = (err?: unknown) => {
+  // Show a rewarded ad. Resolves to true if the reward was earned, false if the
+  // user dismissed early. Throws if the ad fails to load/show.
+  const showRewardedAd = async (): Promise<boolean> => {
+    if (Capacitor.getPlatform() !== "web") {
+      let rewarded = false;
+      const earnedListener = await AdMob.addListener(
+        RewardAdPluginEvents.Rewarded,
+        () => {
+          rewarded = true;
+        }
+      );
+      try {
+        await AdMob.prepareRewardVideoAd({ adId: REWARD_AD_UNIT_ID });
+        await AdMob.showRewardVideoAd();
+      } finally {
+        await earnedListener.remove();
+      }
+      return rewarded;
+    }
+    // Web fallback — simulate a short load, then grant the reward directly.
+    await new Promise((res) => setTimeout(res, 1200));
+    return true;
+  };
+
+  // Decide whether to auto-retry (with backoff) or surface a manual error state.
+  const scheduleRetryOrFail = (err?: unknown) => {
     if (err) console.warn("Reward ad failed:", err);
-    setAdState("error");
-    toast({ title: "Couldn't load ad", description: "Please try again in a moment." });
-    window.setTimeout(() => setAdState("idle"), 3000);
+
+    // No connection → dedicated offline state, no auto-retry.
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setAdState("offline");
+      return;
+    }
+
+    const next = attemptRef.current + 1;
+    attemptRef.current = next;
+
+    if (next > MAX_AUTO_RETRIES) {
+      setAdState("error");
+      toast({ title: "Couldn't load ad", description: "Please try again in a little while." });
+      return;
+    }
+
+    const wait = BACKOFF_SECONDS[Math.min(next - 1, BACKOFF_SECONDS.length - 1)];
+    setRetryIn(wait);
+    setAdState("retrying");
+
+    clearAdTimers();
+    countdownTimerRef.current = window.setInterval(() => {
+      setRetryIn((s) => (s > 1 ? s - 1 : 0));
+    }, 1000);
+    retryTimerRef.current = window.setTimeout(() => {
+      clearAdTimers();
+      if (!cancelledRef.current) runAd();
+    }, wait * 1000);
   };
 
-  const handleWatchAd = async () => {
+  // Core attempt — load + show the ad, handling reward / dismissal / failure.
+  const runAd = async () => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setAdState("offline");
+      return;
+    }
+    setAdState("loading");
+    try {
+      const rewarded = await showRewardedAd();
+      if (cancelledRef.current) return;
+      if (rewarded) {
+        attemptRef.current = 0;
+        grantReward();
+      } else {
+        attemptRef.current = 0;
+        setAdState("idle");
+        toast({ title: "Ad not finished", description: "Watch the full ad to go ad-free." });
+      }
+    } catch (err) {
+      if (cancelledRef.current) return;
+      scheduleRetryOrFail(err);
+    }
+  };
+
+  // Tap handler — also serves as "Retry now" for offline/error/retrying states.
+  const handleWatchAd = () => {
     tapHaptic();
     if (adState === "loading") return;
     if (isPro()) {
@@ -129,40 +260,17 @@ export const SupportSection = () => {
       return;
     }
 
-    setAdState("loading");
-
-    if (Capacitor.getPlatform() !== "web") {
-      try {
-        let rewarded = false;
-        const earnedListener = await AdMob.addListener(
-          RewardAdPluginEvents.Rewarded,
-          () => {
-            rewarded = true;
-          }
-        );
-        await AdMob.prepareRewardVideoAd({ adId: REWARD_AD_UNIT_ID });
-        await AdMob.showRewardVideoAd();
-        await earnedListener.remove();
-        if (rewarded) {
-          grantReward();
-        } else {
-          // User dismissed the ad before earning the reward.
-          setAdState("idle");
-          toast({ title: "Ad not finished", description: "Watch the full ad to go ad-free." });
-        }
-      } catch (err) {
-        failReward(err);
-      }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setAdState("offline");
+      toast({ title: "No internet connection", description: "Connect to a network to watch an ad." });
       return;
     }
 
-    // Web fallback — simulate a short load, then grant the reward directly.
-    try {
-      await new Promise((res) => setTimeout(res, 1200));
-      grantReward();
-    } catch (err) {
-      failReward(err);
-    }
+    // Manual (re)start — reset the retry counter and any pending timers.
+    clearAdTimers();
+    cancelledRef.current = false;
+    attemptRef.current = 0;
+    runAd();
   };
 
   const handleShareApp = async () => {
@@ -186,25 +294,58 @@ export const SupportSection = () => {
     }
   };
 
-  // Dynamic icon, label and hint for the Watch-an-ad row based on its state.
+  // Dynamic icon, label, hint and trailing element for the Watch-an-ad row.
   const watchAdIcon =
-    adState === "loading" ? Loader2 : adState === "error" ? AlertCircle : adState === "success" ? Check : Clapperboard;
+    adState === "loading" || adState === "retrying"
+      ? Loader2
+      : adState === "offline"
+        ? WifiOff
+        : adState === "error"
+          ? AlertCircle
+          : adState === "success"
+            ? Check
+            : Clapperboard;
+
   const watchAdLabel =
     adState === "loading"
       ? "Loading ad…"
-      : adState === "error"
-        ? "Couldn't load ad"
-        : adState === "success"
-          ? "Ads disabled for 4 hours"
-          : "Watch an ad — go ad-free 4 hrs";
+      : adState === "retrying"
+        ? `Retrying in ${retryIn}s…`
+        : adState === "offline"
+          ? "You're offline"
+          : adState === "error"
+            ? "Couldn't load ad"
+            : adState === "success"
+              ? "Ads disabled for 4 hours"
+              : "Watch an ad — go ad-free 4 hrs";
+
   const watchAdHint =
     adState === "loading"
       ? "Please wait a moment"
-      : adState === "error"
-        ? "Tap to try again"
-        : adsFreeActive
-          ? `Ad-free active · ${formatCountdown()} left`
-          : "Support the app and remove ads temporarily";
+      : adState === "retrying"
+        ? "Connection issue — retrying automatically. Tap to retry now."
+        : adState === "offline"
+          ? "Connect to the internet, then tap retry"
+          : adState === "error"
+            ? "Tap to try again"
+            : adsFreeActive
+              ? `Ad-free active · ${formatCountdown()} left`
+              : "Support the app and remove ads temporarily";
+
+  const RetryPill = ({ label }: { label: string }) => (
+    <span className="shrink-0 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[12px] font-bold text-accent">
+      {label}
+    </span>
+  );
+
+  let watchAdRight: React.ReactNode = undefined;
+  if (adState === "offline" || adState === "error") {
+    watchAdRight = <RetryPill label="Retry" />;
+  } else if (adState === "retrying") {
+    watchAdRight = <RetryPill label="Retry now" />;
+  } else if (adsFreeActive) {
+    watchAdRight = <Check size={18} className="text-accent shrink-0" />;
+  }
 
   return (
     <section className="flex flex-col mt-9 relative pt-7">
@@ -284,17 +425,14 @@ export const SupportSection = () => {
                 <Row
                   icon={watchAdIcon}
                   iconClassName={cn(
-                    adState === "loading" && "animate-spin text-foreground",
+                    (adState === "loading" || adState === "retrying") && "animate-spin text-foreground",
+                    adState === "offline" && "text-destructive",
                     adState === "error" && "text-destructive",
                     adState === "success" && "text-accent"
                   )}
                   label={watchAdLabel}
                   hint={watchAdHint}
-                  right={
-                    adsFreeActive && adState === "idle" ? (
-                      <Check size={18} className="text-accent shrink-0" />
-                    ) : undefined
-                  }
+                  right={watchAdRight}
                   onClick={handleWatchAd}
                 />
                 <Row

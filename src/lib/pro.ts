@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { enforceFreeColorTheme } from "./color-themes";
 import { enforceFreeAppearance } from "./appearance";
+import { enforceFreeMoodConfig } from "./mood-customization";
 import { NativePurchases } from "@capgo/native-purchases";
 
 const KEY = "pro-enabled";
@@ -84,6 +85,7 @@ export const setPro = (v: boolean, planType: "monthly" | "yearly" | "lifetime" =
     // Pro ended — revert any Pro-only customizations to the free defaults.
     enforceFreeColorTheme();
     enforceFreeAppearance();
+    enforceFreeMoodConfig();
   }
   window.dispatchEvent(new Event("pro:updated"));
 };
