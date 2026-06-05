@@ -213,65 +213,89 @@ const Customization = () => {
             <span className="inline-flex items-center gap-1.5 text-[12px] font-bold">
               <Smile size={13} /> Mood emoji & names
             </span>
-            <button
-              onClick={() => { resetMoodConfig(); tapHaptic(); }}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw size={11} /> Reset
-            </button>
+            {proEnabled ? (
+              <button
+                onClick={() => { resetMoodConfig(); tapHaptic(); }}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw size={11} /> Reset
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-accent">
+                <Crown size={10} /> Pro
+              </span>
+            )}
           </div>
 
-          <div className="space-y-2">
-            {MOOD_ORDER.map((m) => {
-              const cfg = moods[m];
-              const editing = nameEditing === m;
-              return (
-                <div
-                  key={m}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-background px-3 py-2.5"
-                >
-                  <button
-                    onClick={() => { setEmojiFor(m); tapHaptic(); }}
-                    className="h-11 w-11 grid place-items-center rounded-xl bg-muted/60 hover:bg-muted active:scale-95 transition-all text-2xl leading-none"
-                    aria-label={`Change emoji for ${cfg.name}`}
+          <div className="relative">
+            <div className={cn("space-y-2", !proEnabled && "pointer-events-none blur-[2px] opacity-60")}>
+              {MOOD_ORDER.map((m) => {
+                const cfg = moods[m];
+                const editing = nameEditing === m;
+                return (
+                  <div
+                    key={m}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-background px-3 py-2.5"
                   >
-                    {cfg.emoji}
-                  </button>
+                    <button
+                      onClick={() => { setEmojiFor(m); tapHaptic(); }}
+                      className="h-11 w-11 grid place-items-center rounded-xl bg-muted/60 hover:bg-muted active:scale-95 transition-all text-2xl leading-none"
+                      aria-label={`Change emoji for ${cfg.name}`}
+                    >
+                      {cfg.emoji}
+                    </button>
 
-                  <div className="flex-1 min-w-0">
-                    {editing ? (
-                      <input
-                        autoFocus
-                        value={nameDraft}
-                        maxLength={20}
-                        onChange={(e) => setNameDraft(e.target.value)}
-                        onBlur={() => commitName(m)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                          if (e.key === "Escape") setNameEditing(null);
-                        }}
-                        className="w-full bg-transparent text-[15px] font-semibold outline-none border-b border-accent pb-0.5"
-                      />
-                    ) : (
-                      <button
-                        onClick={() => { setNameDraft(cfg.name); setNameEditing(m); tapHaptic(); }}
-                        className="flex items-center gap-1.5 text-left"
-                      >
-                        <span className="text-[15px] font-semibold">{cfg.name}</span>
-                        <Pencil size={12} className="text-muted-foreground" />
-                      </button>
-                    )}
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-[0.1em] mt-0.5">
-                      {m}
+                    <div className="flex-1 min-w-0">
+                      {editing ? (
+                        <input
+                          autoFocus
+                          value={nameDraft}
+                          maxLength={20}
+                          onChange={(e) => setNameDraft(e.target.value)}
+                          onBlur={() => commitName(m)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                            if (e.key === "Escape") setNameEditing(null);
+                          }}
+                          className="w-full bg-transparent text-[15px] font-semibold outline-none border-b border-accent pb-0.5"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => { setNameDraft(cfg.name); setNameEditing(m); tapHaptic(); }}
+                          className="flex items-center gap-1.5 text-left"
+                        >
+                          <span className="text-[15px] font-semibold">{cfg.name}</span>
+                          <Pencil size={12} className="text-muted-foreground" />
+                        </button>
+                      )}
+                      <div className="text-[11px] text-muted-foreground uppercase tracking-[0.1em] mt-0.5">
+                        {m}
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+
+            {!proEnabled && (
+              <button
+                onClick={() => { tapHaptic(); navigate("/settings/pro"); }}
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-background/40"
+                aria-label="Unlock mood customization with Pro"
+              >
+                <div className="flex items-center justify-center h-11 w-11 rounded-full bg-accent/15 text-accent">
+                  <Lock size={18} />
                 </div>
-              );
-            })}
+                <span className="text-[13px] font-bold text-foreground">Unlock with Pro</span>
+                <span className="text-[11px] text-muted-foreground">Customize mood emoji &amp; names</span>
+              </button>
+            )}
           </div>
 
           <p className="text-[11px] text-muted-foreground mt-3 px-0.5">
-            Tap the emoji to change it, or tap the name to rename. Used everywhere moods appear.
+            {proEnabled
+              ? "Tap the emoji to change it, or tap the name to rename. Used everywhere moods appear."
+              : "Personalize each mood's emoji and name with Pro."}
           </p>
         </Card>
       </main>
