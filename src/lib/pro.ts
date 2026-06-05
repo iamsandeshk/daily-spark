@@ -85,6 +85,7 @@ export const setPro = (v: boolean, planType: "monthly" | "yearly" | "lifetime" =
     // Pro ended — revert any Pro-only customizations to the free defaults.
     enforceFreeColorTheme();
     enforceFreeAppearance();
+    enforceFreeMoodConfig();
   }
   window.dispatchEvent(new Event("pro:updated"));
 };
