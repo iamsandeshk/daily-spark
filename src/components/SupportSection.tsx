@@ -365,21 +365,21 @@ export const SupportSection = () => {
             style={{ overflow: "hidden" }}
           >
             <div className="pt-3">
-              {/* Ad-free countdown banner */}
-              {adsFreeActive && (
-                <div className="mb-3 flex items-center gap-3 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3">
-                  <Timer size={18} className="shrink-0 text-accent" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-foreground">Ad-free active</div>
-                    <div className="text-[12px] text-muted-foreground">Enjoy a clean, ad-free experience</div>
-                  </div>
-                  <div className="font-mono text-[15px] font-bold tabular-nums text-accent">
-                    {formatCountdown()}
-                  </div>
-                </div>
-              )}
-
               <div className="flex flex-col gap-1.5">
+                {/* Ad-free countdown — same compact card style as the others */}
+                {adsFreeActive && (
+                  <Row
+                    icon={Timer}
+                    iconClassName="text-accent"
+                    label="Ads starts in"
+                    right={
+                      <span className="font-mono text-[15px] font-bold tabular-nums text-accent">
+                        {formatCountdown()}
+                      </span>
+                    }
+                  />
+                )}
+
                 {/* Get Pro CTA for free users */}
                 {!proEnabled && (
                   <Row
@@ -392,6 +392,7 @@ export const SupportSection = () => {
                     right={<ChevronDown size={18} className="-rotate-90 text-muted-foreground shrink-0" />}
                   />
                 )}
+
 
                 <Row
                   icon={watchAdIcon}
