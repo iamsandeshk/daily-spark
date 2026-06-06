@@ -28,10 +28,6 @@ const BACKOFF_SECONDS = [5, 15, 30]; // exponential-ish backoff per attempt
 
 type AdState = "idle" | "loading" | "retrying" | "success" | "error" | "offline";
 
-const Card = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-2xl border border-border bg-card overflow-hidden">{children}</div>
-);
-
 const Row = ({
   icon: Icon,
   iconClassName,
@@ -39,7 +35,6 @@ const Row = ({
   hint,
   right,
   onClick,
-  last,
 }: {
   icon: any;
   iconClassName?: string;
@@ -51,10 +46,7 @@ const Row = ({
 }) => (
   <button
     onClick={onClick}
-    className={cn(
-      "w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/60 cursor-pointer",
-      !last && "border-b border-border"
-    )}
+    className="w-full flex items-center gap-3 px-4 py-3.5 text-left rounded-2xl border border-border bg-card transition-colors hover:bg-muted/60 cursor-pointer"
   >
     <Icon size={18} className={cn("shrink-0 text-muted-foreground", iconClassName)} />
     <div className="flex-1 min-w-0">
