@@ -413,7 +413,7 @@ export const SupportSection = () => {
                 </button>
               )}
 
-              <Card>
+              <div className="flex flex-col gap-2.5">
                 <Row
                   icon={watchAdIcon}
                   iconClassName={cn(
@@ -444,9 +444,8 @@ export const SupportSection = () => {
                   label="Share the app"
                   hint="Tell a friend who'd love it"
                   onClick={handleShareApp}
-                  last
                 />
-              </Card>
+              </div>
             </div>
           </motion.div>
         )}
