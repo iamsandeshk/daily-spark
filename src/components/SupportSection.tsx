@@ -46,13 +46,10 @@ const Row = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3.5 py-3 text-left rounded-xl border border-border bg-card shadow-block transition-colors hover:bg-muted/60 cursor-pointer"
+    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left rounded-xl border border-border bg-card shadow-block transition-colors hover:bg-muted/60 cursor-pointer"
   >
     <Icon size={18} className={cn("shrink-0 text-muted-foreground", iconClassName)} />
-    <div className="flex-1 min-w-0">
-      <div className="text-[15px] font-medium truncate">{label}</div>
-      {hint && <div className="text-[12px] text-muted-foreground truncate">{hint}</div>}
-    </div>
+    <div className="flex-1 min-w-0 text-[15px] font-medium truncate">{label}</div>
     {right}
   </button>
 );
@@ -311,24 +308,12 @@ export const SupportSection = () => {
               ? "Ads disabled for 4 hours"
               : "Watch an ad — go ad-free 4 hrs";
 
-  const watchAdHint =
-    adState === "loading"
-      ? "Please wait a moment"
-      : adState === "retrying"
-        ? "Connection issue — retrying automatically. Tap to retry now."
-        : adState === "offline"
-          ? "Connect to the internet, then tap retry"
-          : adState === "error"
-            ? "Tap to try again"
-            : adsFreeActive
-              ? `Ad-free active · ${formatCountdown()} left`
-              : "Support the app and remove ads temporarily";
-
   const RetryPill = ({ label }: { label: string }) => (
     <span className="shrink-0 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[12px] font-bold text-accent">
       {label}
     </span>
   );
+
 
   let watchAdRight: React.ReactNode = undefined;
   if (adState === "offline" || adState === "error") {
@@ -394,29 +379,20 @@ export const SupportSection = () => {
                 </div>
               )}
 
-              {/* Get Pro CTA for free users */}
-              {!proEnabled && (
-                <button
-                  onClick={() => {
-                    tapHaptic();
-                    navigate("/settings/pro");
-                  }}
-                  className="mb-3 w-full flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-card to-amber-900/10 px-4 py-3.5 text-left transition-colors hover:from-amber-500/25"
-                >
-                  <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-amber-500/15 text-amber-500 shrink-0">
-                    <Crown size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-bold text-foreground">Get Pro</div>
-                    <div className="text-[12px] text-muted-foreground truncate">
-                      Remove ads forever and unlock everything
-                    </div>
-                  </div>
-                  <ChevronDown size={18} className="-rotate-90 text-muted-foreground shrink-0" />
-                </button>
-              )}
-
               <div className="flex flex-col gap-1.5">
+                {/* Get Pro CTA for free users */}
+                {!proEnabled && (
+                  <Row
+                    icon={Crown}
+                    label="Get Pro"
+                    onClick={() => {
+                      tapHaptic();
+                      navigate("/settings/pro");
+                    }}
+                    right={<ChevronDown size={18} className="-rotate-90 text-muted-foreground shrink-0" />}
+                  />
+                )}
+
                 <Row
                   icon={watchAdIcon}
                   iconClassName={cn(
@@ -426,26 +402,22 @@ export const SupportSection = () => {
                     adState === "success" && "text-accent"
                   )}
                   label={watchAdLabel}
-                  hint={watchAdHint}
                   right={watchAdRight}
                   onClick={handleWatchAd}
                 />
                 <Row
                   icon={Twitter}
                   label="Follow on X"
-                  hint="Get updates and behind-the-scenes"
                   onClick={() => openExternal("https://x.com/sandeshkullolli")}
                 />
                 <Row
                   icon={Star}
                   label="Rate on Play Store"
-                  hint="A 5-star review means the world"
                   onClick={() => openExternal("https://play.google.com/store/apps/details?id=com.dailyroutiness.app")}
                 />
                 <Row
                   icon={Share2}
                   label="Share the app"
-                  hint="Tell a friend who'd love it"
                   onClick={handleShareApp}
                 />
               </div>
