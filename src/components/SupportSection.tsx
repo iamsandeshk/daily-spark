@@ -339,6 +339,9 @@ export const SupportSection = () => {
     watchAdRight = <Check size={18} className="text-accent shrink-0" />;
   }
 
+  // Pro users have an ad-free, fully unlocked experience — hide Support entirely.
+  if (proEnabled) return null;
+
   return (
     <section className="flex flex-col mt-9 relative pt-7">
       {/* Faded divider above Support (matches the Template Library divider) */}
