@@ -46,13 +46,10 @@ const Row = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3.5 py-3 text-left rounded-xl border border-border bg-card shadow-block transition-colors hover:bg-muted/60 cursor-pointer"
+    className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left rounded-xl border border-border bg-card shadow-block transition-colors hover:bg-muted/60 cursor-pointer"
   >
     <Icon size={18} className={cn("shrink-0 text-muted-foreground", iconClassName)} />
-    <div className="flex-1 min-w-0">
-      <div className="text-[15px] font-medium truncate">{label}</div>
-      {hint && <div className="text-[12px] text-muted-foreground truncate">{hint}</div>}
-    </div>
+    <div className="flex-1 min-w-0 text-[15px] font-medium truncate">{label}</div>
     {right}
   </button>
 );
