@@ -308,24 +308,12 @@ export const SupportSection = () => {
               ? "Ads disabled for 4 hours"
               : "Watch an ad — go ad-free 4 hrs";
 
-  const watchAdHint =
-    adState === "loading"
-      ? "Please wait a moment"
-      : adState === "retrying"
-        ? "Connection issue — retrying automatically. Tap to retry now."
-        : adState === "offline"
-          ? "Connect to the internet, then tap retry"
-          : adState === "error"
-            ? "Tap to try again"
-            : adsFreeActive
-              ? `Ad-free active · ${formatCountdown()} left`
-              : "Support the app and remove ads temporarily";
-
   const RetryPill = ({ label }: { label: string }) => (
     <span className="shrink-0 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[12px] font-bold text-accent">
       {label}
     </span>
   );
+
 
   let watchAdRight: React.ReactNode = undefined;
   if (adState === "offline" || adState === "error") {
