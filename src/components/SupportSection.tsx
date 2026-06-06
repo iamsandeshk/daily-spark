@@ -46,7 +46,7 @@ const Row = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-4 py-3.5 text-left rounded-2xl border border-border bg-card transition-colors hover:bg-muted/60 cursor-pointer"
+    className="w-full flex items-center gap-3 px-3.5 py-3 text-left rounded-xl border border-border bg-card shadow-block transition-colors hover:bg-muted/60 cursor-pointer"
   >
     <Icon size={18} className={cn("shrink-0 text-muted-foreground", iconClassName)} />
     <div className="flex-1 min-w-0">
@@ -416,7 +416,7 @@ export const SupportSection = () => {
                 </button>
               )}
 
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-1.5">
                 <Row
                   icon={watchAdIcon}
                   iconClassName={cn(
