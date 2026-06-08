@@ -18,7 +18,6 @@ type Plan = {
 };
 
 const FEATURES = [
-  "Ad-free experience",
   "Unlock all color themes (Orange, Green, Blue, Purple…)",
   "Custom accent colors",
   "Unlimited routines and sections",
