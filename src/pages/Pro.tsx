@@ -380,7 +380,7 @@ const Pro = () => {
               You are a Pro!
             </h2>
             <p className="text-[14px] text-muted-foreground mt-2">
-              Enjoy all premium features and a complete ad-free experience. Thank you for your support!
+              Enjoy all premium features. Thank you for your support!
             </p>
 
             <div className="mt-6 border-t border-border/60 pt-5 space-y-4">
