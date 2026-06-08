@@ -374,20 +374,6 @@ export const SupportSection = () => {
           >
             <div className="pt-3">
               <div className="flex flex-col gap-1.5">
-                {/* Ad-free countdown — same compact card style as the others */}
-                {adsFreeActive && (
-                  <Row
-                    icon={Timer}
-                    iconClassName="text-accent"
-                    label="Ads starts in"
-                    right={
-                      <span className="font-mono text-[15px] font-bold tabular-nums text-accent">
-                        {formatCountdown()}
-                      </span>
-                    }
-                  />
-                )}
-
                 {/* Get Pro CTA for free users */}
                 {!proEnabled && (
                   <Row
@@ -402,9 +388,11 @@ export const SupportSection = () => {
                 )}
 
 
+                {/* Watch-an-ad card — becomes the "Ads starts in" countdown once an ad is watched */}
                 <Row
                   icon={watchAdIcon}
                   iconClassName={cn(
+                    adsFreeActive && "text-accent",
                     (adState === "loading" || adState === "retrying") && "animate-spin text-foreground",
                     adState === "offline" && "text-destructive",
                     adState === "error" && "text-destructive",
@@ -412,8 +400,9 @@ export const SupportSection = () => {
                   )}
                   label={watchAdLabel}
                   right={watchAdRight}
-                  onClick={handleWatchAd}
+                  onClick={adsFreeActive ? undefined : handleWatchAd}
                 />
+
                 <Row
                   icon={Twitter}
                   label="Follow on X"
