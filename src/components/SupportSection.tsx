@@ -284,8 +284,11 @@ export const SupportSection = () => {
   };
 
   // Dynamic icon, label, hint and trailing element for the Watch-an-ad row.
-  const watchAdIcon =
-    adState === "loading" || adState === "retrying"
+  // When an ad has been watched (ad-free active), this same card becomes the
+  // "Ads starts in" countdown.
+  const watchAdIcon = adsFreeActive
+    ? Timer
+    : adState === "loading" || adState === "retrying"
       ? Loader2
       : adState === "offline"
         ? WifiOff
@@ -295,8 +298,9 @@ export const SupportSection = () => {
             ? Check
             : Clapperboard;
 
-  const watchAdLabel =
-    adState === "loading"
+  const watchAdLabel = adsFreeActive
+    ? "Ads starts in"
+    : adState === "loading"
       ? "Loading ad…"
       : adState === "retrying"
         ? `Retrying in ${retryIn}s…`
@@ -316,12 +320,16 @@ export const SupportSection = () => {
 
 
   let watchAdRight: React.ReactNode = undefined;
-  if (adState === "offline" || adState === "error") {
+  if (adsFreeActive) {
+    watchAdRight = (
+      <span className="font-mono text-[15px] font-bold tabular-nums text-accent">
+        {formatCountdown()}
+      </span>
+    );
+  } else if (adState === "offline" || adState === "error") {
     watchAdRight = <RetryPill label="Retry" />;
   } else if (adState === "retrying") {
     watchAdRight = <RetryPill label="Retry now" />;
-  } else if (adsFreeActive) {
-    watchAdRight = <Check size={18} className="text-accent shrink-0" />;
   }
 
   // Pro users have an ad-free, fully unlocked experience — hide Support entirely.
@@ -366,20 +374,6 @@ export const SupportSection = () => {
           >
             <div className="pt-3">
               <div className="flex flex-col gap-1.5">
-                {/* Ad-free countdown — same compact card style as the others */}
-                {adsFreeActive && (
-                  <Row
-                    icon={Timer}
-                    iconClassName="text-accent"
-                    label="Ads starts in"
-                    right={
-                      <span className="font-mono text-[15px] font-bold tabular-nums text-accent">
-                        {formatCountdown()}
-                      </span>
-                    }
-                  />
-                )}
-
                 {/* Get Pro CTA for free users */}
                 {!proEnabled && (
                   <Row
@@ -394,9 +388,11 @@ export const SupportSection = () => {
                 )}
 
 
+                {/* Watch-an-ad card — becomes the "Ads starts in" countdown once an ad is watched */}
                 <Row
                   icon={watchAdIcon}
                   iconClassName={cn(
+                    adsFreeActive && "text-accent",
                     (adState === "loading" || adState === "retrying") && "animate-spin text-foreground",
                     adState === "offline" && "text-destructive",
                     adState === "error" && "text-destructive",
@@ -404,8 +400,9 @@ export const SupportSection = () => {
                   )}
                   label={watchAdLabel}
                   right={watchAdRight}
-                  onClick={handleWatchAd}
+                  onClick={adsFreeActive ? undefined : handleWatchAd}
                 />
+
                 <Row
                   icon={Twitter}
                   label="Follow on X"
