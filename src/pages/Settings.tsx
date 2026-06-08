@@ -40,7 +40,7 @@ import { toast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy, Heart, Clapperboard, Twitter, Share2 } from "lucide-react";
+import { Eye, Plus, Sparkles, CheckSquare, Quote, Link2, ListTree, Archive, ArchiveRestore, LifeBuoy, Heart, Twitter, Share2 } from "lucide-react";
 import { BlockPreview } from "@/components/routine/BlockEditor";
 import {
   Dialog,
