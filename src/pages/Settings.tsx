@@ -53,15 +53,11 @@ import {
 import type { RoutineBlockContent } from "@/lib/routine-types";
 import { applyTheme, getAmoled, type ThemeMode } from "@/lib/theme";
 import { COLOR_THEMES, getColorTheme, setColorTheme, type ColorThemeId } from "@/lib/color-themes";
-import { isPro, areAdsTemporarilyDisabled, getAdsDisabledUntil, disableAdsForHours } from "@/lib/pro";
+import { isPro } from "@/lib/pro";
 import { FONTS, DENSITIES, getFont, getDensity, setFont, setDensity, type FontId, type DensityId } from "@/lib/appearance";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
-import { AdMob, RewardAdPluginEvents } from "@capacitor-community/admob";
-
-// Replace with a real AdMob Rewarded ad unit before release.
-const REWARD_AD_UNIT_ID = "ca-app-pub-2635018944245510/2699451570";
 
 const useTheme = () => {
   const [mode, setMode] = useState<ThemeMode>(() => {
