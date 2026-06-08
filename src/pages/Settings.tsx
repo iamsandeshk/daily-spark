@@ -21,7 +21,6 @@ import {
   Trash2,
   RefreshCcw,
   BarChart3,
-  FileSpreadsheet,
   Bell,
   Info as InfoIcon,
   TrendingUp,
@@ -103,7 +102,7 @@ const Row = ({
   destructive,
   last,
 }: {
-  icon: any;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
   label: string;
   hint?: string;
   right?: React.ReactNode;
@@ -111,7 +110,7 @@ const Row = ({
   destructive?: boolean;
   last?: boolean;
 }) => {
-  const Wrapper: any = onClick ? "button" : "div";
+  const Wrapper = (onClick ? "button" : "div") as React.ElementType;
   return (
     <Wrapper
       onClick={onClick}
@@ -151,14 +150,14 @@ const Settings = () => {
 
   const settings = r.state.settings ?? {};
   const resetHour = settings.resetHour ?? 0;
-  const resetMinute = (settings as any).resetMinute ?? 0;
+  const resetMinute = settings.resetMinute ?? 0;
   const startOfWeek = settings.startOfWeek ?? 1;
   const streakGoal = settings.streakGoal ?? 7;
-  const dailyReminder = (settings as any).dailyReminder ?? false;
-  const reminderHour = (settings as any).reminderHour ?? 7;
-  const reminderMinute = (settings as any).reminderMinute ?? 0;
-  const streakReminder = (settings as any).streakReminder ?? true;
-  const completionCelebration = (settings as any).completionCelebration ?? true;
+  const dailyReminder = settings.dailyReminder ?? false;
+  const reminderHour = settings.reminderHour ?? 7;
+  const reminderMinute = settings.reminderMinute ?? 0;
+  const streakReminder = settings.streakReminder ?? true;
+  const completionCelebration = settings.completionCelebration ?? true;
 
   const updateSettings = (patch: Partial<NonNullable<typeof r.state.settings>>) => {
     const next = { ...r.state, settings: { ...settings, ...patch } };
@@ -176,7 +175,7 @@ const Settings = () => {
   const [reminderClockOpen, setReminderClockOpen] = useState(false);
   const [customStreakEditing, setCustomStreakEditing] = useState(false);
   const [customStreakRaw, setCustomStreakRaw] = useState("");
-  const [importConfirm, setImportConfirm] = useState<{ data: any; routines: number; sections: number } | null>(null);
+  const [importConfirm, setImportConfirm] = useState<{ data: Record<string, unknown>; routines: number; sections: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -184,113 +183,26 @@ const Settings = () => {
 
   const archivedRoutines = r.state.routines.filter((x) => x.archived);
 
-  const parseCSV = (text: string): string[][] => {
-    const rows: string[][] = [];
-    let cur: string[] = [];
-    let cell = "";
-    let inQuotes = false;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (inQuotes) {
-        if (ch === '"') {
-          if (text[i + 1] === '"') { cell += '"'; i++; }
-          else inQuotes = false;
-        } else cell += ch;
-      } else {
-        if (ch === '"') inQuotes = true;
-        else if (ch === ",") { cur.push(cell); cell = ""; }
-        else if (ch === "\n" || ch === "\r") {
-          if (ch === "\r" && text[i + 1] === "\n") i++;
-          cur.push(cell); cell = "";
-          if (cur.some((c) => c.length)) rows.push(cur);
-          cur = [];
-        } else cell += ch;
-      }
-    }
-    if (cell.length || cur.length) { cur.push(cell); rows.push(cur); }
-    return rows;
-  };
-
-  const buildStateFromCSV = (text: string) => {
-    // Strip BOM
-    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-    const rows = parseCSV(text);
-    if (rows.length < 2) throw new Error("CSV is empty");
-    const header = rows[0].map((h) => h.trim().toLowerCase());
-    const idx = (name: string) => header.indexOf(name);
-    const iDate = idx("date");
-    const iRoutine = idx("routine");
-    const iTask = idx("task");
-    const iType = idx("type");
-    const iDone = idx("completed");
-    const iMood = idx("mood");
-    if (iDate < 0 || iRoutine < 0) {
-      throw new Error("CSV must include 'date' and 'routine' columns");
-    }
-    // Start from current state to preserve routines/sections
-    const base = JSON.parse(localStorage.getItem("daily-routine-os/v1") ?? "{}") || {};
-    const history: Record<string, any> = { ...(base.history ?? {}) };
-    const moods: Record<string, string> = { ...(base.moods ?? {}) };
-    // Map routine title → id (existing or generated)
-    const titleToId: Record<string, string> = {};
-    for (const rt of base.routines ?? []) titleToId[rt.title] = rt.id;
-    const genId = () => "r-" + Math.random().toString(36).slice(2, 10);
-
-    for (let r = 1; r < rows.length; r++) {
-      const row = rows[r];
-      const date = (row[iDate] || "").trim();
-      if (!date) continue;
-      const routineTitle = (row[iRoutine] || "").trim();
-      const taskText = iTask >= 0 ? (row[iTask] || "").trim() : "";
-      const type = iType >= 0 ? (row[iType] || "").trim().toLowerCase() : (taskText ? "task" : "routine");
-      const done = iDone >= 0 ? /^(yes|true|1|y)$/i.test((row[iDone] || "").trim()) : false;
-      const mood = iMood >= 0 ? (row[iMood] || "").trim() : "";
-      if (mood) moods[date] = mood;
-      if (!routineTitle) continue;
-      const rid = titleToId[routineTitle] || (titleToId[routineTitle] = genId());
-      if (!history[date]) history[date] = { date, completedRoutineIds: [], snapshot: {}, total: 0 };
-      const day = history[date];
-      if (!day.snapshot[rid]) day.snapshot[rid] = { title: routineTitle, blocks: [] };
-      const snap = day.snapshot[rid];
-      if (type === "task" && taskText) {
-        snap.blocks.push({ id: "b-" + Math.random().toString(36).slice(2, 8), type: "checkbox", text: taskText, checked: done });
-      } else if (type === "routine") {
-        if (done && !day.completedRoutineIds.includes(rid)) day.completedRoutineIds.push(rid);
-      }
-    }
-    // Recompute totals
-    for (const k of Object.keys(history)) {
-      const ids = Object.keys(history[k].snapshot ?? {});
-      history[k].total = ids.length;
-    }
-    return { ...base, history, moods, routines: base.routines ?? [], sections: base.sections ?? [{ id: "s-default", name: "Routines" }] };
-  };
-
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     const reader = new FileReader();
-    const isCSV = /\.csv$/i.test(file.name) || file.type === "text/csv";
     reader.onload = () => {
       try {
         const text = String(reader.result ?? "");
-        let data: any;
-        if (isCSV) {
-          data = buildStateFromCSV(text);
-        } else {
-          data = JSON.parse(text);
-          if (!data || typeof data !== "object" || !Array.isArray(data.routines) || !Array.isArray(data.sections)) {
-            throw new Error("Invalid backup file");
-          }
+        const data = JSON.parse(text) as Record<string, unknown>;
+        if (!data || typeof data !== "object" || !Array.isArray(data.routines) || !Array.isArray(data.sections)) {
+          throw new Error("Invalid backup file");
         }
         setImportConfirm({
           data,
-          routines: (data.routines ?? []).length,
-          sections: (data.sections ?? []).length,
+          routines: data.routines.length,
+          sections: data.sections.length,
         });
-      } catch (err: any) {
-        setImportError(err?.message || "Couldn't read this file. Make sure it's a valid backup JSON or CSV.");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Couldn't read this file. Make sure it's a valid backup JSON.";
+        setImportError(message);
       }
     };
     reader.readAsText(file);
@@ -333,7 +245,7 @@ const Settings = () => {
   );
 
   const handleClockConfirm = (h: number, m: number) => {
-    updateSettings({ resetHour: h, resetMinute: m } as any);
+    updateSettings({ resetHour: h, resetMinute: m });
     tapHaptic();
   };
 
@@ -404,69 +316,6 @@ const Settings = () => {
     }
 
     const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-    successHaptic();
-  };
-
-  const handleExportCSV = async () => {
-    const esc = (v: any) => {
-      const s = String(v ?? "");
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const rows: string[][] = [[
-      "date", "weekday", "routine", "task", "type", "completed", "mood",
-    ]];
-    const history = r.state.history ?? {};
-    const moods = r.state.moods ?? {};
-    const dates = Object.keys(history).sort();
-    for (const date of dates) {
-      const h: any = history[date];
-      const weekday = new Date(date + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" });
-      const mood = moods[date] ?? "";
-      const snap = h.snapshot ?? {};
-      const ids = Object.keys(snap);
-      if (ids.length === 0) {
-        rows.push([date, weekday, "", "", "", "", mood]);
-        continue;
-      }
-      for (const rid of ids) {
-        const s: any = snap[rid];
-        const blocks = (s.blocks ?? []).filter((b: any) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
-        if (blocks.length === 0) {
-          const completed = (h.completedRoutineIds ?? []).includes(rid) ? "yes" : "no";
-          rows.push([date, weekday, s.title ?? "", "", "routine", completed, mood]);
-        } else {
-          for (const b of blocks) {
-            rows.push([date, weekday, s.title ?? "", b.text ?? "", "task", b.checked ? "yes" : "no", mood]);
-          }
-        }
-      }
-    }
-    const csv = rows.map((r) => r.map(esc).join(",")).join("\n");
-    const filename = `daily-routines-${new Date().toISOString().slice(0, 10)}.csv`;
-
-    if (Capacitor.getPlatform() !== "web") {
-      try {
-        const result = await Filesystem.writeFile({
-          path: filename,
-          data: "\ufeff" + csv,
-          directory: Directory.Cache,
-          encoding: Encoding.UTF8,
-        });
-        await Share.share({ url: result.uri });
-        successHaptic();
-      } catch (err) {
-        console.error("CSV Export failed:", err);
-      }
-      return;
-    }
-
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -665,7 +514,7 @@ const Settings = () => {
               <Switch
                 checked={dailyReminder}
                 onCheckedChange={(v) => {
-                  updateSettings({ dailyReminder: v } as any);
+                  updateSettings({ dailyReminder: v });
                   tapHaptic();
                 }}
               />
@@ -684,7 +533,7 @@ const Settings = () => {
               <Switch
                 checked={streakReminder}
                 onCheckedChange={(v) => {
-                  updateSettings({ streakReminder: v } as any);
+                  updateSettings({ streakReminder: v });
                   tapHaptic();
                 }}
               />
@@ -697,7 +546,7 @@ const Settings = () => {
               <Switch
                 checked={completionCelebration}
                 onCheckedChange={(v) => {
-                  updateSettings({ completionCelebration: v } as any);
+                  updateSettings({ completionCelebration: v });
                   tapHaptic();
                 }}
               />
@@ -739,15 +588,9 @@ const Settings = () => {
             onClick={handleExport}
           />
           <Row
-            icon={FileSpreadsheet}
-            label="Export tasks (CSV)"
-            hint="Per-day tasks for Excel or Sheets"
-            onClick={handleExportCSV}
-          />
-          <Row
             icon={Upload}
             label="Import data"
-            hint="Restore from a JSON or CSV file"
+            hint="Restore from a JSON file"
             onClick={() => fileInputRef.current?.click()}
             last
           />
@@ -755,7 +598,7 @@ const Settings = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="application/json,.json,text/csv,.csv"
+          accept="application/json,.json"
           className="hidden"
           onChange={handleImportFile}
         />
@@ -864,7 +707,7 @@ const Settings = () => {
                 <button
                   key={p.label}
                   onClick={() => {
-                    updateSettings({ resetHour: p.hour, resetMinute: p.minute } as any);
+                    updateSettings({ resetHour: p.hour, resetMinute: p.minute });
                     tapHaptic();
                     setResetOpen(false);
                   }}
@@ -924,7 +767,7 @@ const Settings = () => {
         initialHour={reminderHour}
         initialMinute={reminderMinute}
         onConfirm={(h, m) => {
-          updateSettings({ reminderHour: h, reminderMinute: m } as any);
+          updateSettings({ reminderHour: h, reminderMinute: m });
           tapHaptic();
         }}
       />

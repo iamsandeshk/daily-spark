@@ -31,78 +31,65 @@ const Pro = () => {
   const navigate = useNavigate();
   const [pro, setProState] = useState(isPro());
   const [selected, setSelected] = useState<Plan["id"]>("yearly");
-  const [prices, setPrices] = useState<Record<string, string>>({
-    monthly: "$2.99",
-    yearly: "$19.99",
-    lifetime: "$49.99"
-  });
-
-  // Calculate browser locale fallback pricing
-  const getLocalePricing = () => {
-    const locale = navigator.language || "en-US";
-    if (locale.includes("IN")) {
-      return { monthly: "₹249", yearly: "₹1,699", lifetime: "₹4,299" };
-    } else if (locale.includes("GB")) {
-      return { monthly: "£2.49", yearly: "£16.99", lifetime: "£44.99" };
-    } else if (locale.includes("JP")) {
-      return { monthly: "¥350", yearly: "¥2,200", lifetime: "¥6,000" };
-    } else if (locale.includes("CA")) {
-      return { monthly: "C$3.99", yearly: "C$26.99", lifetime: "C$69.99" };
-    } else if (locale.includes("AU")) {
-      return { monthly: "A$4.49", yearly: "A$29.99", lifetime: "A$79.99" };
-    } else if (locale.includes("DE") || locale.includes("FR") || locale.includes("ES") || locale.includes("IT") || locale.includes("NL") || locale.includes("BE") || locale.includes("AT")) {
-      return { monthly: "€2.99", yearly: "€19.99", lifetime: "€49.99" };
-    }
-    return { monthly: "$2.99", yearly: "$19.99", lifetime: "$49.99" };
-  };
+  const [prices, setPrices] = useState<Record<string, string> | null>(null);
+  const [pricesStatus, setPricesStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   useEffect(() => {
-    // Set fallback pricing based on user browser locale
-    setPrices(getLocalePricing());
-
     // Sync subscription entitlement status on mount
     syncProSubscription();
 
-    // Fetch real Google Play Store pricing if on native device
+    // On web: prices can't be fetched from Play Store — go straight to error
+    if (!Capacitor.isNativePlatform()) {
+      setPricesStatus("error");
+      return;
+    }
+
+    // Fetch real Google Play Store pricing
     const fetchPlayStorePrices = async () => {
-      if (!Capacitor.isNativePlatform()) return;
-      
       try {
-        const updatedPrices: Record<string, string> = { ...getLocalePricing() };
-        
-        // Query subscriptions (Monthly & Yearly) — IDs must match Play Console exactly
+        const updatedPrices: Record<string, string> = {};
+
+        // Query subscriptions (Monthly & Yearly)
         const subResult = await NativePurchases.getProducts({
           productIdentifiers: [PRODUCT_IDS.monthly, PRODUCT_IDS.yearly],
           productType: PURCHASE_TYPE.SUBS
         });
-        
+
         if (subResult?.products) {
           subResult.products.forEach((p) => {
-            if (p.identifier === PRODUCT_IDS.monthly && p.priceString) {
+            if ((p.planIdentifier === PRODUCT_IDS.monthly || p.identifier === PRODUCT_IDS.monthly) && p.priceString) {
               updatedPrices.monthly = p.priceString;
-            } else if (p.identifier === PRODUCT_IDS.yearly && p.priceString) {
+            } else if ((p.planIdentifier === PRODUCT_IDS.yearly || p.identifier === PRODUCT_IDS.yearly) && p.priceString) {
               updatedPrices.yearly = p.priceString;
             }
           });
         }
-        
-        // Query one-time in-app purchase (Lifetime) — ID must match Play Console exactly
+
+        // Query one-time in-app purchase (Lifetime)
         const inAppResult = await NativePurchases.getProducts({
           productIdentifiers: [PRODUCT_IDS.lifetime],
           productType: PURCHASE_TYPE.INAPP
         });
-        
+
         if (inAppResult?.products) {
           inAppResult.products.forEach((p) => {
-            if (p.identifier === PRODUCT_IDS.lifetime && p.priceString) {
+            if ((p.planIdentifier === PRODUCT_IDS.lifetime || p.identifier === PRODUCT_IDS.lifetime) && p.priceString) {
               updatedPrices.lifetime = p.priceString;
             }
           });
         }
-        
-        setPrices(updatedPrices);
+
+        // Only mark loaded if we got all 3 prices
+        if (updatedPrices.monthly && updatedPrices.yearly && updatedPrices.lifetime) {
+          setPrices(updatedPrices);
+          setPricesStatus("loaded");
+        } else {
+          console.error("Incomplete pricing from Play Store:", updatedPrices);
+          setPricesStatus("error");
+        }
       } catch (err) {
         console.error("Error fetching Google Play Store prices:", err);
+        setPricesStatus("error");
       }
     };
 
@@ -117,16 +104,11 @@ const Pro = () => {
 
   const handlePurchase = async () => {
     if (!Capacitor.isNativePlatform()) {
-      // Web / simulator fallback — grant directly for development testing
-      localStorage.setItem("pro-purchased", "1");
-      setPro(true, selected);
-      setProState(true);
-      successHaptic();
+      tapHaptic();
       toast({
-        title: "Welcome to Pro! (Simulated)",
-        description: `Pro activated in web/simulator mode (${selected} plan).`,
+        title: "Android App Required",
+        description: "Purchases can only be made through the Android app on Google Play.",
       });
-      navigate(-1);
       return;
     }
 
@@ -157,17 +139,18 @@ const Pro = () => {
           description: "The purchase could not be verified. Please try again.",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Native purchase error:", err);
+      const e = err as { code?: string; message?: string };
       // Don't show error for user-initiated cancellation
       const cancelled =
-        err?.code === "E_USER_CANCELLED" ||
-        err?.message?.toLowerCase().includes("cancel") ||
-        err?.message?.toLowerCase().includes("dismiss");
+        e?.code === "E_USER_CANCELLED" ||
+        e?.message?.toLowerCase().includes("cancel") ||
+        e?.message?.toLowerCase().includes("dismiss");
       if (!cancelled) {
         toast({
           title: "Purchase Failed",
-          description: err?.message || "Something went wrong. Please try again.",
+          description: e?.message || "Something went wrong. Please try again.",
         });
       }
     }
@@ -267,9 +250,9 @@ const Pro = () => {
   };
 
   const PLANS: Plan[] = [
-    { id: "monthly",  name: "Monthly",  price: prices.monthly,  period: "/ month", sub: "Billed every month" },
-    { id: "yearly",   name: "Yearly",   price: prices.yearly, period: "/ year",  sub: "Save 44% vs monthly", badge: "Most popular" },
-    { id: "lifetime", name: "Lifetime", price: prices.lifetime, period: "one-time", sub: "Pay once, yours forever" },
+    { id: "monthly",  name: "Monthly",  price: prices?.monthly ?? "",  period: "/ month", sub: "Billed every month" },
+    { id: "yearly",   name: "Yearly",   price: prices?.yearly  ?? "",  period: "/ year",  sub: "Save 44% vs monthly", badge: "Most popular" },
+    { id: "lifetime", name: "Lifetime", price: prices?.lifetime ?? "", period: "one-time", sub: "Pay once, yours forever" },
   ];
 
   if (pro) {
@@ -305,52 +288,6 @@ const Pro = () => {
       }
     };
 
-    const handleDeactivate = () => {
-      tapHaptic();
-      setPro(false);
-      setProState(false);
-      localStorage.removeItem("pro-purchased");
-      toast({
-        title: "Pro Deactivated",
-        description: "Your Pro status has been disabled for sandbox testing.",
-      });
-    };
-
-    const handleToggleCancel = () => {
-      tapHaptic();
-      const current = localStorage.getItem("pro-subscription-cancelled") === "1";
-      localStorage.setItem("pro-subscription-cancelled", current ? "0" : "1");
-      window.dispatchEvent(new Event("pro:updated"));
-      toast({
-        title: current ? "Auto-Renew Restored" : "Subscription Cancelled",
-        description: current 
-          ? "Simulated subscription auto-renewal successfully restored!" 
-          : "Simulated subscription cancellation! Pro features will remain active until expiry date.",
-      });
-    };
-
-    const handleExtendExpiry = () => {
-      tapHaptic();
-      const currentDetails = getProDetails();
-      if (!currentDetails) return;
-      
-      const prevExpiry = currentDetails.expiryDate !== "Never" ? new Date(currentDetails.expiryDate) : new Date();
-      const oneDayInMs = 24 * 60 * 60 * 1000;
-      let newExpiry = "Never";
-      
-      if (currentDetails.planType === "monthly") {
-        newExpiry = new Date(prevExpiry.getTime() + 30 * oneDayInMs).toISOString();
-      } else if (currentDetails.planType === "yearly") {
-        newExpiry = new Date(prevExpiry.getTime() + 365 * oneDayInMs).toISOString();
-      }
-      
-      localStorage.setItem("pro-expiry-date", newExpiry);
-      window.dispatchEvent(new Event("pro:updated"));
-      toast({
-        title: "Subscription Extended",
-        description: `Extended simulated expiration date to: ${new Date(newExpiry).toLocaleDateString()}`,
-      });
-    };
 
     return (
       <div className="min-h-full bg-background pb-20 no-select">
@@ -455,40 +392,7 @@ const Pro = () => {
             >
               Manage Google Play Subscription
             </button>
-            
-            {/* Sandbox Testing Controls */}
-            <div className="rounded-3xl border border-dashed border-border bg-muted/20 p-5">
-              <h4 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold mb-3 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Sandbox Subscription Simulator
-              </h4>
-              
-              <div className="grid grid-cols-1 gap-2">
-                {!isLifetime && (
-                  <>
-                    <button
-                      onClick={handleToggleCancel}
-                      className="w-full rounded-2xl border border-border bg-background py-3 text-[13px] font-semibold text-foreground hover:bg-muted transition-smooth"
-                    >
-                      {details?.isCancelled ? "Restore Auto-Renewal" : "Simulate Cancel (Keep Paid Period)"}
-                    </button>
-                    
-                    <button
-                      onClick={handleExtendExpiry}
-                      className="w-full rounded-2xl border border-border bg-background py-3 text-[13px] font-semibold text-foreground hover:bg-muted transition-smooth"
-                    >
-                      Simulate Renewal (Extend Paid Cycle)
-                    </button>
-                  </>
-                )}
-                
-                <button
-                  onClick={handleDeactivate}
-                  className="w-full rounded-2xl border border-red-500/20 bg-red-500/5 text-red-500 py-3 text-[13px] font-semibold hover:bg-red-500/10 transition-smooth"
-                >
-                  Force Hard Deactivation (Reset to Non-Pro)
-                </button>
-              </div>
-            </div>
+
           </div>
         </main>
       </div>
@@ -530,9 +434,11 @@ const Pro = () => {
               <button
                 key={p.id}
                 onClick={() => { setSelected(p.id); tapHaptic(); }}
+                disabled={pricesStatus !== "loaded"}
                 className={cn(
                   "w-full rounded-2xl border p-4 text-left transition-all flex items-center gap-3",
-                  active ? "border-accent bg-accent/5 shadow-sm" : "border-border bg-card hover:bg-muted/60"
+                  active ? "border-accent bg-accent/5 shadow-sm" : "border-border bg-card hover:bg-muted/60",
+                  pricesStatus !== "loaded" && "opacity-60 cursor-default"
                 )}
               >
                 <div className={cn(
@@ -553,23 +459,56 @@ const Pro = () => {
                   {p.sub && <div className="text-[12px] text-muted-foreground mt-0.5">{p.sub}</div>}
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-[17px] font-bold tabular-nums">{p.price}</div>
-                  <div className="text-[11px] text-muted-foreground">{p.period}</div>
+                  {pricesStatus === "loading" ? (
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="h-5 w-16 rounded-md bg-muted animate-pulse" />
+                      <div className="h-3 w-10 rounded-md bg-muted animate-pulse" />
+                    </div>
+                  ) : pricesStatus === "error" ? (
+                    <div className="text-[12px] text-muted-foreground">—</div>
+                  ) : (
+                    <>
+                      <div className="text-[17px] font-bold tabular-nums">{p.price}</div>
+                      <div className="text-[11px] text-muted-foreground">{p.period}</div>
+                    </>
+                  )}
                 </div>
               </button>
             );
           })}
         </div>
 
-        <button
-          onClick={handlePurchase}
-          className="mt-5 w-full rounded-2xl bg-foreground text-background py-4 text-[15px] font-bold shadow-sm hover:opacity-90 transition-opacity"
-        >
-          Continue — {PLANS.find((p) => p.id === selected)?.price}
-        </button>
-        <p className="text-center text-[11px] text-muted-foreground mt-2.5">
-          Cancel anytime. No hidden fees.
-        </p>
+        {pricesStatus === "loaded" ? (
+          <>
+            <button
+              onClick={handlePurchase}
+              className="mt-5 w-full rounded-2xl bg-foreground text-background py-4 text-[15px] font-bold shadow-sm hover:opacity-90 transition-opacity"
+            >
+              Continue — {prices?.[selected]}
+            </button>
+            <p className="text-center text-[11px] text-muted-foreground mt-2.5">
+              Cancel anytime. No hidden fees.
+            </p>
+          </>
+        ) : pricesStatus === "loading" ? (
+          <div className="mt-5 h-14 w-full rounded-2xl bg-muted animate-pulse" />
+        ) : (
+          /* Prices failed to load — show contact developer card */
+          <div className="mt-5 rounded-2xl border border-border bg-muted/40 p-4 flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-foreground">Unable to load prices</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
+                Could not connect to Google Play. Please contact the developer for assistance.
+              </p>
+              <a
+                href="mailto:try.sandeshk@gmail.com"
+                className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-xl bg-foreground text-background text-[12px] font-semibold hover:opacity-90 transition-opacity"
+              >
+                Contact Developer
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Features */}
         <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mt-7 mb-2.5">
@@ -592,6 +531,8 @@ const Pro = () => {
         >
           Restore Purchase
         </button>
+
+
       </main>
     </div>
   );

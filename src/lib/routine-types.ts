@@ -99,8 +99,20 @@ export type RoutineState = {
 export type AppSettings = {
   /** Hour-of-day (0-23) when the daily reset should happen. Default 0 (midnight). */
   resetHour?: number;
+  /** Minute-of-hour (0-59) when the daily reset should happen. Default 0. */
+  resetMinute?: number;
   /** 0 = Sunday, 1 = Monday. */
   startOfWeek?: 0 | 1;
   /** Target consecutive-days streak goal. */
   streakGoal?: number;
+  /** Daily reminder toggle. */
+  dailyReminder?: boolean;
+  /** Reminder hour (0-23). */
+  reminderHour?: number;
+  /** Reminder minute (0-59). */
+  reminderMinute?: number;
+  /** Streak reminders toggle. */
+  streakReminder?: boolean;
+  /** Completion celebration toggle. */
+  completionCelebration?: boolean;
 };
