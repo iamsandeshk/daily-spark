@@ -19,7 +19,6 @@ import Pro from "./pages/Pro.tsx";
 import Insights from "./pages/Insights.tsx";
 import Customization from "./pages/Customization.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
-import { AdMobBannerManager } from "./components/AdMobBannerManager";
 import { syncProSubscription } from "@/lib/pro";
 
 const queryClient = new QueryClient();
@@ -55,7 +54,7 @@ const App = () => (
         <ScrollToTop />
         <SubscriptionSyncInit />
         <BackButtonHandler />
-        <AdMobBannerManager />
+
 
         <Routes>
         <Route path="/" element={<Index />} />
