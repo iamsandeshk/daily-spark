@@ -210,7 +210,7 @@ const Index = () => {
                   <ReorderItem
                     key={routine.id}
                     routine={routine}
-                    onOpen={() => navigate(`/routine/${routine.id}`)}
+                    onOpen={() => navigate(`/habit/${routine.id}`)}
                     onToggleComplete={() => r.toggleRoutine(routine.id)}
                   />
                 ))}
@@ -221,7 +221,7 @@ const Index = () => {
                   <HomeRoutineCard
                     key={routine.id}
                     routine={routine}
-                    onOpen={() => navigate(`/routine/${routine.id}`)}
+                    onOpen={() => navigate(`/habit/${routine.id}`)}
                     onToggleComplete={() => r.toggleRoutine(routine.id)}
                   />
                 ))}

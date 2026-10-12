@@ -68,6 +68,8 @@ const ScrollToTop = () => {
   return null;
 };
 
+import HabitDetail from "./pages/HabitDetail";
+
 const RoutineDetailRoute = () => {
   const { id } = useParams();
   return <RoutineDetail key={id} />;
@@ -87,6 +89,7 @@ const App = () => (
         <Routes>
         <Route path="/" element={<Index />} />
           <Route path="/routine/:id" element={<RoutineDetailRoute />} />
+          <Route path="/habit/:id" element={<HabitDetail />} />
           <Route path="/routine/:id/settings" element={<RoutineSettings />} />
           <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
