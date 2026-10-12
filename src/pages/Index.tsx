@@ -103,18 +103,18 @@ const Index = () => {
       tapHaptic();
     }
     setPrevCompleted(r.completed);
-  }, [r.completed, r.total]);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const isVisible = (rt: Routine) => {
-    if (rt.archived) return false;
-    if (rt.startDate && today < rt.startDate) return false;
-    if (rt.endDate && today > rt.endDate) return false;
-    return true;
-  };
+  }, [r.completed, r.total, prevCompleted, r.state.settings?.completionCelebration]);
 
   const sortedRoutines = useMemo(() => {
-    return [...r.state.routines].filter(isVisible).sort((a, b) => a.order - b.order);
+    const today = new Date().toISOString().slice(0, 10);
+    return [...r.state.routines]
+      .filter((rt) => {
+        if (rt.archived) return false;
+        if (rt.startDate && today < rt.startDate) return false;
+        if (rt.endDate && today > rt.endDate) return false;
+        return true;
+      })
+      .sort((a, b) => a.order - b.order);
   }, [r.state.routines]);
 
   const [order, setOrder] = useState<Routine[]>(sortedRoutines);

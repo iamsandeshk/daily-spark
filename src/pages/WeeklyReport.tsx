@@ -5,8 +5,15 @@ import { useRoutines } from "@/hooks/useRoutines";
 import { todayKey, todayLiveHistory } from "@/lib/storage";
 import { Flame, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MoodValue } from "@/lib/routine-types";
+import type { MoodValue, Routine, RoutineBlockContent, DayHistory } from "@/lib/routine-types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+type RoutineSnapshot = {
+  title?: string;
+  emoji?: string;
+  sectionTitle?: string;
+  blocks?: RoutineBlockContent[];
+};
 
 const MOOD_EMOJI: Record<MoodValue, string> = {
   great: "🙂",
@@ -43,14 +50,15 @@ const WeeklyReport = () => {
       let total = 0;
       if (h) {
         for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
-          const blocks = (snap as any).blocks ?? [];
-          const checks = blocks.filter((b: any) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
-          const doneChecks = checks.filter((b: any) => b.checked);
+          const snapObj = snap as RoutineSnapshot;
+          const blocks = snapObj.blocks ?? [];
+          const checks = blocks.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
+          const doneChecks = checks.filter((b) => b.checked);
           total += checks.length;
           done += doneChecks.length;
           for (const b of doneChecks) titles.push(b.text!);
           if (h.completedRoutineIds.includes(rid) && checks.length === 0) {
-            titles.push((snap as any).title);
+            titles.push(snapObj.title || "Untitled");
             done += 1;
             total += 1;
           }
@@ -131,7 +139,7 @@ const WeeklyReport = () => {
       moodStats: buckets,
       skipDay: worstDay !== null && worstRate > 0.2 ? { day: worstDay, rate: worstRate } : null,
     };
-  }, [r.state]);
+  }, [r.state, startOfWeek]);
 
   const weekdayLabel = (n: number) =>
     new Date(2024, 0, 7 + n).toLocaleDateString(undefined, { weekday: "long" });
@@ -188,10 +196,11 @@ const WeeklyReport = () => {
         const h = k === today ? todayLiveHistory(r.state) : r.state.history[k];
         if (!h) continue;
         for (const [rid, snap] of Object.entries(h.snapshot ?? {})) {
-          const blocks = (snap as any).blocks ?? [];
-          const checks = blocks.filter((b: any) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
+          const snapObj = snap as RoutineSnapshot;
+          const blocks = snapObj.blocks ?? [];
+          const checks = blocks.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
           total += checks.length;
-          done += checks.filter((b: any) => b.checked).length;
+          done += checks.filter((b) => b.checked).length;
           if (h.completedRoutineIds.includes(rid) && checks.length === 0) {
             done += 1;
             total += 1;
@@ -246,7 +255,8 @@ const WeeklyReport = () => {
   const exportJSON = () => downloadBlob(JSON.stringify(buildPayload(), null, 2), `weekly-report-${todayKey()}.json`, "application/json");
   const exportAppDataJSON = () => downloadBlob(JSON.stringify(r.state, null, 2), `app-data-${todayKey()}.json`, "application/json");
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
+    const { jsPDF } = await import("jspdf");
     const data = buildPayload();
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
@@ -362,7 +372,8 @@ const WeeklyReport = () => {
     doc.save(`weekly-report-${todayKey()}.pdf`);
   };
 
-  const exportAppDataPDF = () => {
+  const exportAppDataPDF = async () => {
+    const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
@@ -386,7 +397,7 @@ const WeeklyReport = () => {
     doc.text(`Routines (${routines.length})`, margin, y);
     y += 16;
 
-    routines.forEach((rt: any) => {
+    routines.forEach((rt: Routine & { bestStreak?: number }) => {
       if (y > H - 60) { doc.addPage(); y = margin; }
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
@@ -401,8 +412,8 @@ const WeeklyReport = () => {
       );
       y += 12;
       doc.setTextColor(0);
-      const blocks = (rt.blocks ?? []).filter((b: any) => b.text?.trim());
-      blocks.forEach((b: any) => {
+      const blocks = (rt.blocks ?? []).filter((b: RoutineBlockContent) => b.text?.trim());
+      blocks.forEach((b: RoutineBlockContent) => {
         if (y > H - margin) { doc.addPage(); y = margin; }
         const mark = b.type === "checkbox" ? (b.checked ? "[x]" : "[ ]") : "—";
         const lines = doc.splitTextToSize(`${mark} ${b.text}`, W - margin * 2 - 14);
@@ -424,7 +435,7 @@ const WeeklyReport = () => {
       doc.setFontSize(9);
       dates.forEach((d) => {
         if (y > H - margin) { doc.addPage(); y = margin; }
-        const h: any = history[d];
+        const h = history[d] as DayHistory;
         const completed = h.completedRoutineIds?.length ?? 0;
         doc.text(`${d}  —  ${completed}/${h.total ?? 0} routines completed`, margin, y);
         y += 12;
