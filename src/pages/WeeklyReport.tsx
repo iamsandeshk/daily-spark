@@ -7,7 +7,6 @@ import { Flame, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MoodValue } from "@/lib/routine-types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import jsPDF from "jspdf";
 
 const MOOD_EMOJI: Record<MoodValue, string> = {
   great: "🙂",
@@ -437,15 +436,15 @@ const WeeklyReport = () => {
 
   return (
     <div className="min-h-full bg-background pb-20">
-      <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center gap-3 border-b border-border/40">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-serif font-bold flex-1">Weekly Report</h1>
+        <h1 className="text-xl font-bold tracking-tight flex-1">Weekly Report</h1>
       </header>
 
       <main className="px-5 space-y-5">

@@ -20,12 +20,40 @@ import Insights from "./pages/Insights.tsx";
 import Customization from "./pages/Customization.tsx";
 import { BackButtonHandler } from "./components/BackButtonHandler";
 import { syncProSubscription } from "@/lib/pro";
+import { App as CapacitorApp } from "@capacitor/app";
 
 const queryClient = new QueryClient();
 
 const SubscriptionSyncInit = () => {
   useEffect(() => {
+    // Initial sync (cache-first: UI already shows cached Pro instantly; this just
+    // re-verifies against Google Play in the background).
     syncProSubscription();
+
+    // Re-verify whenever the app returns to the foreground.
+    const listener = CapacitorApp.addListener('resume', () => {
+      syncProSubscription();
+    });
+
+    // Periodic background re-check every 60s while the app is in the foreground.
+    // Skips work when the tab/app is hidden to save battery; runs once on becoming visible.
+    const INTERVAL_MS = 60 * 1000;
+    const interval = setInterval(() => {
+      if (typeof document === "undefined" || document.visibilityState === "visible") {
+        syncProSubscription();
+      }
+    }, INTERVAL_MS);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncProSubscription();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      listener.then(sub => sub.remove());
+    };
   }, []);
   return null;
 };

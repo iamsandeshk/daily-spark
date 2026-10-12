@@ -31,7 +31,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
-import { TEMPLATES } from "@/components/routine/TemplateLibrary";
+import { TEMPLATES } from "@/lib/templates";
 import { ClockPickerDialog } from "@/components/ClockPickerDialog";
 import { cn, uid } from "@/lib/utils";
 import { tapHaptic, successHaptic } from "@/lib/haptics";
@@ -346,31 +346,38 @@ const Settings = () => {
 
   return (
     <div className="min-h-full bg-background pb-20 no-select">
-      <header className="sticky top-0 z-30 bg-background safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center gap-3 border-b border-border/40">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          className="rounded-full border border-border/70 p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-serif font-bold">Settings</h1>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Settings</h1>
+          <p className="text-xs text-muted-foreground font-medium">Preferences, appearance & data</p>
+        </div>
       </header>
 
       <main className="px-5">
         {/* Pro CTA */}
         <button
           onClick={() => { tapHaptic(); navigate("/settings/pro"); }}
-          className="mt-2 w-full rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 flex items-center gap-3 text-left"
+          className="mt-4 w-full rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/20 via-accent/5 to-card p-4 flex items-center gap-3.5 text-left shadow-sm hover:border-accent/50 transition-all active:scale-[0.99]"
         >
-          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center shrink-0">
-            <Crown size={18} className="text-accent-foreground" />
+          <div className="w-10 h-10 rounded-xl bg-accent text-accent-foreground flex items-center justify-center shrink-0 shadow-sm">
+            <Crown size={20} className="fill-accent-foreground/30" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[15px] font-bold">
-              {proEnabled ? "Pro is active" : "Upgrade to Pro"}
+            <div className="text-sm font-bold text-foreground">
+              {proEnabled ? "Daily Routines Pro Active" : "Upgrade to Pro"}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {proEnabled ? "All features & custom themes unlocked" : "Unlimited routines, custom themes & insights"}
             </div>
           </div>
+          <span className="text-muted-foreground text-sm font-semibold">›</span>
         </button>
 
         <SectionLabel>Appearance</SectionLabel>

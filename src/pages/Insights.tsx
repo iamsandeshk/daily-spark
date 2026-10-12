@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import type { MoodValue } from "@/lib/routine-types";
 
 const MOOD_LABEL: Record<MoodValue, { emoji: string; label: string }> = {
-  great:    { emoji: "😄", label: "Great" },
-  ok:       { emoji: "🙂", label: "Okay" },
-  tired:    { emoji: "😴", label: "Tired" },
+  great: { emoji: "😄", label: "Great" },
+  ok: { emoji: "🙂", label: "Okay" },
+  tired: { emoji: "😴", label: "Tired" },
   stressed: { emoji: "😣", label: "Stressed" },
 };
 
@@ -143,39 +143,46 @@ const Insights = () => {
 
   const cellColor = (ratio: number, has: boolean) => {
     if (!has) return "bg-muted/40";
-    if (ratio >= 1) return "bg-accent";
-    if (ratio >= 0.66) return "bg-accent/70";
-    if (ratio >= 0.33) return "bg-accent/40";
-    return "bg-accent/20";
+    if (ratio >= 1) return "bg-accent shadow-[0_0_6px_hsl(var(--accent)/0.5)]";
+    if (ratio >= 0.66) return "bg-accent/75";
+    if (ratio >= 0.33) return "bg-accent/45";
+    return "bg-accent/25";
   };
 
   return (
-    <div className="min-h-full bg-background pb-20 no-select">
-      <header className="sticky top-0 z-30 bg-background safe-top px-5 pb-3 pt-3 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
-          aria-label="Back"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <h1 className="text-2xl font-serif font-bold">Insights</h1>
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 text-accent text-[10px] font-black uppercase tracking-wider px-2 py-1">
-          <Crown size={10} /> Pro
+    <div className="min-h-full bg-background pb-24 no-select">
+      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center justify-between border-b border-border/40">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="rounded-full border border-border/70 p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth active:scale-95"
+            aria-label="Back"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Insights & Trends</h1>
+            <p className="text-xs text-muted-foreground font-medium">Routine analytics and habits</p>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 text-accent text-[11px] font-black uppercase tracking-wider px-2.5 py-1 border border-accent/20">
+          <Crown size={11} /> Pro
         </span>
       </header>
 
-      <main className="px-5 space-y-7">
+      <main className="px-5 pt-4 space-y-6">
         {!pro && (
-          <div className="mt-2 rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 flex items-center gap-3">
-            <Sparkles size={18} className="text-accent shrink-0" />
+          <div className="rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent p-4 flex items-center gap-3 shadow-sm">
+            <div className="h-9 w-9 rounded-xl bg-accent/20 flex items-center justify-center shrink-0 text-accent">
+              <Sparkles size={18} />
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold">Preview only</div>
-              <div className="text-[12px] text-muted-foreground">Unlock full insights with Pro.</div>
+              <div className="text-sm font-bold text-foreground">Preview Analytics</div>
+              <div className="text-xs text-muted-foreground">Unlock live personal history with Pro.</div>
             </div>
             <button
               onClick={() => navigate("/settings/pro")}
-              className="h-8 px-3 rounded-full bg-accent text-accent-foreground text-[12px] font-bold"
+              className="h-8 px-3.5 rounded-full bg-accent text-accent-foreground text-xs font-bold shadow-sm hover:brightness-105 active:scale-95 transition-all"
             >
               Upgrade
             </button>
@@ -185,26 +192,26 @@ const Insights = () => {
         {/* Heatmap */}
         <section>
           <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mb-2.5">
-            Monthly heatmap
+            Consistency Heatmap
           </h2>
-          <div className="rounded-2xl border border-border bg-card p-4 shadow-block">
-            <p className="text-[12px] text-muted-foreground mb-3">Last 12 weeks · darker = more complete</p>
+          <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
+            <p className="text-xs text-muted-foreground mb-3 font-medium">Last 12 weeks · Darker = more complete</p>
             <div className="grid grid-flow-col auto-cols-fr grid-rows-7 gap-1">
               {heatmap.map((d) => (
                 <div
                   key={d.key}
                   title={`${d.key} · ${Math.round(d.ratio * 100)}%`}
-                  className={cn("aspect-square rounded-[3px]", cellColor(d.ratio, d.has))}
+                  className={cn("aspect-square rounded-[4px] transition-colors", cellColor(d.ratio, d.has))}
                 />
               ))}
             </div>
-            <div className="flex items-center justify-end gap-1.5 mt-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-end gap-1.5 mt-3.5 text-[10px] text-muted-foreground font-medium">
               <span>Less</span>
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-muted/40" />
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-accent/20" />
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-accent/40" />
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-accent/70" />
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-accent" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-muted/40" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-accent/25" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-accent/45" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-accent/75" />
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-accent" />
               <span>More</span>
             </div>
           </div>
@@ -213,46 +220,46 @@ const Insights = () => {
         {/* Best / worst day */}
         <section>
           <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mb-2.5">
-            Best & worst days
+            Weekday Performance
           </h2>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-success uppercase tracking-wider">
-                <TrendingUp size={12} /> Best day
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-500 uppercase tracking-wider">
+                <TrendingUp size={13} /> Best day
               </div>
-              <div className="mt-2 text-2xl font-serif font-bold">
+              <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">
                 {weekdayStats.best ? weekdayStats.best.label : "—"}
               </div>
-              <div className="text-[12px] text-muted-foreground mt-0.5">
-                {weekdayStats.best ? `${Math.round(weekdayStats.best.avg * 100)}% avg` : "Not enough data"}
+              <div className="text-xs text-muted-foreground mt-0.5 font-medium">
+                {weekdayStats.best ? `${Math.round(weekdayStats.best.avg * 100)}% completion` : "Not enough data"}
               </div>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-destructive uppercase tracking-wider">
-                <TrendingDown size={12} /> Toughest
+                <TrendingDown size={13} /> Toughest day
               </div>
-              <div className="mt-2 text-2xl font-serif font-bold">
+              <div className="mt-2 text-2xl font-bold tracking-tight text-foreground">
                 {weekdayStats.worst ? weekdayStats.worst.label : "—"}
               </div>
-              <div className="text-[12px] text-muted-foreground mt-0.5">
-                {weekdayStats.worst ? `${Math.round(weekdayStats.worst.avg * 100)}% avg` : "Not enough data"}
+              <div className="text-xs text-muted-foreground mt-0.5 font-medium">
+                {weekdayStats.worst ? `${Math.round(weekdayStats.worst.avg * 100)}% completion` : "Not enough data"}
               </div>
             </div>
           </div>
 
           {/* Weekday bars */}
-          <div className="mt-3 rounded-2xl border border-border bg-card p-4">
-            <div className="space-y-2.5">
+          <div className="mt-3 rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
+            <div className="space-y-3">
               {weekdayStats.arr.map((w) => (
                 <div key={w.dow} className="flex items-center gap-3">
-                  <div className="w-9 text-[12px] font-bold text-muted-foreground">{w.label}</div>
-                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="w-10 text-xs font-bold text-muted-foreground">{w.label}</div>
+                  <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden">
                     <div
                       className="h-full bg-accent rounded-full transition-all"
                       style={{ width: `${Math.round(w.avg * 100)}%` }}
                     />
                   </div>
-                  <div className="w-10 text-right text-[12px] tabular-nums text-muted-foreground">
+                  <div className="w-10 text-right text-xs font-semibold tabular-nums text-foreground">
                     {w.count ? `${Math.round(w.avg * 100)}%` : "—"}
                   </div>
                 </div>

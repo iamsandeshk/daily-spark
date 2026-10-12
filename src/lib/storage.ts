@@ -1,4 +1,6 @@
 import type { DayHistory, RoutineState } from "./routine-types";
+import { TEMPLATES } from "./templates";
+import { uid } from "./utils";
 
 const KEY = "daily-routine-os/v1";
 
@@ -14,7 +16,7 @@ export const todayKey = (d = new Date()) => {
  *  day is still the previous calendar date. */
 export const effectiveTodayKey = (state?: RoutineState, now = new Date()) => {
   const hour = state?.settings?.resetHour ?? 0;
-  const minute = (state?.settings as any)?.resetMinute ?? 0;
+  const minute = state?.settings?.resetMinute ?? 0;
   const shifted = new Date(now);
   // Subtract the reset offset so the boundary aligns with the user's chosen hour.
   shifted.setMinutes(shifted.getMinutes() - (hour * 60 + minute));
@@ -28,7 +30,7 @@ export const effectiveTodayKeyForRoutine = (
   now = new Date(),
 ) => {
   const hour = r.resetHour ?? state?.settings?.resetHour ?? 0;
-  const minute = r.resetMinute ?? (state?.settings as any)?.resetMinute ?? 0;
+  const minute = r.resetMinute ?? state?.settings?.resetMinute ?? 0;
   const shifted = new Date(now);
   shifted.setMinutes(shifted.getMinutes() - (hour * 60 + minute));
   return todayKey(shifted);
@@ -42,11 +44,35 @@ export const yesterdayKey = (today = todayKey()) => {
 
 const seed = (): RoutineState => {
   const today = todayKey();
+  const fitnessTpl = TEMPLATES.find(t => t.title === "Fitness");
+  const defaultSectionId = uid();
+  const defaultRoutineId = uid();
+  
+  const sections = fitnessTpl ? [{
+    id: defaultSectionId,
+    title: fitnessTpl.title,
+    emoji: fitnessTpl.emoji,
+    collapsed: false,
+    order: 0
+  }] : [];
+  
+  const routines = fitnessTpl ? [{
+    id: defaultRoutineId,
+    title: fitnessTpl.title,
+    emoji: fitnessTpl.emoji,
+    description: fitnessTpl.description,
+    sectionId: defaultSectionId,
+    blocks: fitnessTpl.blocks.map(b => ({ ...b, id: uid() })),
+    order: 0,
+    isCompleted: false,
+    streakCount: 0,
+  }] : [];
+
   return {
     lastResetDate: today,
     history: {},
-    sections: [],
-    routines: [],
+    sections,
+    routines,
   };
 };
 

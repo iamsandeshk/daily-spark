@@ -204,18 +204,22 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
           {!toolboxOpen ? (
             <button
               type="button"
-              onClick={() => setToolboxOpen(true)}
-              className="group flex items-center justify-center w-full gap-2 rounded-xl border border-dashed border-border py-4 text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/20 hover:bg-muted/50 transition-smooth active:scale-[0.98]"
+              onClick={() => {
+                tapHaptic();
+                setToolboxOpen(true);
+              }}
+              className="group flex items-center justify-center w-full gap-2 rounded-2xl border border-dashed border-border/80 py-3.5 text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted/40 transition-all active:scale-[0.98]"
             >
-              <Plus size={16} strokeWidth={2.5} className="text-muted-foreground/60 group-hover:text-foreground transition-colors" />
-              Add block
+              <Plus size={16} strokeWidth={2.5} className="text-accent" />
+              Add block or task
             </button>
           ) : (
-            <div className="rounded-2xl border border-border bg-card shadow-elevated p-4 animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Quick Add
-                </p>
+            <div className="rounded-2xl border border-border/80 bg-card shadow-elevated p-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between mb-3.5">
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">Add to Routine</h4>
+                  <p className="text-[11px] text-muted-foreground">Select a block type to insert</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setToolboxOpen(false)}
@@ -225,7 +229,7 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
                   <X size={16} />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 {blockMenu.map((m) => {
                   const Icon = m.icon;
                   const locked = m.type === "timer" && !isPro();
@@ -233,11 +237,14 @@ export const BlockEditor = ({ blocks, onChange, editable, currentRoutineId }: Pr
                     <button
                       key={m.type}
                       type="button"
-                      onClick={() => addBlock(m.type)}
-                      className="group relative flex flex-row items-center gap-3 rounded-xl border border-border bg-background p-2.5 text-[13px] font-bold text-foreground hover:bg-muted hover:border-accent/30 hover:text-accent transition-all active:scale-[0.97]"
+                      onClick={() => {
+                        tapHaptic();
+                        addBlock(m.type);
+                      }}
+                      className="group relative flex flex-row items-center gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-sm font-semibold text-foreground hover:bg-muted/60 hover:border-accent/40 hover:text-accent transition-all active:scale-[0.97]"
                     >
-                      <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center group-hover:bg-accent/10 shrink-0 transition-colors">
-                        <Icon size={16} strokeWidth={2.5} className="text-muted-foreground/80 group-hover:text-accent transition-colors" />
+                      <div className="h-9 w-9 rounded-xl bg-muted/70 flex items-center justify-center group-hover:bg-accent/10 shrink-0 transition-colors">
+                        <Icon size={17} strokeWidth={2.5} className="text-muted-foreground group-hover:text-accent transition-colors" />
                       </div>
                       <span className="truncate">{m.label}</span>
                       {locked && (
@@ -477,7 +484,7 @@ const BlockRow = ({ block, editable, isFocused, cursorPos, currentRoutineId, pre
             onKeyDown={handleKey}
             placeholder="Heading"
             className={cn(
-              "w-full bg-transparent border-0 outline-none resize-none text-[26px] font-serif font-bold tracking-tight leading-tight pt-4 pb-1",
+              "w-full bg-transparent border-0 outline-none resize-none text-[22px] font-bold tracking-tight leading-tight pt-4 pb-1 text-foreground",
               ro && "cursor-default",
             )}
           />
@@ -805,7 +812,7 @@ export const BlockPreview = ({ blocks }: { blocks: RoutineBlockContent[] }) => {
         if (b.type === "divider")
           return <div key={b.id} className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent my-2" />;
         if (b.type === "heading")
-          return <h3 key={b.id} className="text-[22px] font-serif font-bold tracking-tight pt-3 pb-1">{b.text}</h3>;
+          return <h3 key={b.id} className="text-[19px] font-bold tracking-tight pt-3 pb-1 text-foreground">{b.text}</h3>;
         if (b.type === "subheading")
           return <h4 key={b.id} className="text-[16px] font-semibold tracking-tight pt-1 text-foreground/90">{b.text}</h4>;
         if (b.type === "bullet")

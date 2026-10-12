@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Flame, Plus, Settings as SettingsIcon, Undo2 } from "lucide-react";
+import { ArrowLeft, Flame, Plus, Settings as SettingsIcon, Undo2, Check } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
 import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
+import { ROUTINE_COLORS, getRoutineColor } from "@/lib/routine-colors";
 import type { RoutineBlockContent } from "@/lib/routine-types";
-import { uid } from "@/lib/utils";
+import { uid, cn } from "@/lib/utils";
 import { isPro, FREE_ROUTINE_LIMIT } from "@/lib/pro";
 import { toast } from "@/hooks/use-toast";
-
-
 
 const RoutineDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +38,7 @@ const RoutineDetail = () => {
   const [title, setTitle] = useState(existing?.title ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
   const [emoji, setEmoji] = useState(existing?.emoji ?? "✨");
+  const [color, setColor] = useState(() => existing?.color ?? getRoutineColor(existing).id);
   const [sectionId] = useState(existing?.sectionId ?? ensureDefaultSection());
   const [blocks, setBlocks] = useState<RoutineBlockContent[]>(
     existing?.blocks ??
@@ -54,15 +54,6 @@ const RoutineDetail = () => {
   const [history, setHistory] = useState<{ title: string; emoji: string; blocks: RoutineBlockContent[] }[]>([]);
   const [showUndo, setShowUndo] = useState(false);
   const isUndoing = useRef(false);
-
-  // Prevent initializing state with empty values if data isn't ready yet
-  if (!isNew && !existing) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-8 w-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   // Auto-hide undo button after 4 seconds
   useEffect(() => {
@@ -116,6 +107,15 @@ const RoutineDetail = () => {
     if (!isNew && !existing && r.state.routines.length > 0) navigate("/", { replace: true });
   }, [isNew, existing, navigate, r.state.routines.length]);
 
+  // Prevent initializing state with empty values if data isn't ready yet
+  if (!isNew && !existing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   // Snapshot state before change for undo history
   const takeSnapshot = () => {
     if (isUndoing.current) return;
@@ -146,12 +146,20 @@ const RoutineDetail = () => {
       if (blockedByLimit()) return;
       // Auto-create routine on first title entry
       const newId = uid();
-      const created = r.addRoutine({ id: newId, title: val.trim(), description, emoji, sectionId, blocks });
+      const created = r.addRoutine({ id: newId, title: val.trim(), description, emoji, color, sectionId, blocks });
       if (created === null) return;
       navigate(`/routine/${newId}`, { replace: true });
     }
   };
 
+  const handleColorChange = (val: string) => {
+    takeSnapshot();
+    setColor(val);
+    setShowUndo(false);
+    if (existing) {
+      r.updateRoutine(existing.id, { color: val });
+    }
+  };
 
   const handleEmojiChange = (val: string) => {
     takeSnapshot();
@@ -220,13 +228,14 @@ const RoutineDetail = () => {
 
     if (isNew) {
       if (blockedByLimit()) return;
-      const created = r.addRoutine({ title: title.trim(), description: displayDescription, emoji, sectionId, blocks });
+      const created = r.addRoutine({ title: title.trim(), description: displayDescription, emoji, color, sectionId, blocks });
       if (created === null) return;
     } else if (existing) {
       r.updateRoutine(existing.id, {
         title: title.trim(),
         description: displayDescription,
         emoji,
+        color,
         sectionId,
         blocks,
       });
@@ -238,17 +247,17 @@ const RoutineDetail = () => {
 
   return (
     <div className="min-h-full bg-background pb-32">
-      <header className="safe-top sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 transition-smooth">
-        <div className="flex items-center justify-between px-3 h-16">
+      <header className="safe-top sticky top-0 z-30 bg-background/85 backdrop-blur-md border-b border-border/40 transition-smooth">
+        <div className="flex items-center justify-between px-4 h-16">
           <button
             onClick={() => navigate(-1)}
-            className="h-9 w-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth"
+            className="h-9 w-9 rounded-full bg-muted/40 border border-border/70 flex items-center justify-center text-muted-foreground hover:text-foreground transition-smooth active:scale-95"
             aria-label="Back"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {existing && (() => {
               let done = 0;
               let total = 0;
@@ -270,39 +279,46 @@ const RoutineDetail = () => {
               if (total === 0) return null;
               
               return (
-                <div className="h-9 flex items-center gap-1.5 rounded-full bg-accent/10 px-3 text-[11px] font-black text-accent border border-accent/20">
-                  <Flame size={13} strokeWidth={3} className="fill-accent/20" />
-                  {done}
+                <div className="h-8 flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 text-[11px] font-black text-accent border border-accent/20">
+                  <Flame size={12} strokeWidth={2.5} className="fill-accent/20" />
+                  {done}/{total}
                 </div>
               );
             })()}
+
             {existing && (
               <button
                 onClick={() => navigate(`/routine/${existing.id}/settings`)}
-                className="h-9 w-9 rounded-full bg-muted/30 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-smooth"
+                className="h-8 w-8 rounded-full bg-muted/40 border border-border/70 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-smooth active:scale-95"
                 aria-label="Routine settings"
               >
-                <SettingsIcon size={16} />
+                <SettingsIcon size={15} />
               </button>
             )}
+
+            <button
+              onClick={save}
+              className="h-8 px-3.5 rounded-full bg-accent text-accent-foreground text-xs font-bold shadow-sm hover:brightness-105 active:scale-95 transition-all flex items-center gap-1"
+            >
+              <Check size={13} strokeWidth={3} />
+              Done
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 pt-10 space-y-8">
-        <div className="relative space-y-4">
-          <div className="flex items-center gap-4">
+      <main className="max-w-2xl mx-auto px-5 pt-6 space-y-6">
+        <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm space-y-4">
+          <div className="flex items-start gap-4">
             <button
               type="button"
               onClick={() => setEmojiOpen(true)}
-              className="group relative flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+              className="h-14 w-14 rounded-2xl border border-border/80 bg-background/60 flex items-center justify-center text-3xl shrink-0 transition-transform hover:scale-105 active:scale-95 cursor-pointer relative group"
               aria-label="Change icon"
             >
-              <span className="relative z-10 text-3xl leading-none">{emoji}</span>
-              <div className="absolute -inset-1 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-background/90 p-1 rounded-full shadow-block border border-border">
-                  <Plus size={10} className="text-foreground" />
-                </div>
+              <span>{emoji}</span>
+              <div className="absolute -bottom-1 -right-1 bg-accent text-accent-foreground p-1 rounded-full shadow-xs">
+                <Plus size={10} strokeWidth={3} />
               </div>
             </button>
 
@@ -312,14 +328,46 @@ const RoutineDetail = () => {
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
                 placeholder="Routine Name"
-                className="w-full bg-transparent border-0 outline-none text-3xl font-serif font-bold tracking-tight placeholder:text-muted-foreground/30 text-foreground"
+                className="w-full bg-transparent border-0 outline-none text-2xl font-bold tracking-tight text-foreground placeholder:text-muted-foreground/30"
               />
               <input
                 value={description}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
-                placeholder="Start every day with intention."
-                className="w-full bg-transparent border-0 outline-none text-sm font-medium italic text-muted-foreground/60 placeholder:text-muted-foreground/20"
+                placeholder="Add an intention or description…"
+                className="w-full bg-transparent border-0 outline-none text-sm font-medium text-muted-foreground/80 placeholder:text-muted-foreground/30"
               />
+            </div>
+          </div>
+
+          {/* Routine Accent Color Picker */}
+          <div className="pt-2 border-t border-border/40 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 shrink-0 pr-1">
+              Accent Color
+            </span>
+            <div className="flex items-center gap-2">
+              {ROUTINE_COLORS.map((c) => {
+                const isSelected = color === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      tapHaptic();
+                      handleColorChange(c.id);
+                    }}
+                    className={cn(
+                      "h-6 w-6 rounded-full transition-all duration-200 shrink-0 relative flex items-center justify-center active:scale-90",
+                      isSelected
+                        ? "scale-110 ring-2 ring-foreground/40 ring-offset-2 ring-offset-background"
+                        : "opacity-75 hover:opacity-100",
+                    )}
+                    style={{ backgroundColor: c.hex }}
+                    aria-label={c.name}
+                  >
+                    {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white shadow-xs" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

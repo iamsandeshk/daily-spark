@@ -12,12 +12,14 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Dark window background to prevent any white/grey flash before the web view paints. -->
+        <item name="android:windowBackground">#171513</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <!-- In dark mode, use a dark splash background to prevent any white flash -->
+        <!-- No logo on the cold-start splash; dark theme-matching background. -->
         <item name="windowSplashScreenBackground">#171513</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_no_icon</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

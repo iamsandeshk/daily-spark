@@ -6,9 +6,10 @@ type Props = {
   checked: boolean;
   onChange: () => void;
   size?: number;
+  accentColor?: string;
 };
 
-export const RoutineCheckbox = ({ checked, onChange, size = 22 }: Props) => {
+export const RoutineCheckbox = ({ checked, onChange, size = 22, accentColor }: Props) => {
   return (
     <button
       type="button"
@@ -19,20 +20,24 @@ export const RoutineCheckbox = ({ checked, onChange, size = 22 }: Props) => {
         onChange();
       }}
       className={cn(
-        "relative shrink-0 rounded-md border transition-smooth flex items-center justify-center",
+        "relative shrink-0 rounded-[7px] border transition-all duration-200 flex items-center justify-center active:scale-90",
         checked
-          ? "bg-accent border-accent text-accent-foreground"
-          : "bg-background border-input hover:border-foreground/40",
+          ? "border-transparent text-white shadow-sm"
+          : "bg-background/80 border-border/80 hover:border-foreground/40",
       )}
-      style={{ width: size, height: size }}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: checked ? (accentColor || "hsl(var(--accent))") : undefined,
+      }}
     >
       <motion.span
         initial={false}
         animate={{ scale: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        transition={{ type: "spring", stiffness: 450, damping: 26 }}
         className="flex items-center justify-center"
       >
-        <Check size={size * 0.7} strokeWidth={3} />
+        <Check size={size * 0.72} strokeWidth={3} />
       </motion.span>
     </button>
   );

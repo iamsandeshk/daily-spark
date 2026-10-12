@@ -30,6 +30,7 @@ export type Routine = {
   title: string;
   description?: string;
   emoji?: string;
+  color?: string;
   isCompleted: boolean;
   lastCompletedDate?: string; // YYYY-MM-DD
   streakCount: number;

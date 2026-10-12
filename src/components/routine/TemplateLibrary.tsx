@@ -25,113 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type Template = {
-  title: string;
-  emoji: string;
-  description: string;
-  blocks: Omit<RoutineBlockContent, "id">[];
-};
-
-export const TEMPLATES: Template[] = [
-  {
-    title: "Study Session",
-    emoji: "📚",
-    description: "Deep focus block for learning.",
-    blocks: [
-      { type: "subheading", text: "Session setup" },
-      { type: "checkbox", text: "Phone on Do Not Disturb", checked: false },
-      { type: "checkbox", text: "Water + snack ready", checked: false },
-      { type: "checkbox", text: "Topic written down", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Learning blocks" },
-      { type: "checkbox", text: "Pomodoro 1 — 25 min", checked: false },
-      { type: "checkbox", text: "Break — 5 min", checked: false },
-      { type: "checkbox", text: "Pomodoro 2 — 25 min", checked: false },
-      { type: "checkbox", text: "Break — 5 min", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Key takeaways" },
-      { type: "bullet", text: "First main concept from session" },
-      { type: "bullet", text: "Second thing I learned" },
-      { type: "bullet", text: "Questions to revisit tomorrow" },
-      { type: "divider" },
-      { type: "link", text: "Khan Academy", url: "https://khanacademy.org" },
-      { type: "link", text: "My notes folder", url: "https://drive.google.com" },
-    ],
-  },
-  {
-    title: "Fitness",
-    emoji: "💪",
-    description: "Full workout from warm-up to cooldown.",
-    blocks: [
-      { type: "quote", text: "The only bad workout is the one that didn't happen." },
-      { type: "divider" },
-      { type: "subheading", text: "Warm up" },
-      { type: "checkbox", text: "Jumping jacks — 2 min", checked: false },
-      { type: "checkbox", text: "Arm circles + hip rolls", checked: false },
-      { type: "checkbox", text: "Light jog on spot", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Strength" },
-      { type: "checkbox", text: "Push ups — 3 × 15", checked: false },
-      { type: "checkbox", text: "Squats — 3 × 20", checked: false },
-      { type: "checkbox", text: "Plank — 3 × 45s", checked: false },
-      { type: "checkbox", text: "Lunges — 3 × 12 each", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Cardio (optional)" },
-      { type: "checkbox", text: "15 min run or cycle", checked: false },
-      { type: "divider" },
-      { type: "quote", text: "Action is the foundational key to all success." },
-      { type: "subheading", text: "Cool down" },
-      { type: "checkbox", text: "Stretching — 10 min", checked: false },
-      { type: "checkbox", text: "2L water goal", checked: false },
-    ],
-  },
-  {
-    title: "Deep Work",
-    emoji: "💻",
-    description: "Protect your most productive hours.",
-    blocks: [
-      { type: "subheading", text: "Before you start" },
-      { type: "checkbox", text: "Single task written down", checked: false },
-      { type: "checkbox", text: "All notifications off", checked: false },
-      { type: "checkbox", text: "Workspace cleared", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Work blocks" },
-      { type: "checkbox", text: "Block 1 — 90 min", checked: false },
-      { type: "checkbox", text: "Break — 15 min (walk)", checked: false },
-      { type: "checkbox", text: "Block 2 — 90 min", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Rules during work" },
-      { type: "bullet", text: "No social media or news" },
-      { type: "bullet", text: "Only task-related tabs open" },
-      { type: "bullet", text: "Write blockers, don't solve them now" },
-      { type: "divider" },
-      { type: "subheading", text: "End of session review" },
-      { type: "checkbox", text: "Task completed or % done noted", checked: false },
-      { type: "checkbox", text: "Tomorrow's first task written", checked: false },
-    ],
-  },
-  {
-    title: "Wind Down",
-    emoji: "🌙",
-    description: "Prepare your mind for restful sleep.",
-    blocks: [
-      { type: "subheading", text: "Digital detox" },
-      { type: "checkbox", text: "All screens off", checked: false },
-      { type: "checkbox", text: "Phone in other room", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Deep session" },
-      { type: "routine", text: "Deep Work" },
-      { type: "divider" },
-      { type: "subheading", text: "Reflection" },
-      { type: "checkbox", text: "Plan top 3 for tomorrow", checked: false },
-      { type: "checkbox", text: "Journal: 3 wins today", checked: false },
-      { type: "divider" },
-      { type: "subheading", text: "Rest" },
-      { type: "checkbox", text: "Light stretching", checked: false },
-      { type: "checkbox", text: "Read fiction (paper book)", checked: false },
-    ],
-  },
-];
+import { type Template, TEMPLATES } from "@/lib/templates";
 
 type Props = {
   onAdd: (template: Template) => void;
@@ -203,7 +97,7 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
             }}
             className="overflow-hidden"
           >
-            <div className="space-y-3 pb-2">
+            <div className="space-y-2.5 pb-2">
               {TEMPLATES.map((t) => (
                 <button
                   key={t.title}
@@ -212,45 +106,45 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
                     setPreviewTemplate(t);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3.5 p-3 rounded-2xl border border-border bg-card text-left transition-all",
-                    "hover:border-accent/40 hover:shadow-block active:scale-[0.98] group",
+                    "w-full flex items-center gap-3 p-3 rounded-2xl border border-border bg-card/60 text-left transition-all",
+                    "hover:border-border hover:bg-card active:scale-[0.99] group",
                   )}
                 >
-                  <div className="h-11 w-11 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  <div className="h-10 w-10 shrink-0 rounded-xl bg-secondary/80 border border-border/60 flex items-center justify-center text-xl">
                     {t.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-[15px] text-foreground leading-tight">{t.title}</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    <h4 className="font-bold text-[14px] text-foreground leading-tight">{t.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
                       {t.description}
                     </p>
                   </div>
-                  <div className="h-8 w-8 shrink-0 rounded-full bg-accent/10 text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all">
-                    <Eye size={15} strokeWidth={2.5} />
+                  <div className="h-7 w-7 shrink-0 rounded-full bg-secondary/70 text-muted-foreground flex items-center justify-center group-hover:text-foreground transition-colors">
+                    <Eye size={14} />
                   </div>
                 </button>
               ))}
 
-              <div className="flex justify-center pt-6 pb-2">
+              <div className="flex justify-center pt-5 pb-1">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 hover:text-destructive transition-colors outline-none group">
-                      <EyeOff size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <button className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/60 hover:text-destructive transition-colors outline-none group py-1">
+                      <EyeOff size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                       Hide Template Library
                     </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
-                    <AlertDialogHeader className="space-y-3">
-                      <AlertDialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Hide the Library?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
-                        This will remove the Template Library from your dashboard. You can always bring it back later from settings.
+                  <AlertDialogContent className="rounded-2xl p-6 gap-5 max-w-[90vw] sm:max-w-md">
+                    <AlertDialogHeader className="space-y-2">
+                      <AlertDialogTitle className="text-xl font-bold text-center sm:text-left">Hide the Library?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-muted-foreground text-center sm:text-left text-sm">
+                        This will remove the Template Library from your Home screen. You can always restore it from settings.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="flex flex-row gap-3 sm:justify-end">
-                      <AlertDialogCancel className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted">Cancel</AlertDialogCancel>
+                    <AlertDialogFooter className="flex flex-row gap-2.5 sm:justify-end">
+                      <AlertDialogCancel className="flex-1 rounded-xl h-11 font-semibold">Cancel</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={handleHide}
-                        className="flex-1 rounded-2xl h-12 font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+                        className="flex-1 rounded-xl h-11 font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Hide
                       </AlertDialogAction>
@@ -264,19 +158,19 @@ export const TemplateLibrary = ({ onAdd }: Props) => {
       </AnimatePresence>
 
       <Dialog open={!!previewTemplate} onOpenChange={(o) => !o && setPreviewTemplate(null)}>
-        <DialogContent className="rounded-[28px] p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden">
+        <DialogContent className="rounded-2xl p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden bg-card border-border">
           {previewTemplate && (
             <>
-              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border">
+              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border/60">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                  <div className="h-11 w-11 shrink-0 rounded-xl bg-secondary/80 border border-border/60 flex items-center justify-center text-2xl">
                     {previewTemplate.emoji}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <DialogTitle className="text-xl font-serif font-bold leading-tight">
+                    <DialogTitle className="text-lg font-bold tracking-tight leading-tight">
                       {previewTemplate.title}
                     </DialogTitle>
-                    <DialogDescription className="text-[12px] text-muted-foreground mt-0.5">
+                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                       {previewTemplate.description}
                     </DialogDescription>
                   </div>

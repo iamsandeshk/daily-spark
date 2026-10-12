@@ -18,11 +18,11 @@ import { tapHaptic, successHaptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("rounded-2xl border border-border bg-card overflow-hidden", className)}>{children}</div>
+  <div className={cn("rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm", className)}>{children}</div>
 );
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mt-7 mb-2.5">
+  <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mt-6 mb-2.5">
     {children}
   </h3>
 );
@@ -39,7 +39,7 @@ const RoutineSettings = () => {
   if (!routine) {
     return (
       <div className="min-h-full bg-background flex items-center justify-center">
-        <p className="text-muted-foreground text-sm">Routine not found.</p>
+        <p className="text-muted-foreground text-sm font-medium">Routine not found.</p>
       </div>
     );
   }
@@ -47,7 +47,7 @@ const RoutineSettings = () => {
   const globalReset = r.state.settings ?? {};
   const hasOwnReset = routine.resetHour !== undefined || routine.resetMinute !== undefined;
   const effHour = routine.resetHour ?? globalReset.resetHour ?? 0;
-  const effMinute = routine.resetMinute ?? (globalReset as any).resetMinute ?? 0;
+  const effMinute = routine.resetMinute ?? globalReset.resetMinute ?? 0;
 
   const formatTime = (h: number, m = 0) => {
     const am = h < 12;
@@ -58,20 +58,20 @@ const RoutineSettings = () => {
 
   return (
     <div className="min-h-full bg-background pb-20">
-      <header className="sticky top-0 z-30 bg-background safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background/85 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center gap-3 border-b border-border/40">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          className="rounded-full border border-border/70 p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-serif font-bold truncate flex items-center gap-2">
-            <span>{routine.emoji}</span>
+          <h1 className="text-xl font-bold tracking-tight truncate flex items-center gap-2 text-foreground">
+            <span>{routine.emoji || "✨"}</span>
             <span className="truncate">{routine.title}</span>
           </h1>
-          <p className="text-xs text-muted-foreground">Routine settings</p>
+          <p className="text-xs text-muted-foreground font-medium">Routine settings & scheduling</p>
         </div>
       </header>
 

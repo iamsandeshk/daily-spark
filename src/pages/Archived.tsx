@@ -22,21 +22,21 @@ const Archived = () => {
 
   return (
     <div className="min-h-full bg-background pb-20">
-      <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center gap-3 border-b border-border/40">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-serif font-bold">Archived routines</h1>
+          <h1 className="text-xl font-bold tracking-tight">Archived routines</h1>
           <p className="text-xs text-muted-foreground">Tap to preview or unarchive</p>
         </div>
       </header>
 
-      <main className="px-5 space-y-2">
+      <main className="px-5 space-y-2 mt-2">
         {archived.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-12">
             You haven't archived anything yet.
@@ -49,14 +49,14 @@ const Archived = () => {
                 tapHaptic();
                 setPreview(rt);
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-border bg-card text-left transition-all hover:border-accent/40 hover:shadow-block active:scale-[0.98]"
+              className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl border border-border/70 bg-card/70 text-left transition-all hover:border-accent/40 hover:shadow-block active:scale-[0.98]"
             >
-              <div className="h-10 w-10 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-xl">
+              <div className="h-10 w-10 shrink-0 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-xl">
                 {rt.emoji || "✨"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-bold truncate">{rt.title}</p>
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className="text-[14px] font-bold truncate text-foreground">{rt.title}</p>
+                <p className="text-[12px] text-muted-foreground truncate">
                   {(rt.blocks ?? []).filter((b) => b.type === "checkbox" || b.type === "timer").length} tasks
                 </p>
               </div>
@@ -67,16 +67,16 @@ const Archived = () => {
       </main>
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent className="rounded-[28px] p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden">
+        <DialogContent className="rounded-[28px] p-0 gap-0 max-w-[92vw] sm:max-w-md overflow-hidden bg-card border-border/80">
           {preview && (
             <>
-              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border">
+              <DialogHeader className="px-6 pt-6 pb-4 space-y-2 border-b border-border/60">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 shrink-0 rounded-xl bg-accent/5 border border-accent/10 flex items-center justify-center text-2xl">
+                  <div className="h-12 w-12 shrink-0 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-2xl">
                     {preview.emoji || "✨"}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <DialogTitle className="text-xl font-serif font-bold leading-tight">
+                    <DialogTitle className="text-lg font-bold tracking-tight leading-tight">
                       {preview.title}
                     </DialogTitle>
                     {preview.description && (

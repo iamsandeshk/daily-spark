@@ -13,13 +13,16 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Opaque, theme-matching window background so there is never a blank
+             white/grey flash between the splash hiding and the web view painting. -->
+        <item name="android:windowBackground">#fafaf7</item>
     </style>
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <!-- No logo on the cold-start splash; just a plain theme-matching background. -->
         <item name="windowSplashScreenBackground">#fafaf7</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_no_icon</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

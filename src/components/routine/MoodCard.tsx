@@ -176,32 +176,34 @@ export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={transition}
           >
-            <div className="mx-5 mb-5 rounded-2xl border border-border bg-card p-4 shadow-block relative">
+            <div className="mx-5 mb-4 rounded-2xl border border-border bg-card p-4 shadow-sm relative">
               <button
                 onClick={handleDismiss}
-                className="absolute top-2.5 right-2.5 h-7 w-7 grid place-items-center rounded-full text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Dismiss"
+                className="absolute top-3 right-3 h-6 w-6 grid place-items-center rounded-full text-muted-foreground/50 hover:bg-muted hover:text-foreground transition-colors"
+                aria-label="Dismiss check-in"
               >
                 <X size={14} />
               </button>
 
-              <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground font-medium">
-                Quick check-in
+              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground font-semibold">
+                Daily Check-in
               </p>
-              <h3 className="mt-1 text-[17px] font-semibold tracking-tight">How do you feel?</h3>
+              <h3 className="mt-0.5 text-[15px] font-bold text-foreground">
+                How are you feeling today?
+              </h3>
 
-              <div className="mt-3 grid grid-cols-4 gap-2">
+              <div className="mt-3 grid grid-cols-4 gap-1.5">
                 {MOODS.map((m) => (
                   <button
                     key={m.value}
                     onClick={() => handlePick(m.value)}
                     className={cn(
-                      "flex flex-col items-center gap-2 py-3 px-1 transition-all rounded-2xl",
-                      "hover:bg-muted/50 hover:scale-110 active:scale-90",
+                      "flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl transition-all duration-150",
+                      "hover:bg-muted/50 active:scale-95",
                     )}
                   >
-                    <span className="text-3xl leading-none">{m.emoji}</span>
-                    <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-[0.1em]">
+                    <span className="text-2xl leading-none">{m.emoji}</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {m.label}
                     </span>
                   </button>
@@ -209,9 +211,9 @@ export const MoodCard = ({ state, onSelectMood, onResetMood }: Props) => {
               </div>
 
               {insight && (
-                <div className="mt-3 flex items-center gap-2 rounded-lg bg-accent/5 border border-accent/15 px-2.5 py-1.5">
-                  <Sparkles size={12} className="text-accent shrink-0" strokeWidth={2.5} />
-                  <p className="text-[12px] text-foreground/80 leading-snug">{insight}</p>
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-accent/10 border border-accent/20 px-3 py-2">
+                  <Sparkles size={13} className="text-accent shrink-0" strokeWidth={2.5} />
+                  <p className="text-xs text-foreground/90 font-medium leading-snug">{insight}</p>
                 </div>
               )}
             </div>

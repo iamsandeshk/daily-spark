@@ -1,21 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Archive, ChevronDown, GripVertical, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, Flame, GripVertical, MoreHorizontal, Plus, Trash2, Edit3 } from "lucide-react";
 import type { Routine } from "@/lib/routine-types";
-
-// Shared animation config — used by all section open/close transitions
-// and routine card stagger so timing/easing stay perfectly in sync.
-const SECTION_EASE = [0.32, 0.72, 0, 1] as const;
-const SECTION_DURATION = 0.45;
-const CARD_DURATION = 0.28;
-const STAGGER = 0.04;
-const STAGGER_DELAY = 0.04;
 import { RoutineCheckbox } from "./RoutineCheckbox";
 import { TimerRow } from "./TimerRow";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { completionHaptic, successHaptic, tapHaptic } from "@/lib/haptics";
 import { useEffect, useState } from "react";
-import { Link as LinkIcon, ExternalLink } from "lucide-react";
+import { getRoutineColor } from "@/lib/routine-colors";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +25,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { uid } from "@/lib/utils";
+
+const SECTION_EASE = [0.32, 0.72, 0, 1] as const;
+const SECTION_DURATION = 0.35;
 
 type Props = {
   routine: Routine;
@@ -58,12 +53,15 @@ export const SectionBlock = ({
   const [addOpen, setAddOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
   const [recentlyCheckedIds, setRecentlyCheckedIds] = useState<Set<string>>(new Set());
-  const allBlocks = (routine.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
-  const done = allBlocks.filter((b) => b.checked).length;
 
-  // Show all tasks in their natural order; only move checked tasks to the bottom.
-  // Use original index as a tiebreaker so multiple timers (and tasks) keep
-  // their authored sequence regardless of engine sort stability.
+  const color = getRoutineColor(routine);
+  const allBlocks = (routine.blocks ?? []).filter(
+    (b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim(),
+  );
+  const done = allBlocks.filter((b) => b.checked).length;
+  const pct = allBlocks.length > 0 ? Math.round((done / allBlocks.length) * 100) : 0;
+
+  // Show all tasks in their authored sequence; checked tasks float to the bottom after short delay
   const indexById = new Map(allBlocks.map((b, i) => [b.id, i] as const));
   const sorted = [...allBlocks].sort((a, b) => {
     const aIsDone = a.checked && !recentlyCheckedIds.has(a.id);
@@ -71,10 +69,9 @@ export const SectionBlock = ({
     if (aIsDone !== bIsDone) return aIsDone ? 1 : -1;
     return (indexById.get(a.id) ?? 0) - (indexById.get(b.id) ?? 0);
   });
-  const visibleBlocks = sorted.slice(0, 4);
+  const visibleBlocks = sorted.slice(0, 5);
   const remainingCount = allBlocks.length - visibleBlocks.length;
 
-  // Compute, for each block, whether all preceding (in original order) checkbox/timer tasks are complete.
   const prevDoneById = new Map<string, boolean>();
   let runningAllDone = true;
   for (const b of allBlocks) {
@@ -82,13 +79,12 @@ export const SectionBlock = ({
     if (!b.checked) runningAllDone = false;
   }
 
-  const updateBlock = (blockId: string, patch: Partial<typeof allBlocks[number]>) => {
+  const updateBlock = (blockId: string, patch: Partial<(typeof allBlocks)[number]>) => {
     const next = (routine.blocks ?? []).map((b) => (b.id === blockId ? { ...b, ...patch } : b));
     setRoutineBlocks(routine.id, next);
   };
 
-  // Auto-start idle timers as soon as their preceding tasks are all complete,
-  // even when the timer isn't currently rendered on the home view.
+  // Auto-start idle timers once preceding tasks are completed
   useEffect(() => {
     const blocks = routine.blocks ?? [];
     let changed = false;
@@ -107,16 +103,15 @@ export const SectionBlock = ({
       return b;
     });
     if (changed) setRoutineBlocks(routine.id, nextBlocks);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routine.blocks]);
 
   const handleToggleCheckbox = (blockId: string) => {
-    const isChecking = !(routine.blocks ?? []).find(b => b.id === blockId)?.checked;
-    
+    const isChecking = !(routine.blocks ?? []).find((b) => b.id === blockId)?.checked;
+
     if (isChecking) {
-      setRecentlyCheckedIds(prev => new Set(prev).add(blockId));
+      setRecentlyCheckedIds((prev) => new Set(prev).add(blockId));
       setTimeout(() => {
-        setRecentlyCheckedIds(prev => {
+        setRecentlyCheckedIds((prev) => {
           const next = new Set(prev);
           next.delete(blockId);
           return next;
@@ -132,8 +127,10 @@ export const SectionBlock = ({
       }
       return b;
     });
-    // Detect "just completed everything" transition → stronger haptic
-    const checks = updatedBlocks.filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
+
+    const checks = updatedBlocks.filter(
+      (b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim(),
+    );
     const wasAllDone = allBlocks.length > 0 && allBlocks.every((b) => b.checked);
     const isAllDone = checks.length > 0 && checks.every((b) => b.checked);
     if (!wasAllDone && isAllDone) completionHaptic();
@@ -150,87 +147,129 @@ export const SectionBlock = ({
     setAddOpen(false);
   };
 
-
   return (
-    <section className="flex flex-col">
-      <header className="flex items-center gap-2 px-1 group">
+    <article className="rounded-2xl border border-border bg-card p-4 shadow-sm hover:border-border transition-all duration-150 relative">
+      {/* Routine Card Header */}
+      <header className="flex items-center justify-between gap-2.5">
         <button
+          type="button"
           onClick={() => onToggleCollapsed(routine.id)}
-          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+          className="flex items-center gap-3 flex-1 min-w-0 text-left select-none group"
         >
-          <motion.span
-            animate={{ rotate: routine.collapsed ? -90 : 0 }}
-            transition={{ duration: SECTION_DURATION, ease: SECTION_EASE }}
-            className="text-muted-foreground"
-          >
-            <ChevronDown size={16} />
-          </motion.span>
-          {routine.emoji && <span className="text-lg leading-none">{routine.emoji}</span>}
+          {/* Refined icon container */}
+          <div className="h-10 w-10 rounded-xl bg-secondary/80 border border-border/60 flex items-center justify-center text-xl shrink-0 transition-transform group-hover:scale-102">
+            <span>{routine.emoji || "✨"}</span>
+          </div>
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold tracking-tight truncate">{routine.title}</h2>
-              <span className="text-xs text-muted-foreground tabular-nums">
+              <h2 className="text-[15px] font-bold text-foreground truncate">
+                {routine.title}
+              </h2>
+              {routine.streakCount > 0 && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-bold border border-accent/20 shrink-0">
+                  <Flame size={10} className="fill-accent/30" />
+                  {routine.streakCount}
+                </span>
+              )}
+            </div>
+
+            {/* Task count and progress bar */}
+            <div className="flex items-center gap-2 mt-1">
+              <div className="h-1.5 w-16 bg-secondary rounded-full overflow-hidden shrink-0">
+                <motion.div
+                  className="h-full bg-accent rounded-full"
+                  initial={false}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground font-medium tabular-nums">
                 {done}/{allBlocks.length}
               </span>
             </div>
           </div>
         </button>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-          aria-label="Add task"
-        >
-          <Plus size={16} />
-        </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-smooth"
-              aria-label="Routine options"
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            aria-label="Add task"
+          >
+            <Plus size={16} />
+          </button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                aria-label="Routine options"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl min-w-[160px]">
+              <DropdownMenuItem onSelect={() => navigate(`/routine/${routine.id}`)}>
+                <Edit3 size={14} className="mr-2" /> Edit routine
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onArchive(routine.id)}>
+                <Archive size={14} className="mr-2" /> Archive
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onToggleReorder}>
+                <GripVertical size={14} className="mr-2" /> Reorder
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 font-medium"
+                onSelect={() => setDeleteOpen(true)}
+              >
+                <Trash2 size={14} className="mr-2" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <button
+            type="button"
+            onClick={() => onToggleCollapsed(routine.id)}
+            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            aria-label={routine.collapsed ? "Expand routine" : "Collapse routine"}
+          >
+            <motion.span
+              animate={{ rotate: routine.collapsed ? -90 : 0 }}
+              transition={{ duration: SECTION_DURATION, ease: SECTION_EASE }}
+              className="inline-block"
             >
-              <MoreHorizontal size={16} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onArchive(routine.id)}>
-              <Archive size={14} className="mr-2" /> Archive
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onToggleReorder}>
-              <GripVertical size={14} className="mr-2" /> Reorder sections
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-red-500 dark:text-red-400 focus:text-red-600 dark:focus:text-red-300 font-medium"
-              onSelect={() => setDeleteOpen(true)}
-            >
-              <Trash2 size={14} className="mr-2" /> Delete routine
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <ChevronDown size={16} />
+            </motion.span>
+          </button>
+        </div>
       </header>
- 
+
+      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="rounded-[28px] p-8 gap-6 max-w-[90vw] sm:max-w-md">
-          <DialogHeader className="space-y-3">
-            <DialogTitle className="text-2xl font-serif font-bold text-center sm:text-left">Delete routine?</DialogTitle>
-            <DialogDescription className="text-muted-foreground text-center sm:text-left text-[15px]">
-              This will permanently delete "{routine.title}" and all tasks inside it. This action cannot be undone.
+        <DialogContent className="rounded-2xl p-6 gap-5 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl font-bold">Delete routine?</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm">
+              This will permanently delete "{routine.title}" and its tasks. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
-            <Button 
-              variant="outline" 
+          <DialogFooter className="flex flex-row gap-2.5 sm:justify-end">
+            <Button
+              variant="outline"
               onClick={() => setDeleteOpen(false)}
-              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+              className="flex-1 rounded-xl h-11 font-semibold"
             >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={() => {
                 onDeleteSection(routine.id);
                 setDeleteOpen(false);
               }}
-              className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-destructive/20"
+              className="flex-1 rounded-xl h-11 font-semibold"
             >
               Delete
             </Button>
@@ -238,6 +277,7 @@ export const SectionBlock = ({
         </DialogContent>
       </Dialog>
 
+      {/* Quick Add Task Dialog */}
       <Dialog
         open={addOpen}
         onOpenChange={(o) => {
@@ -245,14 +285,14 @@ export const SectionBlock = ({
           if (!o) setNewTaskText("");
         }}
       >
-        <DialogContent className="rounded-[28px] p-7 gap-5 max-w-[90vw] sm:max-w-md">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="text-xl font-serif font-bold text-left flex items-center gap-2">
-              {routine.emoji && <span>{routine.emoji}</span>}
-              Add task
+        <DialogContent className="rounded-2xl p-6 gap-4 max-w-[90vw] sm:max-w-md">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2">
+              <span>{routine.emoji || "✨"}</span>
+              Add task to {routine.title}
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-[14px] text-left">
-              Quick-add a new task to "{routine.title}".
+            <DialogDescription className="text-muted-foreground text-xs">
+              Type your task name and press Enter.
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -265,21 +305,21 @@ export const SectionBlock = ({
                 handleQuickAdd();
               }
             }}
-            placeholder="e.g. Drink a glass of water"
-            className="h-12 rounded-xl text-[15px]"
+            placeholder="e.g. Drink 500ml water"
+            className="h-11 rounded-xl text-sm"
           />
-          <DialogFooter className="flex flex-row gap-3 sm:justify-end">
+          <DialogFooter className="flex flex-row gap-2.5 sm:justify-end">
             <Button
               variant="outline"
               onClick={() => setAddOpen(false)}
-              className="flex-1 rounded-2xl h-12 font-bold border-border/60 hover:bg-muted"
+              className="flex-1 rounded-xl h-11 font-semibold"
             >
               Cancel
             </Button>
             <Button
               onClick={handleQuickAdd}
               disabled={!newTaskText.trim()}
-              className="flex-1 rounded-2xl h-12 font-bold"
+              className="flex-1 rounded-xl h-11 font-semibold"
             >
               Add task
             </Button>
@@ -287,6 +327,7 @@ export const SectionBlock = ({
         </DialogContent>
       </Dialog>
 
+      {/* Expandable Task List */}
       <AnimatePresence initial={false}>
         {!routine.collapsed && (
           <motion.div
@@ -300,28 +341,25 @@ export const SectionBlock = ({
             }}
             style={{ overflow: "hidden" }}
           >
-            {/* Inner wrapper: flex+gap (not space-y) so margins don't clip
-                during height animation, and pt provides top breathing room
-                that's included in the measured height. */}
-            <div className="flex flex-col gap-1.5 pt-3 pb-1">
+            <div className="flex flex-col gap-2 pt-3.5 pb-0.5">
               {allBlocks.length === 0 && (
                 <button
                   onClick={() => onAdd(routine.id)}
-                  className="w-full text-left text-sm text-muted-foreground rounded-xl border border-dashed border-border px-3.5 py-3 hover:bg-muted/50 transition-smooth"
+                  className="w-full text-center text-xs text-muted-foreground rounded-xl border border-dashed border-border/80 py-3 hover:bg-muted/40 transition-colors"
                 >
-                  + Add tasks inside this section
+                  + Add first task to this routine
                 </button>
               )}
-              
+
               <AnimatePresence initial={false} mode="popLayout">
                 {visibleBlocks.map((b) => (
                   <motion.div
                     key={b.id}
                     layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    transition={{ duration: 0.2 }}
                   >
                     {b.type === "timer" ? (
                       <TimerRow
@@ -339,16 +377,15 @@ export const SectionBlock = ({
                     ) : (
                       <div
                         className={cn(
-                          "relative flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-block transition-colors",
-                          b.checked && "bg-success-soft/40 border-success/20",
+                          "relative flex items-center gap-3 rounded-xl border border-border/60 bg-secondary/35 px-3.5 py-2.5 transition-all duration-150 hover:border-border",
+                          b.checked && "bg-secondary/15 border-border/30 opacity-70",
                         )}
                       >
-                        <div className="shrink-0">
-                          <RoutineCheckbox
-                            checked={!!b.checked}
-                            onChange={() => handleToggleCheckbox(b.id)}
-                          />
-                        </div>
+                        <RoutineCheckbox
+                          checked={!!b.checked}
+                          accentColor={color.hex}
+                          onChange={() => handleToggleCheckbox(b.id)}
+                        />
 
                         <button
                           type="button"
@@ -357,8 +394,10 @@ export const SectionBlock = ({
                         >
                           <span
                             className={cn(
-                              "font-medium text-[15px] leading-snug truncate transition-colors",
-                              b.checked && "line-through text-muted-foreground",
+                              "text-sm font-medium leading-snug truncate transition-all duration-150 block",
+                              b.checked
+                                ? "line-through text-muted-foreground/60"
+                                : "text-foreground",
                             )}
                           >
                             {b.text || "Untitled Task"}
@@ -373,7 +412,7 @@ export const SectionBlock = ({
               {remainingCount > 0 && (
                 <button
                   onClick={() => navigate(`/routine/${routine.id}`)}
-                  className="text-[11px] text-muted-foreground/60 font-bold tracking-wider pl-1 mt-1 hover:text-foreground transition-colors uppercase"
+                  className="text-xs text-muted-foreground hover:text-foreground font-medium pt-1.5 pb-0.5 text-center transition-colors block w-full"
                 >
                   + {remainingCount} more tasks
                 </button>
@@ -382,6 +421,6 @@ export const SectionBlock = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </article>
   );
 };

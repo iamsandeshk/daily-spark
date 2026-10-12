@@ -141,24 +141,24 @@ const ToolbarCustomization = () => {
 
   return (
     <div className="min-h-full bg-background pb-20">
-      <header className="safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center gap-3 border-b border-border/40">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-serif font-bold">Toolbar</h1>
+          <h1 className="text-xl font-bold tracking-tight">Toolbar</h1>
           <p className="text-xs text-muted-foreground">
             Drag to reorder. Toggle to show or hide in Quick Add.
           </p>
         </div>
       </header>
 
-      <main className="px-5">
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <main className="px-5 mt-3">
+        <div className="rounded-2xl border border-border/70 bg-card/60 backdrop-blur-sm overflow-hidden">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}

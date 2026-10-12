@@ -14,13 +14,13 @@ import type { MoodValue } from "@/lib/routine-types";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-bold px-1 mt-7 mb-2.5">
+  <h3 className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground font-bold px-1 mt-7 mb-2.5">
     {children}
   </h3>
 );
 
 const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("rounded-2xl border border-border bg-card overflow-hidden", className)}>{children}</div>
+  <div className={cn("rounded-2xl border border-border/70 bg-card/60 backdrop-blur-sm overflow-hidden", className)}>{children}</div>
 );
 
 const Customization = () => {
@@ -54,15 +54,15 @@ const Customization = () => {
 
   return (
     <div className="min-h-full bg-background pb-20 no-select">
-      <header className="sticky top-0 z-30 bg-background safe-top px-5 pb-3 pt-3 flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md safe-top px-5 pb-3 pt-3 flex items-center gap-3 border-b border-border/40">
         <button
           onClick={() => navigate(-1)}
-          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-smooth"
+          className="rounded-full border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-2xl font-serif font-bold">Customization</h1>
+        <h1 className="text-xl font-bold tracking-tight">Customization</h1>
       </header>
 
       <main className="px-5">

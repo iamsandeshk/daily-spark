@@ -1,32 +1,49 @@
 import { AnimatePresence, motion, Reorder, useDragControls } from "framer-motion";
-import { CalendarDays, GripVertical, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { GripVertical, Sparkles, Plus } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRoutines } from "@/hooks/useRoutines";
-import { ProgressHeader } from "@/components/routine/ProgressHeader";
-import { SectionBlock } from "@/components/routine/SectionBlock";
+import { HomeHeader } from "@/components/routine/HomeHeader";
+import { HomeRoutineCard } from "@/components/routine/HomeRoutineCard";
+import { HomeWeekView } from "@/components/routine/HomeWeekView";
+import { SuggestionCard } from "@/components/routine/SuggestionCard";
+import { ProCard } from "@/components/routine/ProCard";
+import { FloatingBottomNav } from "@/components/routine/FloatingBottomNav";
+import { HomeMenuSheet } from "@/components/routine/HomeMenuSheet";
 import { CarryForwardDialog } from "@/components/routine/CarryForwardDialog";
-import { MoodCard } from "@/components/routine/MoodCard";
-import { TemplateLibrary } from "@/components/routine/TemplateLibrary";
-import { SupportSection } from "@/components/SupportSection";
 import { CompletionCelebration } from "@/components/routine/CompletionCelebration";
 import { StreakGoalCelebration } from "@/components/routine/StreakGoalCelebration";
-import type { Routine, RoutineBlockContent } from "@/lib/routine-types";
-import { uid } from "@/lib/utils";
+import type { Routine } from "@/lib/routine-types";
 import { tapHaptic } from "@/lib/haptics";
 import { isPro, FREE_ROUTINE_LIMIT } from "@/lib/pro";
 import { toast } from "@/hooks/use-toast";
+import { applyTheme, getThemeMode, getAmoled } from "@/lib/theme";
 
-
-// Module-level flag: the FAB "New Section → +" intro animation only plays
-// the first time the app mounts in this session, not on every Home navigation.
-let fabIntroPlayed = false;
+// Helper hook to bootstrap theme settings on Home mount
+const useThemeBootstrap = () => {
+  useEffect(() => {
+    applyTheme(getThemeMode(), getAmoled());
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      if (getThemeMode() === "system") applyTheme("system", getAmoled());
+    };
+    mq.addEventListener("change", handler);
+    const onStorage = () => applyTheme(getThemeMode(), getAmoled());
+    window.addEventListener("storage", onStorage);
+    return () => {
+      mq.removeEventListener("change", handler);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+};
 
 const Index = () => {
+  useThemeBootstrap();
   const r = useRoutines();
   const navigate = useNavigate();
   const [reorderMode, setReorderMode] = useState(false);
-  const [showFullButton, setShowFullButton] = useState(() => !fabIntroPlayed);
+  const [viewMode, setViewMode] = useState<"today" | "week">("today");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [prevCompleted, setPrevCompleted] = useState(r.completed);
   const streakGoal = r.state.settings?.streakGoal ?? 7;
@@ -39,18 +56,17 @@ const Index = () => {
     return date.toISOString().slice(0, 10);
   };
 
-  // 1. One-time check on mount/open to show celebration if streak goal was completed today or yesterday
+  // 1. One-time check on mount to show celebration if streak goal was reached
   useEffect(() => {
     const completedDate = localStorage.getItem("streak-goal-completed-date");
     if (completedDate) {
       const todayStr = new Date().toISOString().slice(0, 10);
       const dayAfterCompleted = getDayAfter(completedDate);
-      
+
       if (todayStr === completedDate || todayStr === dayAfterCompleted) {
         const celebrationShown = localStorage.getItem("streak-goal-celebration-shown");
         if (celebrationShown !== completedDate) {
           setShowStreakCelebration(true);
-          // Mark as shown for this specific completion date
           localStorage.setItem("streak-goal-celebration-shown", completedDate);
         }
       }
@@ -64,18 +80,12 @@ const Index = () => {
     const completedDate = localStorage.getItem("streak-goal-completed-date");
 
     if (isTodayComplete && r.globalStreak >= streakGoal && completedDate !== todayStr) {
-      // Mark as completed today
       localStorage.setItem("streak-goal-completed-date", todayStr);
-      
-      // Mark as shown today (since we'll show it immediately)
       localStorage.setItem("streak-goal-celebration-shown", todayStr);
-      
-      // Trigger the celebration modal immediately
       setShowStreakCelebration(true);
-      
-      // Schedule the local push notification for 2 hours in the future
+
       import("@/lib/notifications").then(({ scheduleStreakGoalNotification }) => {
-        scheduleStreakGoalNotification(streakGoal).catch(err => {
+        scheduleStreakGoalNotification(streakGoal).catch((err) => {
           console.error("Failed to schedule streak goal notification:", err);
         });
       });
@@ -87,37 +97,13 @@ const Index = () => {
       r.total > 0 &&
       r.completed === r.total &&
       prevCompleted < r.total &&
-      (r.state.settings as any)?.completionCelebration !== false
+      r.state.settings?.completionCelebration !== false
     ) {
       setShowCelebration(true);
       tapHaptic();
     }
     setPrevCompleted(r.completed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r.completed, r.total]);
-
-  useEffect(() => {
-    if (fabIntroPlayed) return;
-    const timer = setTimeout(() => {
-      setShowFullButton(false);
-      fabIntroPlayed = true;
-    }, 3500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!reorderMode) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('[data-reorder-keep="true"]')) return;
-      setReorderMode(false);
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, [reorderMode]);
 
   const today = new Date().toISOString().slice(0, 10);
   const isVisible = (rt: Routine) => {
@@ -126,13 +112,21 @@ const Index = () => {
     if (rt.endDate && today > rt.endDate) return false;
     return true;
   };
-  const sortedRoutines = [...r.state.routines].filter(isVisible).sort((a, b) => a.order - b.order);
+
+  const sortedRoutines = useMemo(() => {
+    return [...r.state.routines].filter(isVisible).sort((a, b) => a.order - b.order);
+  }, [r.state.routines]);
+
   const [order, setOrder] = useState<Routine[]>(sortedRoutines);
 
   useEffect(() => {
     setOrder(sortedRoutines);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [r.state.routines]);
+  }, [sortedRoutines]);
+
+  // Count remaining uncompleted routines for the header indicator
+  const uncompletedCount = useMemo(() => {
+    return order.filter((rt) => !rt.isCompleted).length;
+  }, [order]);
 
   const newRoutine = (routineId?: string) => {
     if (routineId) {
@@ -151,74 +145,14 @@ const Index = () => {
     navigate("/routine/new");
   };
 
-  const proLimitToast = () => {
-    toast({
-      title: "Free tier limit reached",
-      description: `Free includes up to ${FREE_ROUTINE_LIMIT} routines. Upgrade to Pro for unlimited.`,
-    });
-    navigate("/settings/pro");
-  };
-
-  const handleAddTemplate = (t: any) => {
-    const activeCount = r.state.routines.filter((rt) => !rt.archived).length;
-    if (!isPro() && activeCount >= FREE_ROUTINE_LIMIT) {
-      proLimitToast();
-      return;
-    }
-    const sectionId = r.state.sections[0]?.id || r.addSection("Routines");
-    
-    // Find or create a routine by title (helper for nested templates)
-    const findOrCreateRoutine = (routineTitle: string): string => {
-      const existing = r.state.routines.find(x => x.title.toLowerCase() === routineTitle.toLowerCase());
-      if (existing) return existing.id;
-      
-      // Look for a template with this title
-      const template = (TemplateLibrary as any).TEMPLATES?.find((tmp: any) => tmp.title.toLowerCase() === routineTitle.toLowerCase());
-      if (template) {
-        const depBlocks = template.blocks.map((b: any) => ({ ...b, id: uid() }));
-        return r.addRoutine({
-          title: template.title,
-          emoji: template.emoji,
-          description: template.description,
-          sectionId,
-          blocks: depBlocks,
-        }) ?? "";
-      }
-      
-      // Fallback: Create a blank one
-      return r.addRoutine({ title: routineTitle, sectionId, blocks: [] }) ?? "";
-    };
-
-    const blocks: RoutineBlockContent[] = t.blocks.map((b: any) => {
-      const newBlock = { ...b, id: uid() };
-      if (b.type === "routine" && b.text) {
-        newBlock.linkedRoutineId = findOrCreateRoutine(b.text);
-      }
-      return newBlock;
-    });
-
-    const created = r.addRoutine({
-      title: t.title,
-      emoji: t.emoji,
-      description: t.description,
-      sectionId,
-      blocks,
-    });
-    if (created === null) {
-      proLimitToast();
-      return;
-    }
-    tapHaptic();
-  };
-
-
   const handleReorder = (next: Routine[]) => {
     setOrder(next);
     r.reorderRoutines(next.map((s) => s.id));
   };
 
   return (
-    <div className="min-h-full bg-background pb-32 no-select">
+    <div className="min-h-screen bg-black text-foreground relative no-select overflow-x-hidden pb-40">
+      {/* Completion Celebrations */}
       <CompletionCelebration
         show={showCelebration}
         onDone={() => setShowCelebration(false)}
@@ -228,124 +162,132 @@ const Index = () => {
         streakGoal={streakGoal}
         onClose={() => setShowStreakCelebration(false)}
       />
-      <ProgressHeader
-        completed={r.completed}
-        total={r.total}
-        globalStreak={r.globalStreak}
-        onOpenHistory={() => navigate("/history")}
-      />
 
-      <MoodCard state={r.state} onSelectMood={r.setMood} onResetMood={r.clearMood} />
-
+      {/* Carry-forward dialog when applicable */}
       <CarryForwardDialog
         state={r.state}
         onAccept={r.acceptCarryForward}
         onDismiss={r.dismissCarryForward}
       />
 
-      <main className="px-4">
-        <Reorder.Group axis="y" values={order} onReorder={handleReorder} className="space-y-6">
-          {order.map((routine) => (
-            <SectionReorderItem
-              key={routine.id}
-              routine={routine}
-              reorderMode={reorderMode}
-              onToggleReorder={() => setReorderMode((v) => !v)}
-              onToggleCollapsed={r.toggleRoutineCollapsed}
-              onAdd={() => newRoutine(routine.id)}
-              onDeleteSection={r.deleteRoutine}
-              onToggleRoutine={r.toggleRoutine}
-              onDeleteRoutine={r.deleteRoutine}
-              onArchive={(id) => {
-                r.updateRoutine(id, { archived: true });
-                tapHaptic();
-              }}
-              setRoutineBlocks={r.setRoutineBlocks}
-            />
-          ))}
-        </Reorder.Group>
+      {/* Reference-accurate Top Bar Header */}
+      <HomeHeader
+        viewMode={viewMode}
+        uncompletedCount={uncompletedCount}
+        onAddRoutine={() => newRoutine()}
+      />
 
-        <SupportSection />
+      {/* Main Content Area */}
+      <main className="px-4 pt-1 relative z-10 max-w-xl mx-auto">
+        {viewMode === "week" ? (
+          <HomeWeekView routines={order} state={r.state} />
+        ) : (
+          <div className="space-y-3.5">
+            {order.length === 0 ? (
+              <div className="rounded-[28px] border border-dashed border-white/10 bg-[#141416] p-8 text-center my-6">
+                <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-white/70 mb-3.5">
+                  <Sparkles size={22} />
+                </div>
+                <h3 className="text-[17px] font-semibold text-white tracking-tight">
+                  No active routines
+                </h3>
+                <p className="text-[13px] text-white/50 mt-1 max-w-xs mx-auto">
+                  Create your first routine to start tracking your daily habits.
+                </p>
+                <div className="mt-5 flex justify-center">
+                  <button
+                    onClick={() => newRoutine()}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-black px-5 py-2.5 text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shadow-md"
+                  >
+                    <Plus size={15} strokeWidth={2.5} />
+                    Create Routine
+                  </button>
+                </div>
+              </div>
+            ) : reorderMode ? (
+              <Reorder.Group axis="y" values={order} onReorder={handleReorder} className="space-y-3.5">
+                {order.map((routine) => (
+                  <ReorderItem
+                    key={routine.id}
+                    routine={routine}
+                    onOpen={() => navigate(`/routine/${routine.id}`)}
+                    onToggleComplete={() => r.toggleRoutine(routine.id)}
+                  />
+                ))}
+              </Reorder.Group>
+            ) : (
+              <div className="space-y-3.5">
+                {order.map((routine) => (
+                  <HomeRoutineCard
+                    key={routine.id}
+                    routine={routine}
+                    onOpen={() => navigate(`/routine/${routine.id}`)}
+                    onToggleComplete={() => r.toggleRoutine(routine.id)}
+                  />
+                ))}
+              </div>
+            )}
 
-        <TemplateLibrary onAdd={handleAddTemplate} />
+            {/* Supportive Suggestion Card (Reference 2 & 3) */}
+            <div className="pt-1">
+              <SuggestionCard onAddRoutine={() => newRoutine()} />
+            </div>
+
+            {/* Pro Promotion Card (Reference 2) */}
+            <div className="pt-0.5">
+              <ProCard />
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Floating Action: History + New */}
-      <div
-        className="fixed right-5 bottom-6 z-40 flex items-end flex-col gap-3"
-        style={{ marginBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <button
-          onClick={() => navigate("/history")}
-          className="flex items-center justify-center rounded-full bg-card border border-border text-foreground h-14 w-14 shadow-elevated active:scale-95 transition-transform"
-          aria-label="History"
-        >
-          <CalendarDays size={22} />
-        </button>
-        <motion.button
-          onClick={() => newRoutine()}
-          initial={false}
-          animate={{ width: showFullButton ? "auto" : 56 }}
-          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center justify-center h-14 rounded-full bg-accent text-accent-foreground shadow-elevated overflow-hidden px-4 hover:opacity-90 active:scale-95"
-          aria-label="Add routine"
-        >
-          <Plus size={22} strokeWidth={2.5} className="shrink-0" />
-          <AnimatePresence initial={false}>
-            {showFullButton && (
-              <motion.span
-                key="label"
-                initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                animate={{ opacity: 1, width: "auto", marginLeft: 8 }}
-                exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className="text-sm font-semibold whitespace-nowrap pr-1.5"
-              >
-                New Section
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
+      {/* Floating Bottom Navigation (Reference 1, 2, 3) */}
+      <FloatingBottomNav
+        viewMode={viewMode}
+        onViewModeToggle={() => setViewMode((m) => (m === "today" ? "week" : "today"))}
+        onOpenMenu={() => setMenuOpen(true)}
+      />
+
+      {/* Options and Menu Sheet */}
+      <HomeMenuSheet
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        onToggleReorder={() => setReorderMode((v) => !v)}
+        reorderActive={reorderMode}
+      />
     </div>
   );
 };
 
-type ItemProps = {
+type ReorderItemProps = {
   routine: Routine;
-  reorderMode: boolean;
-  onToggleReorder: () => void;
-  onToggleCollapsed: (id: string) => void;
-  onAdd: (id: string) => void;
-  onDeleteSection: (id: string) => void;
-  onToggleRoutine: (id: string) => void;
-  onDeleteRoutine: (id: string) => void;
-  onArchive: (id: string) => void;
-  setRoutineBlocks: ReturnType<typeof useRoutines>["setRoutineBlocks"];
+  onOpen: () => void;
+  onToggleComplete: () => void;
 };
 
-const SectionReorderItem = ({ routine, reorderMode, ...rest }: ItemProps) => {
+const ReorderItem = ({ routine, onOpen, onToggleComplete }: ReorderItemProps) => {
   const controls = useDragControls();
   return (
     <Reorder.Item
       value={routine}
       dragListener={false}
       dragControls={controls}
-      className="relative"
+      className="relative flex items-center"
     >
-      {reorderMode && (
-        <button
-          type="button"
-          onPointerDown={(e) => controls.start(e)}
-          className="absolute -left-1 top-1.5 z-10 p-1 text-muted-foreground/60 hover:text-foreground touch-none cursor-grab active:cursor-grabbing"
-          data-reorder-keep="true"
-          aria-label={`Drag ${routine.title}`}
-        >
-          <GripVertical size={14} />
-        </button>
-      )}
-      <div className={reorderMode ? "pl-5" : "pl-0"}>
-        <SectionBlock routine={routine} {...rest} />
+      <button
+        type="button"
+        onPointerDown={(e) => controls.start(e)}
+        className="shrink-0 p-2 text-white/40 hover:text-white touch-none cursor-grab active:cursor-grabbing mr-1"
+        aria-label={`Drag ${routine.title}`}
+      >
+        <GripVertical size={18} />
+      </button>
+      <div className="flex-1 min-w-0">
+        <HomeRoutineCard
+          routine={routine}
+          onOpen={onOpen}
+          onToggleComplete={onToggleComplete}
+        />
       </div>
     </Reorder.Item>
   );
