@@ -4,7 +4,6 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Flame, Plus, Settings as SettingsIcon, Undo2, Check } from "lucide-react";
 import { useRoutines } from "@/hooks/useRoutines";
 import { tapHaptic } from "@/lib/haptics";
-import { BlockEditor } from "@/components/routine/BlockEditor";
 import { EmojiPicker } from "@/components/routine/EmojiPicker";
 import { ROUTINE_COLORS, getRoutineColor } from "@/lib/routine-colors";
 import type { RoutineBlockContent } from "@/lib/routine-types";
@@ -45,7 +44,7 @@ const RoutineDetail = () => {
     (existing?.description && !existing?.blocks
       ? [{ id: "legacy", type: "text", text: existing.description }]
       : isNew
-        ? [{ id: uid(), type: "checkbox", text: "", checked: false }]
+        ? []
         : []),
   );
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -258,34 +257,6 @@ const RoutineDetail = () => {
           </button>
 
           <div className="flex items-center gap-2">
-            {existing && (() => {
-              let done = 0;
-              let total = 0;
-              
-              const countTasks = (blkList: RoutineBlockContent[]) => {
-                blkList.forEach(b => {
-                  if (b.type === 'checkbox') {
-                    total++;
-                    if (b.checked) done++;
-                  } else if (b.type === 'routine' && b.linkedRoutineId) {
-                    const linked = r.state.routines.find(x => x.id === b.linkedRoutineId);
-                    if (linked?.blocks) countTasks(linked.blocks);
-                  }
-                });
-              };
-              
-              countTasks(blocks);
-              
-              if (total === 0) return null;
-              
-              return (
-                <div className="h-8 flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 text-[11px] font-black text-accent border border-accent/20">
-                  <Flame size={12} strokeWidth={2.5} className="fill-accent/20" />
-                  {done}/{total}
-                </div>
-              );
-            })()}
-
             {existing && (
               <button
                 onClick={() => navigate(`/routine/${existing.id}/settings`)}
@@ -372,7 +343,6 @@ const RoutineDetail = () => {
           </div>
         </div>
 
-        <BlockEditor blocks={blocks} onChange={handleBlocksChange} editable={true} currentRoutineId={id} />
       </main>
 
       {/* Floating Undo Button */}
