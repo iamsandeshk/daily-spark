@@ -7,7 +7,11 @@ import { canAddRoutine } from "@/lib/pro";
 
 
 /** Merge today's live snapshot into history so the calendar always reflects current progress. */
-const withLiveToday = (s: RoutineState): RoutineState => {
+const withLiveToday = (raw: RoutineState): RoutineState => {
+  // Routines are simple single habits: drop any legacy inner content.
+  const s = raw.routines.some((r) => r.blocks !== undefined)
+    ? { ...raw, routines: raw.routines.map(({ blocks: _b, ...r }) => r as Routine) }
+    : raw;
   const today = todayLiveHistory(s);
   return { ...s, history: { ...s.history, [today.date]: today } };
 };
@@ -184,7 +188,7 @@ export const useRoutines = () => {
       const order = sectionRoutines.length;
       return withLiveToday({
         ...s,
-        routines: [...s.routines, { ...data, id: finalId, isCompleted: false, streakCount: 0, order }],
+        routines: [...s.routines, { ...data, blocks: undefined, id: finalId, isCompleted: false, streakCount: 0, order }],
       });
     });
     return finalId;
@@ -290,14 +294,12 @@ export const useRoutines = () => {
   };
   const completed = state.routines.reduce((acc, r) => {
     if (!isActive(r)) return acc;
-    const checks = (r.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
-    return acc + checks.filter((b) => !!b.checked).length;
+    return acc + (r.isCompleted ? 1 : 0);
   }, 0);
 
   const total = state.routines.reduce((acc, r) => {
     if (!isActive(r)) return acc;
-    const checks = (r.blocks ?? []).filter((b) => (b.type === "checkbox" || b.type === "timer") && b.text?.trim());
-    return acc + checks.length;
+    return acc + 1;
   }, 0);
 
   const globalStreak = useMemo(() => {
